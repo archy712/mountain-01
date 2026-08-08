@@ -11,6 +11,9 @@ node_modules
 next-env.d.ts
 lib/supabase/database.types.ts
 
+# 기획/개발 문서 (자동 포맷 제외 — 범위 표기 등 원문 유지)
+docs
+
 # 락파일
 package-lock.json
 pnpm-lock.yaml
