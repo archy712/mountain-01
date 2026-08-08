@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
+import { TrailSelectionProvider } from "@/components/trail-selection";
 import { getAllMountains } from "@/lib/data/mountains";
 import { getMountainMeta, getTrailPathsForMountain } from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
@@ -52,25 +53,28 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
         <h1 className="text-lg font-bold">{title}</h1>
       </div>
 
-      {/* 풀스크린 지도 영역 (Task 028: KakaoMap, Task 029: 폴리라인) */}
-      <div className="relative overflow-hidden rounded-lg border">
-        <KakaoMap
-          lat={mountain.lat}
-          lng={mountain.lng}
-          name={mountain.name}
-          level={5}
-          appKey={publicEnv.kakaoMapKey}
-          className="min-h-[70dvh]"
-        >
-          <Suspense fallback={null}>
-            <FullscreenTrailOverlay mountainId={mountain.id} />
-          </Suspense>
-        </KakaoMap>
-        <MapLegend
-          statuses={["open", "partial", "closed"]}
-          className="absolute right-3 bottom-3 left-3 sm:right-auto"
-        />
-      </div>
+      {/* 풀스크린 지도 영역 (Task 028: KakaoMap, Task 029: 폴리라인, Task 032: 선택 강조).
+          목록이 없는 화면이라 폴리라인 클릭 → 강조 + 이름 라벨로 코스를 식별한다. */}
+      <TrailSelectionProvider>
+        <div className="relative overflow-hidden rounded-lg border">
+          <KakaoMap
+            lat={mountain.lat}
+            lng={mountain.lng}
+            name={mountain.name}
+            level={5}
+            appKey={publicEnv.kakaoMapKey}
+            className="min-h-[70dvh]"
+          >
+            <Suspense fallback={null}>
+              <FullscreenTrailOverlay mountainId={mountain.id} />
+            </Suspense>
+          </KakaoMap>
+          <MapLegend
+            statuses={["open", "partial", "closed"]}
+            className="absolute right-3 bottom-3 left-3 sm:right-auto"
+          />
+        </div>
+      </TrailSelectionProvider>
     </section>
   );
 }

@@ -15,6 +15,7 @@ import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrailList } from "@/components/trail-list";
+import { TrailSelectionProvider } from "@/components/trail-selection";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
@@ -94,42 +95,46 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
         <WeatherSection mountain={mountain} />
       </Suspense>
 
-      <Suspense fallback={<TrailListSkeleton />}>
-        <TrailSection mountainId={mountain.id} />
-      </Suspense>
+      {/* 탐방로 목록 ↔ 지도 폴리라인 선택 연동(Task 032). 두 섹션을 한 Provider 로 감싸
+          목록 클릭 시 지도의 해당 선을 강조색으로 부각한다(반대 방향도 동작). */}
+      <TrailSelectionProvider>
+        <Suspense fallback={<TrailListSkeleton />}>
+          <TrailSection mountainId={mountain.id} />
+        </Suspense>
 
-      {/* 지도 섹션 — 카카오맵(Task 028). 등산로 폴리라인은 Task 029(Phase 5). */}
-      <section aria-labelledby="map-heading" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="map-heading" className="text-base font-semibold">
-            지도
-          </h2>
-          <Link
-            href={`/mountains/${id}/map`}
-            className="inline-flex h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <Maximize2 className="size-4" aria-hidden="true" />
-            전체화면
-          </Link>
-        </div>
-        <div className="relative overflow-hidden rounded-lg border">
-          <KakaoMap
-            lat={mountain.lat}
-            lng={mountain.lng}
-            name={mountain.name}
-            appKey={publicEnv.kakaoMapKey}
-            className="h-[220px]"
-          >
-            <Suspense fallback={null}>
-              <TrailOverlaySection mountainId={mountain.id} />
-            </Suspense>
-          </KakaoMap>
-          <MapLegend
-            statuses={["open", "partial", "closed"]}
-            className="absolute right-3 bottom-3 left-3 sm:right-auto"
-          />
-        </div>
-      </section>
+        {/* 지도 섹션 — 카카오맵(Task 028) + 등산로 폴리라인(Task 029) + 선택 강조(Task 032). */}
+        <section aria-labelledby="map-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="map-heading" className="text-base font-semibold">
+              지도
+            </h2>
+            <Link
+              href={`/mountains/${id}/map`}
+              className="inline-flex h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Maximize2 className="size-4" aria-hidden="true" />
+              전체화면
+            </Link>
+          </div>
+          <div className="relative overflow-hidden rounded-lg border">
+            <KakaoMap
+              lat={mountain.lat}
+              lng={mountain.lng}
+              name={mountain.name}
+              appKey={publicEnv.kakaoMapKey}
+              className="h-[220px]"
+            >
+              <Suspense fallback={null}>
+                <TrailOverlaySection mountainId={mountain.id} />
+              </Suspense>
+            </KakaoMap>
+            <MapLegend
+              statuses={["open", "partial", "closed"]}
+              className="absolute right-3 bottom-3 left-3 sm:right-auto"
+            />
+          </div>
+        </section>
+      </TrailSelectionProvider>
     </div>
   );
 }

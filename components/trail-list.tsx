@@ -2,7 +2,7 @@ import { CircleHelp } from "lucide-react";
 
 import { ErrorFallback } from "@/components/error-fallback";
 import { StaleDataNotice } from "@/components/stale-data-notice";
-import { TrailStatusBadge } from "@/components/trail-status-badge";
+import { TrailListInteractive } from "@/components/trail-list-interactive";
 import { hasData, type PartialResult, type Trail } from "@/lib/types";
 
 /**
@@ -34,22 +34,7 @@ export function TrailList({ result }: { result: PartialResult<Trail[]> }) {
           탐방로 개방 정보가 없어요. (국립공원 외 지역)
         </div>
       ) : (
-        <ul className="space-y-2">
-          {result.data.map((trail) => (
-            <li key={trail.id} className="rounded-lg border p-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-medium">{trail.name}</span>
-                <TrailStatusBadge status={trail.status} size="sm" />
-              </div>
-              {trail.closedReason || trail.closedPeriod ? (
-                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-                  {trail.closedReason ? <p>{trail.closedReason}</p> : null}
-                  {trail.closedPeriod ? <p>통제 기간: {trail.closedPeriod}</p> : null}
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <TrailListInteractive trails={result.data} />
       )}
     </section>
   );

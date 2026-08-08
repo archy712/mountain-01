@@ -51,12 +51,57 @@ declare global {
       strokeOpacity?: number;
       /** solid | shortdash | dot 등 */
       strokeStyle?: string;
+      /** 겹친 폴리라인의 그리기 순서(클수록 위) */
+      zIndex?: number;
     }
 
     /** 폴리라인 오버레이 (등산로 경로, Task 029) */
     class Polyline {
       constructor(options: PolylineOptions);
       setMap(map: Map | null): void;
+      /** 선 스타일을 동적으로 갱신(재생성 없이 색/두께/투명도 변경) */
+      setOptions(options: Partial<PolylineOptions>): void;
+      /** 겹친 폴리라인의 그리기 순서 설정(선택 강조 시 위로 올림) */
+      setZIndex(zIndex: number): void;
+      getPath(): LatLng[];
+    }
+
+    interface CustomOverlayOptions {
+      position: LatLng;
+      /** 오버레이 내용(HTML 문자열 또는 DOM 엘리먼트) */
+      content: string | HTMLElement;
+      map?: Map;
+      /** 가로 기준 위치(0~1, 기본 0.5) */
+      xAnchor?: number;
+      /** 세로 기준 위치(0~1) */
+      yAnchor?: number;
+      zIndex?: number;
+      clickable?: boolean;
+    }
+
+    /** 커스텀 오버레이 (선택된 탐방로 이름 라벨 등) */
+    class CustomOverlay {
+      constructor(options: CustomOverlayOptions);
+      setMap(map: Map | null): void;
+      setPosition(position: LatLng): void;
+    }
+
+    /** 지도/오버레이 이벤트 콜백에 전달되는 마우스 이벤트 */
+    interface MouseEvent {
+      latLng: LatLng;
+    }
+
+    namespace event {
+      function addListener(
+        target: object,
+        type: string,
+        handler: (mouseEvent: MouseEvent) => void,
+      ): void;
+      function removeListener(
+        target: object,
+        type: string,
+        handler: (mouseEvent: MouseEvent) => void,
+      ): void;
     }
 
     /**
