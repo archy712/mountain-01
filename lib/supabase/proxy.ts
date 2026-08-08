@@ -45,12 +45,19 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
+  // 공개 경로: 1단계 전면 비로그인 정책 (결정 002 #12 / 확정 라우트 표).
+  // `/`, `/mountains/*`(상세·지도), `/offline`, 인증 흐름(`/auth/*`, `/login*`)은
+  // 로그인 없이 접근 가능. 그 외(`/favorites`, `/protected/*` 등)는 인증 요구.
+  const { pathname } = request.nextUrl;
+  const isPublicPath =
+    pathname === "/" ||
+    pathname === "/offline" ||
+    pathname === "/mountains" ||
+    pathname.startsWith("/mountains/") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/login");
+
+  if (!user && !isPublicPath) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";

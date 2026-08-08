@@ -130,13 +130,14 @@
   - **산출물**: ✅ `app/layout.tsx`, ✅ `lib/env.ts`, ✅ `.env.local.example`
   - **의존성**: Task 002
 
-- **Task 005: 라우트 구조 및 공통 레이아웃 골격 구현** - 우선순위
-  - App Router 전체 라우트 스캐폴딩 — `app/page.tsx`(홈/검색), `app/mountains/[id]/page.tsx`(상세), `app/favorites/page.tsx`, `app/mountains/[id]/map/page.tsx`, `app/offline/page.tsx`
-  - 라우트별 `loading.tsx` / `error.tsx` / `not-found.tsx` 껍데기 생성 (PRD 7장 에러·로딩 요구사항 대응 자리 확보)
-  - 모바일 우선 공통 레이아웃 골격 — 상단 헤더(로고+테마 스위처), 하단/상단 네비게이션, 최대 폭 컨테이너
-  - `proxy.ts` 보호 경로 재정의 — 1단계는 `/`, `/mountains/*` 전면 공개, `/favorites`만 인증 요구(2단계 활성화)
-  - `params`/`searchParams` 비동기 시그니처 적용 (Next.js 16 규약)
-  - **산출물**: `app/mountains/[id]/`, `app/favorites/`, `app/offline/`, `components/site-header.tsx`, `proxy.ts`
+- **✅ Task 005: 라우트 구조 및 공통 레이아웃 골격 구현** - 완료
+  - ✅ App Router 전체 라우트 스캐폴딩 — 라우트 그룹 `app/(main)/`에 홈(`page.tsx`)·상세(`mountains/[id]/page.tsx`)·지도(`mountains/[id]/map/page.tsx`)·즐겨찾기(`favorites/page.tsx`) 배치, `/offline`은 그룹 밖 독립 배치
+  - ✅ 산 상세 라우트에 `loading.tsx`(스켈레톤)·`error.tsx`(재시도, useEffect 로깅)·`not-found.tsx` 껍데기 생성
+  - ✅ 모바일 우선 공통 레이아웃 골격 — `components/site-header.tsx`(로고+테마 스위처, sticky) + `(main)/layout.tsx` 최대폭 컨테이너(`max-w-screen-sm`). **하단 네비는 즐겨찾기 활성화 시점(Task 025)으로 연기**(1단계 목적지 홈뿐)
+  - ✅ `proxy.ts` 보호 경로 재정의 — 쿠키 처리 로직 불변, 공개 경로 화이트리스트(`/`·`/mountains/*`·`/offline`·`/auth*`·`/login*`)로 전환. `/favorites` 미인증 시 `/auth/login` 리다이렉트 확인
+  - ✅ `params` 비동기 시그니처 적용(상세·지도, `await params`) — Next.js 16 규약
+  - ✅ Playwright MCP 스모크 테스트(360px) — 홈·상세·지도·오프라인 렌더 + `/favorites`→`/auth/login` 리다이렉트, 콘솔 에러 0건. `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/(main)/*`, `app/offline/page.tsx`, `components/site-header.tsx`, `lib/supabase/proxy.ts`
   - **의존성**: Task 002, Task 004
 
 - **Task 006: 도메인 타입 및 API 표준 스키마 정의**
