@@ -261,15 +261,16 @@
   - **산출물**: ✅ `app/api/weather/route.ts`, `lib/api/kma-forecast.ts`, `lib/api/kma-forecast-core.ts`, `lib/api/errors.ts`(toApiError 보강), `lib/supabase/proxy.ts`(`/api/` 공개), `scratchpad/test-forecast.ts`(로직 검증)
   - **의존성**: Task 014, Task 015
 
-- **Task 017: 탐방로 통제 데이터 적재 및 오늘 통제 여부 계산 구현**
-  - 국립공원공단 `mountain.csv`(CP949, 91만 점 / 625코스 / 22개 사무소, 로컬·gitignore) 파싱 — 코스별 `통제여부`·`통제구간 설명`·메타(난이도·거리·소요시간) 추출, **코스 식별키(관리번호+코스ID+사무소코드) 정의**
-  - **계절 통제 기간 파싱 및 오늘 통제 여부 계산** — `산불방지통제구간(3월 1일～4월 30일)` 형식에서 기간 추출 → 조회일과 비교해 개방/통제 결정 (라이브 API 호출 없음)
-  - 산/코스명 → `mountains`/`trails` 매핑 (명칭 정규화, 매칭 실패 시 미매핑 로그)
-  - `trails` 적재 — `status`·`closed_reason`·`closed_period`, 서비스 롤 쓰기 (좌표 geometry는 Task 029에서 동일 CSV로 적재)
-  - Route Handler `GET /api/trails?mountainId=` — `trails` 조회 + 오늘 통제 여부 계산, DB 캐시
-  - **커버리지/신선도 폴백** — 국립공원 외(도립·군립·근교산) 미보유 산은 "정보 없음" 명시, 정적 2023 스냅샷이라 돌발 통제 미반영 → 데이터 기준일 표기(향후 라이브 개방정보 보완 여지)
-  - **테스트 체크리스트**: 계절 통제 경계일(기간 시작/종료 전후) 계산 단위 검증, Playwright MCP로 개방/통제/정보없음 배지 렌더링, 탐방로 데이터 결측 시 날씨는 정상 표시 확인
-  - **산출물**: `app/api/trails/route.ts`, `lib/trails/parse-knps-csv.ts`, `lib/trails/seasonal-closure.ts`, `lib/api/mountain-name-matcher.ts`, `supabase/seed/trails.sql`
+- **✅ Task 017: 탐방로 통제 데이터 적재 및 오늘 통제 여부 계산 구현** - 완료
+  - ✅ `mountain.csv`(CP949, 91만 점 / **936 코스**(courseID 기준) / 22 사무소, 로컬·gitignore) 파싱 — `parse-knps-csv.ts`(TextDecoder euc-kr, 코스 식별키 `관리번호-사무소코드-코스ID`로 중복제거, 통제여부·통제설명·메타 추출). Task 029 좌표 적재에서 재사용
+  - ✅ **계절 통제 판정**(`seasonal-closure.ts`, 순수) — 실측 통제설명 3계열(`탐방가능구간`/`통제구간`(상시)/`산불방지통제구간(기간)`)을 분류. `classifyClosure`(시드 적재용) + `resolveTrailStatusOn`(조회 시 closed_period·조회일 KST 비교로 오늘 개방/통제 재계산, 라이브 호출 없음). **경계일 단위검증 26/26 통과**
+  - ✅ **사무소→산 매핑**(`mountain-name-matcher.ts`) — 국립공원 15개 사무소를 시드 산에 매핑, **북한산 국립공원(1501)은 북한산/도봉산을 코스명 키워드로 분리**. 미매핑 사무소(해상·경주 등)·이름없는 코스는 로그 후 제외. 무등산·팔공산·태백산·대둔산은 이 스냅샷에 부재 확인 → "정보 없음"
+  - ✅ **(산, 코스명) 단위 집약 적재** — courseID 세그먼트 중복(예: '수통골 2코스'×3)을 명명 탐방로로 병합(통제 우선순위 상시>계절>개방). **317 trails / 16개 산**(개방 219·계절 89·상시 9), FK orphan 0. id 는 SQL `uuid_generate_v5`로 계산(JS uuidv5와 동일 검증 = 멱등·Task 029 좌표 매칭). 서비스롤(MCP) 쓰기
+  - ✅ Route Handler `GET /api/trails?mountainId=` — trails 조회 + 오늘 실효 상태 계산. DB 스냅샷 자체가 캐시 계층이라 외부 캐싱 불필요, 오늘 상태는 요청 시각 기준 매번 계산(자정 경계 정확)
+  - ✅ **커버리지 폴백** — 미보유 산은 빈 목록(→"정보 없음"), 계절 통제는 데이터 기준일과 무관하게 기간 계산으로 반영. 정적 스냅샷이라 돌발 통제는 미반영(정식 스펙)
+  - ✅ **테스트**: 경계일 단위 26/26(기간 시작/종료 전후·연말 wrap·KST 자정). Playwright 라이브 — **설악산 16개방+1상시통제(울산바위, 계절통제는 오늘 8/8이라 개방으로 정확 재계산)**, 계룡산 17개방, 관악산 0(정보없음), 파라미터누락 400·미존재 404, JS 크래시 0. `typecheck`·`lint`·`build` 통과
+  - ⏳ 상세 페이지 실연동(날씨/탐방로 소스 독립 격리 렌더)은 Task 019
+  - **산출물**: ✅ `app/api/trails/route.ts`, `lib/trails/parse-knps-csv.ts`, `lib/trails/seasonal-closure.ts`, `lib/api/mountain-name-matcher.ts`, `supabase/seed/{trails.sql,gen-trails.ts}`, `scratchpad/test-trails.ts`
   - **의존성**: Task 001, Task 014 (탐방로는 정적 CSV라 Task 015 외부 API 프록시 불필요)
 
 - **Task 018: 산 검색 및 자동완성 기능 구현**
