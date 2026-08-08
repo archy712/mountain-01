@@ -99,23 +99,23 @@
   - **산출물**: ✅ `docs/decisions/001-data-sources.md`, ✅ 등산로 GeoJSON 변환 PoC(`scratchpad/sutong_course.geojson`), ✅ 기상·대기·자외선 샘플 응답 JSON(`scratchpad/api-retest-result.json`)
   - **의존성**: 없음 (모든 Phase의 선행 조건)
 
-- **Task 002: 제품 정책 및 라우팅 구조 확정**
-  - 🔶#1 제품 영문/브랜드명 확정 (SanGil vs TrailCast) → 메타데이터·manifest 명칭 기준 수립
-  - 🔶#2 검색 결과 라우트 구조 확정 — `/mountains/[id]` 상세 직결(추천) vs `/search?q=` 목록형, 동명 산 다건 매칭 시 처리 방식 포함
-  - 🔶#12 비로그인 정책 확정 — 1단계 전면 비로그인, 2단계 즐겨찾기부터 로그인 요구 (`proxy.ts` 보호 경로 목록 확정)
-  - 🔶#14 `search_logs` 수집 여부 결정 — 익명 로깅 on/off, 개인정보 처리방침 문구 필요 여부
-  - 🔶#7 산-격자좌표 사전 적재 방식 확정 — 초기 시드 배치(추천) vs 최초 조회 시 계산 후 저장
-  - **산출물**: `docs/decisions/002-product-policy.md`, 확정 라우트 목록
+- **✅ Task 002: 제품 정책 및 라우팅 구조 확정** - 완료
+  - ✅ 🔶#1 제품 영문/브랜드명 확정 — **SanGil**(국문 "산길날씨"), 대안 TrailCast 미채택
+  - ✅ 🔶#2 검색 결과 라우트 구조 확정 — **`/mountains/[id]` 상세 직결**(`/search?q=` 미채택), 동명 산은 자동완성 지역 병기로 구분
+  - ✅ 🔶#12 비로그인 정책 확정 — 1단계 전면 비로그인, 2단계 즐겨찾기부터 로그인 (`proxy.ts` 공개 `/`·`/mountains/*`·`/offline`, 보호 `/favorites`)
+  - ✅ 🔶#14 `search_logs` 수집 여부 결정 — **활성화(insert-only 익명 로깅, 개인정보 미수집)**, 처리방침 1줄 고지
+  - ✅ 🔶#7 산-격자좌표 사전 적재 방식 확정 — **초기 시드 배치**(시드 시 위경도→격자 일괄 변환)
+  - **산출물**: ✅ `docs/decisions/002-product-policy.md`(확정 라우트 표 포함)
   - **의존성**: Task 001 (#7은 기상청 API 종류 확정 후 결정)
 
-- **Task 003: 캐싱 전략 및 점수 알고리즘 기준 확정**
-  - 🔶#8 캐싱/갱신 주기 확정 — 날씨 10～30분 / 대기질 1시간 / 탐방로 1～6시간 초안을 API 실제 갱신주기에 맞춰 확정
-  - 🔶#9 캐싱 구현 방식 확정 — Next `"use cache"` + `cacheLife`/`revalidate` vs Supabase 테이블 캐시(`condition_scores`) 역할 분담 정의
-  - 🔶#10 점수 계산 위치/버전관리 확정 — 서버 유틸 + `calc_version` 태깅 방식 및 버전 증가 규칙
-  - 🔶#11 컨디션 점수 가중치 초기값 동결 — PRD 4.2 표를 v1 기준값으로 고정, 튜닝 절차 정의
-  - 🔶#13 PWA 캐싱 전략 확정 — 앱 셸 캐시 + 데이터 네트워크 우선 조합, 서비스워커 구현 수단 결정
-  - 🔶 RLS 정책 확정 — `mountains`/`trails` 공개 읽기·쓰기 차단, `condition_scores` 서비스 롤 쓰기, `search_logs` insert-only
-  - **산출물**: `docs/decisions/003-caching-scoring.md`, 캐시 키·TTL 표
+- **✅ Task 003: 캐싱 전략 및 점수 알고리즘 기준 확정** - 완료
+  - ✅ 🔶#8 캐싱/갱신 주기 확정 — 실측 발표주기 정렬: 날씨(D-0) 30분 / 단기예보 3시간 / 대기질 1시간 / 자외선 3시간 / 탐방로 6시간 (v1, Task 032 재튜닝)
+  - ✅ 🔶#9 캐싱 구현 방식 확정 — **역할 분담**: 외부 API 응답은 Next `"use cache"`+`cacheLife`, 계산 점수는 `condition_scores` 테이블
+  - ✅ 🔶#10 점수 계산 위치/버전관리 확정 — 서버 유틸(`lib/condition/score.ts`)에서만 계산, `calc_version="v{n}"` 태깅·증가 규칙 정의
+  - ✅ 🔶#11 컨디션 점수 가중치 초기값 동결 — PRD 4.2 표를 v1으로 고정(감점표·등급구간), 튜닝은 문서 개정+버전 증가로만
+  - ✅ 🔶#13 PWA 캐싱 전략 확정 — 앱 셸 precache(cache-first) + 데이터 network-first(캐시 폴백), 손수 작성 `public/sw.js`
+  - ✅ 🔶 RLS 정책 확정 — `mountains`/`trails` 공개 select·서비스롤 쓰기, `favorites` `auth.uid()`, `condition_scores` 공개 select·서비스롤 쓰기, `search_logs` insert-only·select 차단
+  - **산출물**: ✅ `docs/decisions/003-caching-scoring.md`(캐시 키·TTL 표·RLS 표 포함)
   - **의존성**: Task 001
 
 ---
