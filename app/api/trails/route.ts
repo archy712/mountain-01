@@ -11,9 +11,9 @@
  */
 
 import { NextResponse } from "next/server";
-import type { ApiResponse, Trail, TrailStatus } from "@/lib/types";
+import type { ApiResponse, Trail } from "@/lib/types";
 import { apiError } from "@/lib/api";
-import { resolveTrailStatusOn } from "@/lib/trails/seasonal-closure";
+import { getTrailsForMountain } from "@/lib/data/mountain-detail";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -48,42 +48,19 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { data: rows, error: tErr } = await supabase
-    .from("trails")
-    .select("id, mountain_id, name, status, closed_reason, closed_period")
-    .eq("mountain_id", mountainId)
-    .order("name", { ascending: true });
+  // 탐방로 조회 + 오늘 실효 상태 계산은 상세 페이지와 공유하는 데이터 계층에 위임.
+  const result = await getTrailsForMountain(mountainId);
 
-  if (tErr) {
+  if (result.status === "success") {
     return NextResponse.json<ApiResponse<Trail[]>>(
-      { status: "error", error: apiError("upstream_error", "탐방로 정보를 불러오지 못했습니다.") },
+      { status: "ok", data: result.data, fetchedAt: result.fetchedAt },
       { status: 200 },
     );
   }
 
-  const now = new Date();
-  const trails: Trail[] = (rows ?? []).map((r) => {
-    // 저장된 nominal 통제 → 오늘 실효 상태(계절 통제는 기간·조회일로 재계산).
-    const effective = resolveTrailStatusOn(
-      {
-        status: r.status as TrailStatus,
-        closedReason: r.closed_reason,
-        closedPeriod: r.closed_period,
-      },
-      now,
-    );
-    return {
-      id: r.id,
-      mountainId: r.mountain_id,
-      name: r.name,
-      status: effective.status,
-      closedReason: effective.closedReason,
-      closedPeriod: effective.closedPeriod,
-    };
-  });
-
+  // getTrailsForMountain 은 조회 오류만 failure 로 돌린다(미보유 산은 빈 목록 success).
   return NextResponse.json<ApiResponse<Trail[]>>(
-    { status: "ok", data: trails, fetchedAt: now.toISOString() },
+    { status: "error", error: result.error },
     { status: 200 },
   );
 }

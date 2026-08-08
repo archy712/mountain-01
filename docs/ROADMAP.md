@@ -284,14 +284,16 @@
   - **산출물**: ✅ `app/api/mountains/search/route.ts`, `app/api/search-logs/route.ts`, `lib/search/{hangul,mountain-search}.ts`, `lib/data/mountains.ts`, `lib/supabase/public.ts`, `components/{mountain-search-input,popular-mountains}.tsx`, `app/(main)/page.tsx`, `next.config.ts`·`lib/api/cache.ts`(캐시 프로필), `scratchpad/test-search.ts`
   - **의존성**: Task 014, Task 009
 
-- **Task 019: 상세 페이지 실데이터 연동 및 폴백 처리**
-  - `app/mountains/[id]/page.tsx`를 Server Component로 구성, `lib/supabase/server.ts`의 `await createClient()`로 산 메타 조회 (전역 캐싱 금지)
-  - 날씨/탐방로 데이터 병렬 페칭 및 `Suspense` + `result-skeleton` 스트리밍 적용
-  - Phase 2의 더미 데이터를 실제 API 응답으로 전면 교체
-  - 부분 실패 정책 구현 — 소스별 독립 실패 처리, 가능한 정보만 표시, stale 캐시 시 "N분 전 기준" 라벨 노출
-  - 존재하지 않는 `id` 접근 시 `not-found.tsx` 처리
-  - **테스트 체크리스트**: Playwright MCP로 정상/날씨실패/탐방로실패/양쪽실패 4개 시나리오 렌더링 확인, 잘못된 id 404 확인, 콘솔 에러 0건
-  - **산출물**: `app/mountains/[id]/page.tsx`, `app/mountains/[id]/loading.tsx`, `app/mountains/[id]/error.tsx`
+- **✅ Task 019: 상세 페이지 실데이터 연동 및 폴백 처리** - 완료
+  - ✅ 상세 페이지 실데이터 전환 — 더미(`getMockMountainDetail`) 제거, 날씨는 `getWeatherSnapshot`(격자→기상청 단기예보), 탐방로는 DB 조회+오늘 실효 상태 계산으로 교체. 산 메타 조회+탐방로 계산을 상세/`/api/trails` 공용 데이터 계층(`lib/data/mountain-detail.ts`)으로 분리(route handler 중복 제거)
+  - ✅ 독립 스트리밍 — 날씨/탐방로를 각자 `<Suspense>` 경계로 분리, `connection()`으로 동적 홀 명시(발표주기·"오늘" 변화 반영). 각 섹션 전용 스켈레톤 폴백으로 CLS 최소화
+  - ✅ 부분 실패 격리(페이지 레벨 실증) — **기상청 키 무효화 라이브 주입** 결과 지리산에서 날씨는 에러 폴백("날씨 정보를 불러오지 못했어요")이지만 탐방로 51코스 정상 렌더·앱 크래시 0. `PartialResult`(success/stale/failure) + `withStaleFallback` "N분 전 기준" 라벨 경로 유지
+  - ✅ **진짜 404 처리** — cacheComponents(PPR)에서 스트리밍 셸이 200을 flush하면 request-time `notFound()`가 200이 되는 문제를, `generateStaticParams`(고정 30종 시드)로 파라미터를 정적화하고 top-level 존재 게이트에서 `notFound()`를 호출해 해결(Next.js 스트리밍 가이드 준수). 산 메타는 공개 클라이언트+`'use cache'`(mountains-1d)로 게이트를 블로킹 가능하게 함. **정적 셸 프리렌더로 LCP 이점(Task 020)**
+  - ✅ 파생 정비 — `[id]/loading.tsx`(세그먼트 Suspense) 제거(자식 map까지 셸 flush 유발), `[id]/map` 페이지도 동일 패턴(정적 파라미터+캐시 메타+notFound)으로 맞추고 mock 의존 제거. `error.tsx`는 렌더 throw용으로 유지
+  - ✅ 2단계 섹션(컨디션 점수·대기질·자외선·장비·즐겨찾기)은 실 API 부재 → 가짜 점수 노출 방지 위해 페이지에서 제거(컴포넌트는 존치, Phase 4 Task 021~024·025에서 재통합)
+  - ✅ **테스트**: Playwright(360px) — 설악산(16℃ 흐림·비, 탐방로 17개·울산바위 상시통제)·관악산(27℃ 맑음+탐방로 "정보 없음")·지리산(날씨실패+탐방로 정상) 렌더, 잘못된/형식오류 id·map 모두 **HTTP 404**, 유효 id 200, 콘솔 에러 0건. `typecheck`·`lint`·`build` 통과(`/mountains/[id]` `◐` 프리렌더 확인)
+  - ⏳ 탐방로 단독/양쪽 실패는 DB 오류 주입이 까다로워 컴포넌트 단위(Task 010/011 mock)+구조적 격리(독립 Suspense·PartialResult)로 갈음(날씨 실패는 라이브 실증)
+  - **산출물**: ✅ `app/(main)/mountains/[id]/page.tsx`, `app/(main)/mountains/[id]/map/page.tsx`, `lib/data/mountain-detail.ts`, `app/api/trails/route.ts`(공용 계층 재사용), `app/(main)/mountains/[id]/error.tsx`·`not-found.tsx`(유지)
   - **의존성**: Task 016, Task 017, Task 010
 
 - **Task 020: 1단계 MVP 완료 기준 검증 (통합 테스트)**

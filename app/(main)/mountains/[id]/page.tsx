@@ -1,78 +1,80 @@
+import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Maximize2 } from "lucide-react";
 
-import { AirQualityBadge } from "@/components/air-quality-badge";
-import { ConditionScoreGauge } from "@/components/condition-score-gauge";
-import { FavoriteButton } from "@/components/favorite-button";
-import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
-import { ScoreBreakdown } from "@/components/score-breakdown";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TrailList } from "@/components/trail-list";
-import { UvIndexBadge } from "@/components/uv-index-badge";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
-import { getMockMountainDetail } from "@/lib/mock";
-import { hasData } from "@/lib/types";
+import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
+import { getAllMountains } from "@/lib/data/mountains";
+import { getMountainMeta, getTrailsForMountain } from "@/lib/data/mountain-detail";
+import type { Mountain } from "@/lib/types";
 
 /**
- * 산 상세 결과 화면 (Task 010 1단계 + Task 011 2단계).
- *
- * "결론 우선" 위계: 산 식별(메타) → **컨디션 점수(히어로 결론)** → 근거(감점·날씨·
- * 대기/자외선) → 추천 장비 → 탐방로. 스크롤 없이 오늘 산행 가부를 판단하게 한다.
- *
- * 현재는 더미(`getMockMountainDetail`). 실데이터 연동·`notFound()` 정식 처리는 Task 019.
- * 소스별 부분 실패는 각 컴포넌트가 격리 렌더하고, 대기질 측정소 부재(결정 001 #5)는
- * 아래에서 안내 문구로 대체한다.
+ * 산 마스터(고정 30종 시드)를 정적 파라미터로 프리렌더한다.
+ * - cacheComponents 규약: `dynamicParams` 미지원 → 알 수 없는 id 는 page 의 notFound() 로 처리.
+ * - 정적 셸(메타·지도 자리)을 프리렌더해 LCP 를 낮추고(Task 020), params 가 정적이라
+ *   top-level 존재 검사→notFound() 가 스트리밍 200 이 아닌 **진짜 404** 를 낼 수 있다.
  */
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+  const mountains = await getAllMountains();
+  return mountains.map((m) => ({ id: m.id }));
+}
+
+/**
+ * 산 상세 결과 화면 — 실데이터 연동 (Task 019, Phase 3 / 1단계 MVP).
+ *
+ * "결론 우선" 위계: 산 식별(메타) → 오늘 날씨 → 탐방로 → 지도. 스크롤 없이
+ * "지금 이 산에 가도 되는지"를 판단하게 한다.
+ *
+ * 스트리밍: 산 메타를 먼저 확정(없으면 notFound)해 셸을 즉시 그리고, 날씨/탐방로는
+ * 각자 <Suspense> 경계로 **독립 스트리밍**한다. 소스별 부분 실패는 각 컴포넌트가
+ * `PartialResult`(success/stale/failure)로 격리 렌더하므로, 한쪽이 실패해도 다른
+ * 정보는 계속 노출되고 앱은 크래시하지 않는다.
+ *
+ * 2단계(컨디션 점수·대기질·자외선·장비·즐겨찾기)는 실 API 확립 후 Phase 4
+ * (Task 021~024·025)에서 이 페이지에 재통합한다. 지도 폴리라인은 Phase 5(Task 028·029).
+ */
+
+/**
+ * 산별 문서 제목. 존재하지 않는 산은 notFound() 로 건다(page 의 존재 게이트와 이중 방어).
+ * 산 메타는 `getMountainMeta`(`'use cache'`)라 page·generateMetadata 가 한 번만 조회한다.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const mountain = await getMountainMeta(id);
+  if (!mountain) notFound();
+  return { title: `${mountain.name} 날씨·탐방로` };
+}
+
 export default async function MountainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const detail = getMockMountainDetail(id);
+  const mountain = await getMountainMeta(id);
 
-  if (!detail) notFound();
-
-  const condition = detail.condition && hasData(detail.condition) ? detail.condition.data : null;
-  const air = detail.air && hasData(detail.air) ? detail.air.data : null;
-  const airFailed = detail.air !== undefined && !hasData(detail.air);
-  const uv = detail.uv && hasData(detail.uv) ? detail.uv.data : null;
-  const gear = detail.gear ?? [];
+  if (!mountain) notFound();
 
   return (
     <div className="space-y-6 py-6">
-      <div className="flex items-start justify-between gap-3">
-        <MountainDetail mountain={detail.mountain} />
-        <FavoriteButton className="shrink-0" />
-      </div>
+      <MountainDetail mountain={mountain} />
 
-      {condition ? (
-        <>
-          <ConditionScoreGauge condition={condition} />
-          <ScoreBreakdown condition={condition} />
-        </>
-      ) : null}
+      <Suspense fallback={<WeatherCardSkeleton />}>
+        <WeatherSection mountain={mountain} />
+      </Suspense>
 
-      <WeatherSummaryCard result={detail.weather} />
+      <Suspense fallback={<TrailListSkeleton />}>
+        <TrailSection mountainId={mountain.id} />
+      </Suspense>
 
-      {air || uv || airFailed ? (
-        <section aria-labelledby="air-uv-heading" className="space-y-2">
-          <h2 id="air-uv-heading" className="text-base font-semibold">
-            대기·자외선
-          </h2>
-          {air ? <AirQualityBadge air={air} /> : null}
-          {airFailed ? (
-            <p className="text-sm text-muted-foreground">
-              인근 측정소가 없어 대기질 정보를 제공하지 못했어요.
-            </p>
-          ) : null}
-          {uv ? <UvIndexBadge uv={uv} /> : null}
-        </section>
-      ) : null}
-
-      <GearRecommendationList gear={gear} />
-
-      <TrailList result={detail.trails} />
-
-      {/* 지도 섹션 자리표시자 (Task 012) — 카카오맵·폴리라인은 Task 028·029 */}
+      {/* 지도 섹션 자리표시자 — 카카오맵·폴리라인은 Task 028·029(Phase 5) */}
       <section aria-labelledby="map-heading" className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 id="map-heading" className="text-base font-semibold">
@@ -96,6 +98,65 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+/**
+ * 날씨 스트리밍 서브트리. 격자 좌표로 오늘 스냅샷을 조회한다(실패는 카드가 폴백).
+ * 날씨는 발표시각·외부 API 로 **매 요청 달라지는 동적 데이터**라, 정적 셸 프리렌더에
+ * 끌려 들어가지 않도록 `connection()` 으로 동적 홀임을 명시한다(현재 시각 사용 허용).
+ */
+async function WeatherSection({ mountain }: { mountain: Mountain }) {
+  await connection();
+  const result = await getWeatherSnapshot(mountain.id, {
+    nx: mountain.gridNx,
+    ny: mountain.gridNy,
+  });
+  return <WeatherSummaryCard result={result} />;
+}
+
+/**
+ * 탐방로 스트리밍 서브트리. 오늘(KST) 기준 실효 상태를 계산해 목록을 그린다.
+ * "오늘"이 매 요청 달라지므로 `connection()` 으로 동적 홀임을 명시한다.
+ */
+async function TrailSection({ mountainId }: { mountainId: string }) {
+  await connection();
+  const result = await getTrailsForMountain(mountainId);
+  return <TrailList result={result} />;
+}
+
+/** 날씨 카드 스트리밍 대기용 스켈레톤(CLS 최소화). */
+function WeatherCardSkeleton() {
+  return (
+    <div className="rounded-lg border p-5" aria-busy="true">
+      <div className="mb-4 flex items-center gap-3">
+        <Skeleton className="size-12 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** 탐방로 목록 스트리밍 대기용 스켈레톤. */
+function TrailListSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true">
+      <Skeleton className="h-5 w-20" />
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center justify-between rounded-lg border p-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
+      ))}
     </div>
   );
 }
