@@ -175,13 +175,13 @@
   - **산출물**: ✅ `components/ui/*`, ✅ `components/{trail-status-badge,result-skeleton,error-fallback,stale-data-notice}.tsx`, ✅ `lib/mock/*`
   - **의존성**: Task 006
 
-- **Task 009: 홈/검색 화면 UI 구현**
-  - `MountainSearchInput` 구현 — 검색 인풋 + 자동완성 드롭다운(더미 후보), 키보드 내비게이션, 44x44px 이상 터치 타깃
-  - 최근 검색 기록 UI — `localStorage` 기반 최근 검색어 칩 목록 및 개별 삭제
-  - 인기 산 목록 카드 그리드 — 더미 데이터 기반
-  - 빈 상태/검색 결과 없음 UI, 자동완성 로딩 스켈레톤
-  - 360px 폭 기준 레이아웃 검증
-  - **산출물**: `app/page.tsx`, `components/mountain-search-input.tsx`, `components/recent-searches.tsx`, `components/popular-mountains.tsx`
+- **✅ Task 009: 홈/검색 화면 UI 구현** - 완료
+  - ✅ `MountainSearchInput` 구현 — cmdk 자동완성 드롭다운(더미 후보, 지역명 병기로 동명 산 구분·결정 002 #2), 키보드 내비(↑/↓/Enter/Esc)·combobox ARIA, 44px 이상 터치 타깃, 선택 시 `/mountains/[id]` 직결
+  - ✅ 최근 검색 기록 UI — `useRecentSearches`(`localStorage` + `useSyncExternalStore`로 하이드레이션 안전·동일 탭 동기화, 최대 8건), 칩 목록 + 개별/전체 삭제
+  - ✅ 인기 산 목록 카드 그리드 — 더미(`POPULAR_MOUNTAINS`), 360px 2열 유지
+  - ✅ 빈 상태/검색 결과 없음 UI, 자동완성 디바운스 로딩 스켈레톤
+  - ✅ 360px 폭 레이아웃 검증(Playwright MCP: 자동완성·결과없음·상세이동·최근기록·삭제 정상, 콘솔 에러 없음), `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/(main)/page.tsx`, ✅ `components/mountain-search-input.tsx`, ✅ `components/recent-searches.tsx`, ✅ `components/popular-mountains.tsx`, ✅ `hooks/use-recent-searches.ts`
   - **의존성**: Task 005, Task 008
 
 - **Task 010: 산 상세 결과 화면 UI 구현 (1단계 범위)**
