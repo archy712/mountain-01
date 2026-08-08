@@ -11,12 +11,13 @@
  * 쓰기를 생략해 행 폭증을 막는다(결정 003 #9). 저장은 서비스 롤 키가 있을 때만 수행된다.
  */
 
-import type { ConditionScore, PartialResult } from "@/lib/types";
+import type { ConditionBundle, PartialResult } from "@/lib/types";
 import { hasData } from "@/lib/types";
 import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getAirQuality } from "@/lib/api/airkorea";
 import { getUvIndex } from "@/lib/api/kma-uv";
 import { computeConditionScore } from "./score";
+import { recommendGear } from "./gear-rules";
 import { readCachedScore, writeScore } from "./cache";
 
 /** 오케스트레이션에 필요한 산 좌표/식별 정보(라우트가 DB 에서 조회해 전달). */
@@ -29,13 +30,14 @@ export interface ConditionMountainInput {
 }
 
 /**
- * 산의 실시간 컨디션 점수를 산출한다. 날씨가 사용 불가면 failure, 그 외에는 success/stale.
+ * 산의 실시간 컨디션 점수 + 장비 추천을 산출한다. 날씨가 사용 불가면 failure, 그 외에는
+ * success/stale. 점수와 장비는 동일 입력으로 함께 계산돼 소스 조회를 한 번만 수행한다.
  * @param now 계산 시각 주입(테스트 결정성). 기본 now.
  */
 export async function getConditionForMountain(
   mountain: ConditionMountainInput,
   now: Date = new Date(),
-): Promise<PartialResult<ConditionScore>> {
+): Promise<PartialResult<ConditionBundle>> {
   const [weatherResult, airResult, uvResult] = await Promise.all([
     getWeatherSnapshot(mountain.id, { nx: mountain.gridNx, ny: mountain.gridNy }, now),
     getAirQuality(mountain.id, mountain.lat, mountain.lng, now),
@@ -47,12 +49,12 @@ export async function getConditionForMountain(
     return { status: "failure", error: weatherResult.error };
   }
 
-  const score = computeConditionScore({
-    weather: weatherResult.data,
-    air: hasData(airResult) ? airResult.data : null,
-    uv: hasData(uvResult) ? uvResult.data : null,
-    now,
-  });
+  const air = hasData(airResult) ? airResult.data : null;
+  const uv = hasData(uvResult) ? uvResult.data : null;
+
+  const score = computeConditionScore({ weather: weatherResult.data, air, uv, now });
+  const gear = recommendGear({ weather: weatherResult.data, air, uv });
+  const bundle: ConditionBundle = { score, gear };
 
   // 신선한 캐시 행이 없을 때만 저장(행 폭증 방지 + "조회" 경로 겸용).
   const existing = await readCachedScore(mountain.id);
@@ -64,11 +66,11 @@ export async function getConditionForMountain(
   if (weatherResult.status === "stale") {
     return {
       status: "stale",
-      data: score,
+      data: bundle,
       fetchedAt: weatherResult.fetchedAt,
       error: weatherResult.error,
     };
   }
 
-  return { status: "success", data: score, fetchedAt: weatherResult.fetchedAt };
+  return { status: "success", data: bundle, fetchedAt: weatherResult.fetchedAt };
 }

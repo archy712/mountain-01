@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Maximize2 } from "lucide-react";
 
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
+import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
@@ -126,14 +127,15 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
   });
 
   if (!hasData(result)) return null;
-  const condition = result.data;
+  const { score, gear } = result.data;
 
   // 게이지 자체가 `aria-labelledby` 로 라벨된 섹션이라, 래퍼는 랜드마크·제목을 중복하지
-  // 않도록 순수 스타일 컨테이너(div)로 둔다.
+  // 않도록 순수 스타일 컨테이너(div)로 둔다. 장비 추천은 점수 근거 아래에 이어 붙인다.
   return (
     <div className="space-y-4 rounded-lg border p-5">
-      <ConditionScoreGauge condition={condition} />
-      <ScoreBreakdown condition={condition} />
+      <ConditionScoreGauge condition={score} />
+      <ScoreBreakdown condition={score} />
+      <GearRecommendationList gear={gear} />
     </div>
   );
 }

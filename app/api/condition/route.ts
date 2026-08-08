@@ -6,12 +6,12 @@
  * 태깅한다(결정 003 #10). 결과는 `condition_scores` 에 캐시된다.
  *
  * 부분 폴백: 대기질/자외선 실패는 해당 변수만 제외(`excludedVariables`)하고 계속 계산한다.
- * 날씨가 사용 불가면 점수를 낼 수 없어 error 봉투를 반환한다. 응답은 공통 `ApiResponse<ConditionScore>`.
+ * 날씨가 사용 불가면 점수를 낼 수 없어 error 봉투를 반환한다. 응답은 공통 `ApiResponse<ConditionBundle>`.
  * HTTP 상태: 요청 오류만 4xx(400 파라미터 / 404 산 없음), 소스 결과는 200 + 봉투.
  */
 
 import { NextResponse } from "next/server";
-import type { ApiResponse, ConditionScore } from "@/lib/types";
+import type { ApiResponse, ConditionBundle } from "@/lib/types";
 import { apiError } from "@/lib/api";
 import { getConditionForMountain } from "@/lib/condition";
 import { createClient } from "@/lib/supabase/server";
@@ -21,7 +21,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const mountainId = searchParams.get("mountainId");
 
   if (!mountainId) {
-    return NextResponse.json<ApiResponse<ConditionScore>>(
+    return NextResponse.json<ApiResponse<ConditionBundle>>(
       { status: "error", error: apiError("not_found", "mountainId 파라미터가 필요합니다.") },
       { status: 400 },
     );
@@ -35,14 +35,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     .maybeSingle();
 
   if (dbError) {
-    return NextResponse.json<ApiResponse<ConditionScore>>(
+    return NextResponse.json<ApiResponse<ConditionBundle>>(
       { status: "error", error: apiError("upstream_error", "산 정보를 조회하지 못했습니다.") },
       { status: 200 },
     );
   }
 
   if (!mountain) {
-    return NextResponse.json<ApiResponse<ConditionScore>>(
+    return NextResponse.json<ApiResponse<ConditionBundle>>(
       { status: "error", error: apiError("not_found", "요청하신 산을 찾을 수 없습니다.") },
       { status: 404 },
     );
@@ -57,14 +57,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   });
 
   if (result.status === "success") {
-    return NextResponse.json<ApiResponse<ConditionScore>>(
+    return NextResponse.json<ApiResponse<ConditionBundle>>(
       { status: "ok", data: result.data, fetchedAt: result.fetchedAt },
       { status: 200 },
     );
   }
 
   if (result.status === "stale") {
-    return NextResponse.json<ApiResponse<ConditionScore>>(
+    return NextResponse.json<ApiResponse<ConditionBundle>>(
       {
         status: "partial",
         data: result.data,
@@ -75,7 +75,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  return NextResponse.json<ApiResponse<ConditionScore>>(
+  return NextResponse.json<ApiResponse<ConditionBundle>>(
     { status: "error", error: result.error },
     { status: 200 },
   );

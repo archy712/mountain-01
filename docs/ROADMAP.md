@@ -350,13 +350,13 @@
   - **산출물**: ✅ `lib/condition/{score,grade,service,cache,index}.ts`, `lib/supabase/admin.ts`, `app/api/condition/route.ts`, `app/(main)/mountains/[id]/page.tsx`(컨디션 섹션), `lib/api/kma-forecast-core.ts`(버그수정), `lib/env.ts`(서비스 롤 키)
   - **의존성**: Task 021, Task 022, Task 014
 
-- **Task 024: 장비 추천 규칙 엔진 구현**
-  - PRD 4.2 규칙 테이블을 선언적 룰셋으로 구현 — POP≥50%/PTY 비·소나기 → 방수 자켓·레인커버, TMP≤5℃ → 방한 3종, TMP≥28℃ → 여벌 물·전해질·모자, UV≥6 → 선크림·선글라스·챙모자, WSD≥10m/s → 바람막이, 미세먼지 나쁨↑ → KF 마스크
-  - 중복 장비 제거 및 우선순위 정렬, 각 추천에 발동 근거 문구 부착
-  - 데이터 결측 변수의 규칙은 평가 제외 처리
-  - `GearRecommendationList` 실데이터 연동
-  - **테스트 체크리스트**: Playwright MCP로 조건 조합별(비+저온, 고온+고UV, 강풍+미세먼지) 추천 목록 정확성 확인
-  - **산출물**: `lib/condition/gear-rules.ts`, `components/gear-recommendation-list.tsx` 연동
+- **✅ Task 024: 장비 추천 규칙 엔진 구현** - 완료
+  - ✅ PRD 4.2 규칙 표를 **선언적 룰셋**(`GEAR_RULES`)으로 구현 — 비/강수(POP≥50 또는 PTY 비·소나기) → 방수 자켓·배낭 레인커버 / TMP≤5℃ → 방한 장갑·넥워머·보온 레이어 / TMP≥28℃ → 여벌 물·전해질·모자 / WSD≥10m/s → 바람막이·체온 유지 레이어 / 미세먼지 나쁨↑ → KF 마스크 / UV≥6 → 선크림·선글라스·챙모자. 각 규칙은 발동 조건(`evaluate`)+장비 목록 선언, 발동 시 근거·발동변수(trigger) 부착
+  - ✅ **우선순위 정렬**(비<저온<고온<강풍<미세먼지<자외선, 안전 장비 우선) + **중복 제거**(같은 id 은 상위 우선순위 근거 유지). 비/강수 규칙 근거는 강수형태(비/소나기) 우선, 없으면 `강수확률 N%`
+  - ✅ **결측 변수 규칙 평가 제외** — 대기질/자외선 데이터 없으면(null) 해당 규칙 미발동(오탐 방지)
+  - ✅ 점수·장비를 `ConditionBundle{score,gear}` 로 묶어 오케스트레이터가 **소스 1회 조회로 함께 산출**(중복 외부 호출 없음). `/api/condition` 은 `ApiResponse<ConditionBundle>`, 상세 페이지에 `GearRecommendationList` 실데이터 연동
+  - ✅ **테스트**: 조건 조합 단위 13/13(비+저온·고온+고UV·강풍+미세먼지, 각 경계 5/28℃·10m/s·UV6·POP50, 중복 제거·우선순위·결측 제외·소나기 근거). Playwright 라이브 — 설악산(비, 71점) 방수 자켓·레인커버 렌더+"일부 데이터 제외: 미세먼지" 배지 동시 실증. `typecheck`·`lint`·`prettier` 통과
+  - **산출물**: ✅ `lib/condition/gear-rules.ts`, `lib/condition/service.ts`(번들화), `lib/types/condition.ts`(`ConditionBundle`), `app/api/condition/route.ts`, `app/(main)/mountains/[id]/page.tsx`(장비 섹션), `components/gear-recommendation-list.tsx` 연동
   - **의존성**: Task 023
 
 - **Task 025: 인증 활성화 및 보호 라우트 정비**

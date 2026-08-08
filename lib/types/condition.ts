@@ -73,3 +73,12 @@ export interface GearItem {
   /** 발동 변수 */
   trigger: ScoreFactor;
 }
+
+/**
+ * 컨디션 점수 + 장비 추천 묶음 (Task 024).
+ * 동일 날씨·대기·자외선 입력으로 함께 산출되므로 한 번의 소스 조회로 반환한다.
+ */
+export interface ConditionBundle {
+  score: ConditionScore;
+  gear: GearItem[];
+}
