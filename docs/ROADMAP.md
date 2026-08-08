@@ -314,13 +314,16 @@
 
 ### Phase 4: 2단계 구현 (컨디션 점수 + 장비 추천 + 인증)
 
-- **Task 021: 미세먼지(에어코리아) 연동 구현**
-  - 대기오염정보 API 클라이언트 구현 — `pm10Value`, `pm25Value`, `pm10Grade`, `pm25Grade` 파싱 및 정규화
-  - **측정소 매핑 구현** (🔶#5 확정 규칙) — 산 위경도 → 최근접 측정소 자동 매핑, 거리 임계값 초과 시 "인근 측정소 없음" 처리, 매핑 결과 캐싱
-  - Route Handler `GET /api/air-quality?mountainId=` 구현 — TTL 1시간 캐시
-  - 실패 시 해당 변수를 점수 계산에서 제외하는 부분 폴백 신호 반환
-  - **테스트 체크리스트**: Playwright MCP로 정상/측정소 없음/API 실패 3개 케이스 확인, 배지 등급 색상+텍스트 병기 확인
-  - **산출물**: `app/api/air-quality/route.ts`, `lib/api/airkorea.ts`, `lib/geo/nearest-station.ts`
+- **✅ Task 021: 미세먼지(에어코리아) 연동 구현** - 완료
+  - ✅ 대기오염정보 API 클라이언트 — `getMsrstnAcctoRltmMesureDnsty`(측정소명 기준 실시간) 조회, `pm10Value/pm25Value/pm10Grade/pm25Grade` 파싱→`AirQuality` 정규화. 통신장애 "-"/빈값은 null, **PM10·PM2.5 둘 다 결측이면 failure·한쪽만 결측이면 성공(값만 null → 점수 계층이 변수 제외)**. 순수 로직은 `airkorea-core.ts`로 분리
+  - ✅ **측정소 매핑 구현**(🔶#5 확정 규칙) — 측정소정보 서비스(`MsrstnInfoInqireSvc`) 활용신청 후 `getNearbyMsrstnList(tmX,tmY)`로 최근접 측정소+거리 직접 획득. 산 WGS84 → **TM 중부원점(EPSG:5181, GRS80) 정변환**(`wgs84ToTm`, 표준 Transverse Mercator) 구현. **거리 임계값 20km** 초과 시 `no_station` 폴백. 매핑은 `'use cache'`(mountains-1d)로 캐싱(거의 불변)
+  - ✅ Route Handler `GET /api/air-quality?mountainId=` — `mountains.lat/lng` 조회 후 호출, 실시간 측정값은 `'use cache'`(air-1h)+`cacheTag`. 봉투: 성공 ok / stale→partial(issues) / 실패 error, 요청오류만 4xx(400 파라미터·404 산 없음)
+  - ✅ 부분 폴백 — `no_station`(측정소 없음)·측정값 실패를 error 봉투로 격리(점수 계층이 변수 제외), `withStaleFallback` 마지막 성공 스냅샷("N분 전 기준"). 절대 throw 없음(소스 독립 격리)
+  - ✅ **에어코리아 게이트웨이 no-store 거부 버그 수정** — B552584 게이트웨이는 undici 가 `cache:"no-store"`(및 no-cache/reload)에 붙이는 `Cache-Control` 요청헤더에 **503(58초 지연)/행**으로 응답(날씨 1360000 은 정상). fetcher 에 `cache` 옵션 추가(기본 no-store 유지)하고 airkorea 만 `cache:"default"` 사용(신선도는 `'use cache'` 가 관리). 4개 cache 모드 실측으로 원인 규명(`default`·`force-cache` 정상 / `no-store`·`no-cache`·`reload` 실패)
+  - ✅ **TM 변환 라이브 검증** — 불변식(tmX@127°E=200000·tmY@원점=500000) + `getNearbyMsrstnList` 반환 거리로 정합 확인: 북한산→강북구(3km)·설악산→양양읍(14km)·한라산→강정동(12.9km)·지리산→산청읍(15.6km)·북악산→종로(2.6km)·금정산→청룡동(3.7km) 모두 타당·임계값 이내
+  - ✅ **테스트**: 순수 로직 단위 27/27(TM 불변식·정합, pickNearestStation 임계값/정렬/빈목록/오류코드, normalizeAirQuality 값·등급·한쪽결측/양쪽결측/미매핑등급/최신순). Playwright 라이브(360px) — 6개 산 실 PM10/PM2.5·등급·측정소·거리 ok 봉투, 파라미터누락 400·미존재산 404·형식오류 upstream, 콜드 fetch 격리(크래시 0). `typecheck`·`lint`·`build` 통과
+  - ⏳ 측정소 없음(no_station) 라이브는 시드 30종이 모두 20km 이내라 단위 검증으로 갈음. 배지 UI(`AirQualityBadge`) 상세 연동은 컨디션 점수 통합(Task 023~) 시점으로 (Task 021은 API·정규화 레이어)
+  - **산출물**: ✅ `app/api/air-quality/route.ts`, `lib/api/airkorea.ts`, `lib/api/airkorea-core.ts`, `lib/geo/nearest-station.ts`, `lib/api/fetcher.ts`(cache 옵션), `scratchpad/test-air.ts`
   - **의존성**: Task 015, Task 020
 
 - **Task 022: 자외선 지수 연동 구현**

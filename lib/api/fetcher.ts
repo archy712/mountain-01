@@ -31,6 +31,13 @@ export interface FetchJsonOptions {
   retryBaseDelayMs?: number;
   /** 외부에서 취소하기 위한 signal(타임아웃 signal 과 함께 동작). */
   signal?: AbortSignal;
+  /**
+   * fetch 캐시 모드. 기본 "no-store"(HTTP 캐시 미사용, 신선도는 상위 "use cache" 가 담당).
+   * ⚠️ 일부 공공 API 게이트웨이(예: 에어코리아 B552584)는 undici 가 no-store/no-cache 에
+   * 붙이는 `Cache-Control` 요청 헤더를 거부해 503/행이 발생한다. 그런 소스는 "default" 로
+   * 넘긴다("use cache" 가 이미 TTL 을 관리하므로 HTTP 캐시 모드는 신선도에 영향 없음).
+   */
+  cache?: RequestCache;
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -67,8 +74,9 @@ async function attempt(url: string, opts: FetchJsonOptions): Promise<Response> {
     const res = await fetch(url, {
       headers: opts.headers,
       signal: controller.signal,
-      // 캐싱은 상위 "use cache" 레이어가 담당한다. fetch 자체 캐시는 끈다.
-      cache: "no-store",
+      // 캐싱은 상위 "use cache" 레이어가 담당한다. 기본은 HTTP 캐시를 끄되(no-store),
+      // no-store 를 거부하는 게이트웨이(에어코리아)를 위해 호출부가 override 가능하게 한다.
+      cache: opts.cache ?? "no-store",
     });
     if (!res.ok) {
       throw fetchErrorFromStatus(res.status);
