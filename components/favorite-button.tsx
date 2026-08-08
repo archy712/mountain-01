@@ -1,23 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * 즐겨찾기 버튼 UI (Task 011, 2단계 범위).
+ * 즐겨찾기 버튼 (Task 011 UI · Task 026 실연동).
  *
- * 1단계는 전면 비로그인이며 즐겨찾기는 2단계부터 로그인 필요(결정 002 #12).
- * 비로그인 상태에서 누르면 로그인 유도 문구를 노출한다. 실제 저장 연동은 Task 025·026.
- * 지금은 UI 상태(활성/비활성·로그인 유도)만 담당한다.
+ * - 비로그인: 클릭 시 로그인 유도 팝오버(결정 002 #12).
+ * - 로그인: `/api/favorites` 로 추가/삭제. **낙관적 업데이트** 후 실패 시 롤백한다.
+ *   RLS 로 서버에서 본인 데이터만 조작되므로 user_id 는 전송하지 않는다.
+ * 목록 반영이 필요한 화면(예: 상세→목록 복귀)을 위해 성공 시 `router.refresh()` 한다.
  */
 export function FavoriteButton({
+  mountainId,
   initialFavorite = false,
   isAuthenticated = false,
   className,
 }: {
+  /** 대상 산 id (mountains.id) */
+  mountainId: string;
   /** 활성 초기 상태(저장됨) */
   initialFavorite?: boolean;
   /** 로그인 여부(미로그인 시 로그인 유도) */
@@ -26,13 +31,40 @@ export function FavoriteButton({
 }) {
   const [favorite, setFavorite] = useState(initialFavorite);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  async function toggle() {
+    const next = !favorite;
+    setFavorite(next); // 낙관적 업데이트
+    setError(null);
+
+    try {
+      const res = next
+        ? await fetch("/api/favorites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mountainId }),
+          })
+        : await fetch(`/api/favorites?mountainId=${encodeURIComponent(mountainId)}`, {
+            method: "DELETE",
+          });
+      if (!res.ok) throw new Error(String(res.status));
+      // 서버 렌더 목록(/favorites 등)에 반영.
+      startTransition(() => router.refresh());
+    } catch {
+      setFavorite(!next); // 롤백
+      setError("잠시 후 다시 시도해 주세요.");
+    }
+  }
 
   function handleClick() {
     if (!isAuthenticated) {
       setShowPrompt((v) => !v);
       return;
     }
-    setFavorite((v) => !v);
+    void toggle();
   }
 
   return (
@@ -40,10 +72,11 @@ export function FavoriteButton({
       <button
         type="button"
         onClick={handleClick}
+        disabled={isPending}
         aria-pressed={favorite}
         aria-label={favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
         className={cn(
-          "flex size-11 items-center justify-center rounded-full border transition-colors",
+          "flex size-11 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
           favorite
             ? "border-status-closed/30 bg-status-closed/10 text-status-closed"
             : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -51,6 +84,15 @@ export function FavoriteButton({
       >
         <Heart className={cn("size-5", favorite && "fill-current")} aria-hidden="true" />
       </button>
+
+      {error ? (
+        <p
+          role="alert"
+          className="absolute top-[calc(100%+0.25rem)] right-0 z-50 w-44 text-right text-xs text-destructive"
+        >
+          {error}
+        </p>
+      ) : null}
 
       {showPrompt ? (
         <div

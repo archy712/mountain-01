@@ -74,7 +74,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
         mountain={mountain}
         action={
           <Suspense fallback={<Skeleton className="size-11 rounded-full" />}>
-            <FavoriteAction />
+            <FavoriteAction mountainId={mountain.id} />
           </Suspense>
         }
       />
@@ -124,11 +124,31 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
  * 갈리므로 정적 셸에 끌려 들어가지 않도록 별도 <Suspense> 홀로 분리한다. 실제 저장(토글)
  * 연동은 Task 026이며, 지금은 로그인 여부만 전달해 비로그인 클릭 시 로그인 유도를 연결한다.
  */
-async function FavoriteAction() {
+async function FavoriteAction({ mountainId }: { mountainId: string }) {
   await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  return <FavoriteButton isAuthenticated={Boolean(data?.claims)} />;
+  const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+
+  let initialFavorite = false;
+  if (userId) {
+    // RLS 로 본인 행만 조회되므로 user_id 필터는 이중 안전용.
+    const { data: fav } = await supabase
+      .from("favorites")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("mountain_id", mountainId)
+      .maybeSingle();
+    initialFavorite = Boolean(fav);
+  }
+
+  return (
+    <FavoriteButton
+      mountainId={mountainId}
+      initialFavorite={initialFavorite}
+      isAuthenticated={Boolean(userId)}
+    />
+  );
 }
 
 /**

@@ -369,13 +369,13 @@
   - **산출물**: ✅ `lib/supabase/proxy.ts`, `app/auth/login/page.tsx`, `components/{login,sign-up,forgot-password,update-password,google-auth,auth,logout}-*.tsx`, `components/site-header.tsx`, `app/(main)/favorites/page.tsx`, `app/(main)/mountains/[id]/page.tsx`(FavoriteButton), `components/mountain-detail.tsx`
   - **의존성**: Task 002(#12), Task 020
 
-- **Task 026: 즐겨찾기 기능 구현 (RLS 포함)**
-  - `favorites` CRUD 구현 — 추가/삭제 토글, `(user_id, mountain_id)` 유니크 충돌 처리
-  - `/favorites` 목록 조회 — 저장한 산 + 각 산의 최신 컨디션 점수 요약 동시 표시
-  - **RLS 검증** — 타 사용자 `user_id`로 select/insert/delete 시도 시 모두 차단되는지 실제 쿼리로 확인
-  - 낙관적 업데이트 및 실패 시 롤백, 비로그인 상태 처리
-  - **테스트 체크리스트**: Playwright MCP로 추가→목록반영→삭제→목록반영 플로우, 중복 추가 방어, 두 계정 간 데이터 격리 확인
-  - **산출물**: `app/api/favorites/route.ts`, `components/favorite-button.tsx` 연동, `app/favorites/page.tsx`
+- **✅ Task 026: 즐겨찾기 기능 구현 (RLS 포함)** - 완료
+  - ✅ `favorites` CRUD — `app/api/favorites/route.ts`(POST 추가/DELETE 삭제). **세션 쿠키 서버 클라이언트**라 모든 쿼리에 RLS 적용, `user_id` 는 세션 클레임에서 채워 타인 행 조작 차단. `(user_id, mountain_id)` 유니크 충돌(23505)은 **멱등 성공** 처리, 비로그인은 401 JSON
+  - ✅ `/favorites` 목록 — RLS 로 본인 행만 조회(favorites⨝mountains), 각 산의 **컨디션 점수 요약**을 함께 산출(원천 데이터 `'use cache'` 재사용). 상세 헤더 하트(`FavoriteButton`)로 추가/해제, 목록 카드 인라인 해제
+  - ✅ **낙관적 업데이트 + 롤백** — 하트/목록 삭제 모두 즉시 UI 반영 후 실패 시 원복(목록은 순서 보존). 성공 시 `router.refresh()` 로 서버 목록 반영. 비로그인 클릭은 로그인 유도 팝오버
+  - ✅ **RLS 격리 검증(실쿼리)** — user2 세션(`set role authenticated`+jwt sub)에서 user1 행 **select 0건·delete 0건·insert(user_id 위조) 정책 위반 차단**(`new row violates row-level security policy`) 3종 모두 실증
+  - ✅ **E2E(Playwright)** — 로그인→상세 하트 추가(DB 1행)→목록에 점수(관악산 95 매우 좋음) 반영→인라인 해제→빈 상태(DB 0행), **중복 POST 2회 멱등**(1행 유지), 비로그인 POST 401. `typecheck`·`lint`·`prettier` 통과, `get_advisors(security)` RLS 경고 0건
+  - **산출물**: ✅ `app/api/favorites/route.ts`, `components/favorite-button.tsx`(낙관적 토글), `components/favorites-list.tsx`, `app/(main)/favorites/page.tsx`, `app/(main)/mountains/[id]/page.tsx`(초기 즐겨찾기 상태)
   - **의존성**: Task 025, Task 014, Task 023
 
 - **Task 027: 2단계 완료 기준 검증 (통합 테스트)**
