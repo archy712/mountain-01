@@ -184,13 +184,14 @@
   - **산출물**: ✅ `app/(main)/page.tsx`, ✅ `components/mountain-search-input.tsx`, ✅ `components/recent-searches.tsx`, ✅ `components/popular-mountains.tsx`, ✅ `hooks/use-recent-searches.ts`
   - **의존성**: Task 005, Task 008
 
-- **Task 010: 산 상세 결과 화면 UI 구현 (1단계 범위)**
-  - `WeatherSummaryCard` — 기온/강수확률/하늘상태/강수형태/풍속을 한 화면 요약, 아이콘 + 수치 병기
-  - `TrailStatusBadge` 배치 및 탐방로 목록 섹션 — 개방/통제/부분통제 구분, 통제 사유·기간 표시
-  - `MountainDetail` — 위치·고도·지역 등 기본 메타 섹션
-  - 페이지 상단 "결론 우선" 정보 위계 구성 (스크롤 없이 판단 가능한 히어로 영역)
-  - 부분 실패 표현 UI — 날씨만 실패 / 탐방로만 실패 / "정보 없음" 각 케이스 시각화
-  - **산출물**: `app/mountains/[id]/page.tsx`, `components/weather-summary-card.tsx`, `components/mountain-detail.tsx`, `components/trail-list.tsx`
+- **✅ Task 010: 산 상세 결과 화면 UI 구현 (1단계 범위)** - 완료
+  - ✅ `WeatherSummaryCard` — 하늘 아이콘+기온 히어로 + 강수확률/강수형태/풍속/습도 4메트릭(아이콘 + 수치 병기), `PartialResult` 성공/stale/실패 격리
+  - ✅ `TrailStatusBadge` 배치 및 탐방로 목록 섹션(`TrailList`) — 개방/통제/부분통제/정보없음 구분, 통제 사유·기간 표시
+  - ✅ `MountainDetail` — 산 이름·지역·고도 메타 섹션
+  - ✅ 페이지 상단 "결론 우선" 정보 위계 구성(메타 → 날씨 히어로 → 탐방로)
+  - ✅ 부분 실패 표현 UI — 날씨만 실패 / 탐방로만 실패 / "정보 없음" 각 케이스(소스별 격리 렌더, Playwright 검증)
+  - ✅ 상세 라우트 `loading.tsx`→`ResultSkeleton`, `error.tsx`→`ErrorFallback`(reset→재시도) 연결. `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/(main)/mountains/[id]/page.tsx`, ✅ `components/weather-summary-card.tsx`, ✅ `components/mountain-detail.tsx`, ✅ `components/trail-list.tsx`
   - **의존성**: Task 005, Task 008
 
 - **Task 011: 컨디션 점수 및 장비 추천 UI 구현 (2단계 범위)**
