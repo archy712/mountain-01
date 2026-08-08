@@ -10,6 +10,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
+import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,11 @@ import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
 import { getAllMountains } from "@/lib/data/mountains";
-import { getMountainMeta, getTrailsForMountain } from "@/lib/data/mountain-detail";
+import {
+  getMountainMeta,
+  getTrailPathsForMountain,
+  getTrailsForMountain,
+} from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { hasData, type Mountain } from "@/lib/types";
@@ -114,7 +119,11 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
             name={mountain.name}
             appKey={publicEnv.kakaoMapKey}
             className="h-[220px]"
-          />
+          >
+            <Suspense fallback={null}>
+              <TrailOverlaySection mountainId={mountain.id} />
+            </Suspense>
+          </KakaoMap>
           <MapLegend
             statuses={["open", "partial", "closed"]}
             className="absolute right-3 bottom-3 left-3 sm:right-auto"
@@ -209,6 +218,19 @@ async function TrailSection({ mountainId }: { mountainId: string }) {
   await connection();
   const result = await getTrailsForMountain(mountainId);
   return <TrailList result={result} />;
+}
+
+/**
+ * 등산로 폴리라인 오버레이 서브트리 (Task 029). `path_geojson` 이 있는 국립공원 산만
+ * 폴리라인을 그리고, 미보유 산은 빈 배열 → 마커+목록 폴백만 유지된다. 오늘 실효 상태로
+ * 색을 칠하므로 매 요청 달라질 수 있어 `connection()` 으로 동적 홀임을 명시한다. `KakaoMap`
+ * 의 children 으로 렌더되어 지도 준비 후 컨텍스트 핸들로 그려진다.
+ */
+async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
+  await connection();
+  const paths = await getTrailPathsForMountain(mountainId);
+  if (paths.length === 0) return null;
+  return <TrailOverlay trails={paths} />;
 }
 
 /** 컨디션 점수 섹션 스트리밍 대기용 스켈레톤(게이지 원형 + 근거 카드). */

@@ -43,6 +43,22 @@ declare global {
       setMap(map: Map | null): void;
     }
 
+    interface PolylineOptions {
+      /** 선을 구성하는 좌표 배열 */
+      path: LatLng[];
+      strokeWeight?: number;
+      strokeColor?: string;
+      strokeOpacity?: number;
+      /** solid | shortdash | dot 등 */
+      strokeStyle?: string;
+    }
+
+    /** 폴리라인 오버레이 (등산로 경로, Task 029) */
+    class Polyline {
+      constructor(options: PolylineOptions);
+      setMap(map: Map | null): void;
+    }
+
     /**
      * `autoload=false` 로 스크립트를 비동기 로드했을 때, SDK 로드 완료 후
      * 콜백을 실행한다. 이 콜백 안에서만 `kakao.maps.*` 객체 접근이 안전하다.

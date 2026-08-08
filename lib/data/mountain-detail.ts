@@ -14,7 +14,7 @@
  */
 
 import { cacheLife, cacheTag } from "next/cache";
-import type { Mountain, PartialResult, Trail, TrailStatus } from "@/lib/types";
+import type { Mountain, PartialResult, Trail, TrailPath, TrailStatus } from "@/lib/types";
 import { apiError, CACHE_PROFILE, mountainTag, sourceTag } from "@/lib/api";
 import { resolveTrailStatusOn } from "@/lib/trails/seasonal-closure";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -96,4 +96,65 @@ export async function getTrailsForMountain(
   });
 
   return { status: "success", data: trails, fetchedAt: now.toISOString() };
+}
+
+/** path_geojson(jsonb)이 유효한 MultiLineString 인지 확인하고 좌표를 뽑아낸다. */
+function extractMultiLineString(geojson: unknown): [number, number][][] | null {
+  if (!geojson || typeof geojson !== "object") return null;
+  const g = geojson as { type?: unknown; coordinates?: unknown };
+  if (g.type !== "MultiLineString" || !Array.isArray(g.coordinates)) return null;
+  const lines: [number, number][][] = [];
+  for (const line of g.coordinates) {
+    if (!Array.isArray(line)) continue;
+    const pts: [number, number][] = [];
+    for (const pt of line) {
+      if (
+        Array.isArray(pt) &&
+        typeof pt[0] === "number" &&
+        typeof pt[1] === "number" &&
+        Number.isFinite(pt[0]) &&
+        Number.isFinite(pt[1])
+      ) {
+        pts.push([pt[0], pt[1]]);
+      }
+    }
+    if (pts.length >= 2) lines.push(pts);
+  }
+  return lines.length > 0 ? lines : null;
+}
+
+/**
+ * 지도 오버레이용 등산로 경로 목록(Task 029). `path_geojson` 이 있는 trail 만 반환하며,
+ * 각 경로에 **오늘 실효 상태**(계절 통제는 기간·조회일로 재계산)를 붙여 색상 구분에 쓴다.
+ * 국립공원 외(GeoJSON 미보유) 산은 빈 배열 → 지도는 마커+목록 폴백으로만 표시된다.
+ * 조회 실패도 빈 배열로 격리(오버레이 없음)해 지도 자체는 계속 동작한다.
+ */
+export async function getTrailPathsForMountain(
+  id: string,
+  now: Date = new Date(),
+): Promise<TrailPath[]> {
+  const supabase = await createClient();
+  const { data: rows, error } = await supabase
+    .from("trails")
+    .select("id, name, status, closed_reason, closed_period, path_geojson")
+    .eq("mountain_id", id)
+    .not("path_geojson", "is", null);
+
+  if (error || !rows) return [];
+
+  const paths: TrailPath[] = [];
+  for (const r of rows) {
+    const coords = extractMultiLineString(r.path_geojson);
+    if (!coords) continue;
+    const effective = resolveTrailStatusOn(
+      {
+        status: r.status as TrailStatus,
+        closedReason: r.closed_reason,
+        closedPeriod: r.closed_period,
+      },
+      now,
+    );
+    paths.push({ id: r.id, name: r.name, status: effective.status, paths: coords });
+  }
+  return paths;
 }

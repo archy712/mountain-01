@@ -1,25 +1,36 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
+import { TrailOverlay } from "@/components/trail-overlay";
 import { getAllMountains } from "@/lib/data/mountains";
-import { getMountainMeta } from "@/lib/data/mountain-detail";
+import { getMountainMeta, getTrailPathsForMountain } from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
 
 /**
- * 전체화면 지도 화면 레이아웃 골격 (Task 012, Task 019 실데이터·404 정합).
+ * 전체화면 지도 화면 (Task 012 골격 → Task 028 KakaoMap → Task 029 폴리라인 오버레이).
  *
- * 카카오맵 SDK 로딩은 `KakaoMap`(Task 028)이 담당한다. 등산로 폴리라인 오버레이는
- * Task 029(Phase 5)에서 얹는다. 여기서는 풀스크린 지도 영역 + 뒤로가기 + 범례 오버레이를 둔다.
+ * 지도 셸(타일·마커)은 정적 프리렌더로 즉시 그리고, 등산로 폴리라인은 오늘 실효 상태로
+ * 색을 칠하므로 `<Suspense>` + `connection()` 동적 홀로 스트리밍한다.
  *
  * `[id]` 세그먼트를 부모 상세와 함께 정적 프리렌더하고(존재하지 않는 산은 notFound→404),
- * 산 이름은 캐시된 `getMountainMeta` 로 가져온다(더미 제거). params 는 비동기(Next.js 16).
+ * 산 이름은 캐시된 `getMountainMeta` 로 가져온다. params 는 비동기(Next.js 16).
  */
 export async function generateStaticParams(): Promise<{ id: string }[]> {
   const mountains = await getAllMountains();
   return mountains.map((m) => ({ id: m.id }));
+}
+
+/** 전체화면 지도의 등산로 폴리라인 오버레이(오늘 실효 상태 색상). GeoJSON 미보유 산은 null. */
+async function FullscreenTrailOverlay({ mountainId }: { mountainId: string }) {
+  await connection();
+  const paths = await getTrailPathsForMountain(mountainId);
+  if (paths.length === 0) return null;
+  return <TrailOverlay trails={paths} />;
 }
 
 export default async function MountainMapPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +61,11 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
           level={5}
           appKey={publicEnv.kakaoMapKey}
           className="min-h-[70dvh]"
-        />
+        >
+          <Suspense fallback={null}>
+            <FullscreenTrailOverlay mountainId={mountain.id} />
+          </Suspense>
+        </KakaoMap>
         <MapLegend
           statuses={["open", "partial", "closed"]}
           className="absolute right-3 bottom-3 left-3 sm:right-auto"

@@ -60,3 +60,16 @@ export interface Trail {
 }
 
 export type TrailNormalizer = Normalizer<Trail[]>;
+
+/**
+ * 지도 폴리라인 오버레이용 등산로 경로 (Task 029).
+ * courseID 세그먼트를 모은 MultiLineString 좌표와 오늘 실효 상태(색상 구분용)를 담는다.
+ * `path_geojson` 이 없는 trail(국립공원 외)은 이 목록에서 제외되어 마커+목록 폴백으로만 표시된다.
+ */
+export interface TrailPath {
+  id: string;
+  name: string;
+  status: TrailStatus;
+  /** MultiLineString 좌표: 세그먼트 배열, 각 세그먼트는 [경도, 위도] 점 배열 */
+  paths: [number, number][][];
+}

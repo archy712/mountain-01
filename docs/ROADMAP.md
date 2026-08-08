@@ -402,14 +402,14 @@
   - **산출물**: ✅ `components/kakao-map.tsx`, `types/kakao-maps.d.ts`, `app/(main)/mountains/[id]/page.tsx`(지도 섹션 연동), `app/(main)/mountains/[id]/map/page.tsx`(전체화면 연동)
   - **의존성**: Task 001(#15), Task 027
 
-- **Task 029: 등산로 GeoJSON 적재 및 오버레이 구현**
-  - `mountain.csv` 좌표(WGS84 위경도) → 코스별 그룹핑 → **RDP 단순화**(허용오차 ～3m, PoC로 유효성 확인) → GeoJSON LineString 변환 파이프라인 (Task 017의 CSV 파서 재사용, 재투영 불필요)
-  - `trails.path_geojson` 적재 — 필요 코스만 (원본 173MB는 로컬 가공용, DB 적재분은 수 MB 예상), 스키마 변경 시 `database.types.ts` 재생성
-  - `TrailOverlay` 구현 — 카카오맵 폴리라인으로 코스 렌더링
-  - **통제 구간 색상 구분** — `trails.status`별 폴리라인 색상 및 `MapLegend` 연동 (색상 단독 구분 금지: 범례 텍스트 병기)
-  - 국립공원 외(GeoJSON 미보유) 탐방로는 마커+목록으로만 표시하는 축소 폴백
-  - **테스트 체크리스트**: Playwright MCP로 폴리라인 렌더링, 통제 구간 색상 구분, GeoJSON 없는 산의 폴백 동작 확인
-  - **산출물**: `components/trail-overlay.tsx`, `components/map-legend.tsx`, `lib/trails/csv-to-geojson.ts`, `supabase/migrations/*_trails_geojson.sql`
+- **✅ Task 029: 등산로 GeoJSON 적재 및 오버레이 구현** - 완료
+  - ✅ CSV→GeoJSON 파이프라인(`lib/trails/csv-to-geojson.ts`, Node 전용) — `mountain.csv` 좌표(WGS84, 재투영 불필요·결정 001 #15)를 코스ID 단위로 순서 보존 파싱 → **RDP 단순화**(반복 구현, 허용오차 3m, equirectangular 미터 투영 수직거리) → (산 slug, 코스명) MultiLineString 집약. Task 017 과 **동일한 매핑/정규화**(mountain-name-matcher)를 써서 시드된 trail 행에 정확히 대응. **774,682점 → 39,156점(5.1%)로 감축**, 좌표 6자리 반올림
+  - ✅ `trails.path_geojson` 적재 — 스키마 컬럼은 Task 007 에서 이미 생성됨(스키마 변경 없음 → `database.types.ts` 재생성 불필요). 0.88MB 데이터를 MCP 인라인(컨텍스트 폭증) 대신 **서비스 롤 클라이언트 직접 UPDATE 로더**(`load-trails-geojson.ts`)로 적재 — (mountain_id, name) 매칭으로 **316/316 업데이트·미매칭 0·실패 0**(id·이름 파생키 정합 실증). 생성 SQL 도 산출물로 보존(`trails_geojson.sql`). DB 검증: **316 trails / 16개 산**에 geojson(1개는 유효 선분 부족으로 마커 폴백)
+  - ✅ `TrailOverlay`(`components/trail-overlay.tsx`) — `KakaoMap` 이 컨텍스트로 공개한 지도 핸들을 구독해 폴리라인을 `useEffect` 에서 생성·언마운트 시 `setMap(null)` 정리(명령형 API 대응). `KakaoMap` 은 지도 준비 후 children 에 핸들 제공하도록 확장(`useKakaoMapHandle`)
+  - ✅ **통제 구간 색상 구분** — 상태별 폴리라인 색(`TRAIL_STATUS_COLOR`, `--status-*` 토큰 hex 정합: 개방#1da54f·통제#d32222·부분통제#ce7c09)으로 `MapLegend` 점 색과 일치(색상 단독 금지 → 범례 아이콘+텍스트 병기). **오늘 실효 상태로 색칠**(계절 통제는 기간·조회일로 재계산) — `getTrailPathsForMountain` + `<Suspense>`+`connection()` 동적 스트리밍(지도 셸은 정적 PPR 유지). 통제를 개방 위에 그려 가림 방지
+  - ✅ 국립공원 외(GeoJSON 미보유) 축소 폴백 — 빈 배열 → 폴리라인 미렌더, 마커+목록만 유지(관악산 실증)
+  - ✅ **테스트**: Playwright MCP 라이브(360px) — 가야산(개방 폴리라인 11세그먼트 초록), **주왕산 색상 구분(개방 8 초록 + 상시통제 6 빨강**, 상세 220px·전체화면 70dvh 양쪽), 설악산(계절통제 12개가 오늘 8/9 개방으로 정확 재계산→초록, 울산바위는 geojson 부재), **관악산 폴백(폴리라인 0·마커만·크래시 0)**. 콘솔 에러 0건, `typecheck`·`lint`·`build` 통과(두 지도 라우트 `◐` PPR 유지)
+  - **산출물**: ✅ `components/trail-overlay.tsx`, `components/kakao-map.tsx`(핸들 컨텍스트·children), `lib/trails/csv-to-geojson.ts`, `lib/data/mountain-detail.ts`(`getTrailPathsForMountain`), `lib/types/mountain.ts`(`TrailPath`), `supabase/seed/{gen-trails-geojson.ts,load-trails-geojson.ts,trails_geojson.sql}`, `app/(main)/mountains/[id]/{page.tsx,map/page.tsx}`
   - **의존성**: Task 028, Task 017 (CSV 파서 재사용)
 
 - **Task 030: PWA 적용 및 오프라인 폴백 구현**

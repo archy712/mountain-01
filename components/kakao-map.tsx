@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ExternalLink, MapPin } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -61,6 +61,22 @@ function loadKakaoSdk(appKey: string): Promise<void> {
 
 type LoadStatus = "loading" | "ready" | "error";
 
+/**
+ * 지도가 준비된 뒤 자식(오버레이)에게 제공되는 핸들. 카카오맵은 명령형 API 라
+ * 자식 오버레이(`TrailOverlay` 등)가 이 핸들로 지도 인스턴스에 폴리라인을 그린다.
+ */
+export interface KakaoMapHandle {
+  kakao: typeof kakao;
+  map: kakao.maps.Map;
+}
+
+const KakaoMapContext = createContext<KakaoMapHandle | null>(null);
+
+/** 자식 오버레이에서 지도 핸들을 구독한다. 지도 준비 전에는 null. */
+export function useKakaoMapHandle(): KakaoMapHandle | null {
+  return useContext(KakaoMapContext);
+}
+
 export interface KakaoMapProps {
   /** 산 위도(WGS84) */
   lat: number;
@@ -74,11 +90,22 @@ export interface KakaoMapProps {
   appKey?: string;
   /** 높이 등 박스 크기를 지정하는 클래스(예: "h-[220px]", "min-h-[70dvh]") */
   className?: string;
+  /** 지도 준비 후 렌더할 오버레이(예: `<TrailOverlay />`). 컨텍스트로 지도 핸들을 받는다. */
+  children?: ReactNode;
 }
 
-export function KakaoMap({ lat, lng, name, level = 6, appKey, className }: KakaoMapProps) {
+export function KakaoMap({
+  lat,
+  lng,
+  name,
+  level = 6,
+  appKey,
+  className,
+  children,
+}: KakaoMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<LoadStatus>("loading");
+  const [handle, setHandle] = useState<KakaoMapHandle | null>(null);
 
   useEffect(() => {
     if (!appKey) return;
@@ -96,6 +123,7 @@ export function KakaoMap({ lat, lng, name, level = 6, appKey, className }: Kakao
           const map = new kakao.maps.Map(containerRef.current, { center, level });
           marker = new kakao.maps.Marker({ position: center, map, title: name });
           setStatus("ready");
+          setHandle({ kakao, map }); // 자식 오버레이에 지도 핸들 공개
         } catch {
           setStatus("error");
         }
@@ -107,6 +135,7 @@ export function KakaoMap({ lat, lng, name, level = 6, appKey, className }: Kakao
     return () => {
       cancelled = true;
       if (marker) marker.setMap(null);
+      setHandle(null); // 언마운트/재실행 시 오버레이가 옛 지도에 그리지 않도록 정리
     };
   }, [appKey, lat, lng, level, name]);
 
@@ -151,6 +180,7 @@ export function KakaoMap({ lat, lng, name, level = 6, appKey, className }: Kakao
           지도를 불러오는 중…
         </div>
       )}
+      {handle && <KakaoMapContext.Provider value={handle}>{children}</KakaoMapContext.Provider>}
     </div>
   );
 }
