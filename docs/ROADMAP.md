@@ -140,12 +140,13 @@
   - **산출물**: ✅ `app/(main)/*`, `app/offline/page.tsx`, `components/site-header.tsx`, `lib/supabase/proxy.ts`
   - **의존성**: Task 002, Task 004
 
-- **Task 006: 도메인 타입 및 API 표준 스키마 정의**
-  - 도메인 타입 정의 — `lib/types/mountain.ts`(Mountain, Trail, TrailStatus), `lib/types/weather.ts`(WeatherSnapshot: TMP/POP/SKY/PTY/WSD/REH), `lib/types/air.ts`(AirQuality, UvIndex)
-  - 컨디션 점수 타입 정의 — `lib/types/condition.ts`(ConditionScore, ScoreBreakdown, ScoreGrade, GearItem)
-  - 외부 API 응답 → 앱 내부 표준 스키마 정규화 계약 정의 (`normalize*` 함수 시그니처, 부분 실패를 표현하는 `PartialResult<T>` 타입)
-  - API Route Handler 공통 응답 타입 정의 — 성공/부분성공/실패 및 `fetchedAt`(“N분 전 기준” 라벨용) 필드 포함
-  - **산출물**: `lib/types/*.ts`
+- **✅ Task 006: 도메인 타입 및 API 표준 스키마 정의** - 완료
+  - ✅ 도메인 타입 — `mountain.ts`(Mountain, Trail, TrailStatus + 라벨맵), `weather.ts`(WeatherSnapshot: TMP/POP/SKY/PTY/WSD/REH + SKY/PTY 코드→시맨틱 매핑), `air.ts`(AirQuality, UvIndex + 등급 매핑·UV 구간)
+  - ✅ 컨디션 점수 타입 — `condition.ts`(ConditionScore, ScoreBreakdownItem, ScoreGrade, GearItem, ScoreFactor + 등급 구간·라벨, 결정 003 v1 동결값 반영)
+  - ✅ 정규화 계약 — `Normalizer<TOut>` 시그니처(파싱 실패 시 throw 대신 failure 반환), 부분 실패 `PartialResult<T>`(success/stale/failure + `fetchedAt`) + `hasData` 가드
+  - ✅ Route Handler 공통 응답 — `ApiResponse<T>`(ok/partial/error, `fetchedAt`·`issues`), `ApiError`/`ApiErrorCode`(no_station·not_covered 등 폴백 분기 포함)
+  - ✅ 상세 집계 스키마 `MountainDetailData`(소스별 PartialResult 격리) + 배럴 `index.ts`. `typecheck`·`lint` 통과
+  - **산출물**: ✅ `lib/types/{api,mountain,weather,air,condition,index}.ts`
   - **의존성**: Task 001
 
 - **Task 007: Supabase 스키마 설계 및 마이그레이션 작성 (적용 제외)**
