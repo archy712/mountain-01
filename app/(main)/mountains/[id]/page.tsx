@@ -8,6 +8,7 @@ import { Maximize2 } from "lucide-react";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { FavoriteButton } from "@/components/favorite-button";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
+import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
@@ -18,6 +19,7 @@ import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
 import { getAllMountains } from "@/lib/data/mountains";
 import { getMountainMeta, getTrailsForMountain } from "@/lib/data/mountain-detail";
+import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { hasData, type Mountain } from "@/lib/types";
 
@@ -91,7 +93,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
         <TrailSection mountainId={mountain.id} />
       </Suspense>
 
-      {/* 지도 섹션 자리표시자 — 카카오맵·폴리라인은 Task 028·029(Phase 5) */}
+      {/* 지도 섹션 — 카카오맵(Task 028). 등산로 폴리라인은 Task 029(Phase 5). */}
       <section aria-labelledby="map-heading" className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 id="map-heading" className="text-base font-semibold">
@@ -106,9 +108,13 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           </Link>
         </div>
         <div className="relative overflow-hidden rounded-lg border">
-          <div className="flex min-h-[200px] items-center justify-center bg-muted/40 px-4 text-center text-sm text-muted-foreground">
-            카카오맵과 등산로가 이 자리에 표시됩니다. (Task 028·029)
-          </div>
+          <KakaoMap
+            lat={mountain.lat}
+            lng={mountain.lng}
+            name={mountain.name}
+            appKey={publicEnv.kakaoMapKey}
+            className="h-[220px]"
+          />
           <MapLegend
             statuses={["open", "partial", "closed"]}
             className="absolute right-3 bottom-3 left-3 sm:right-auto"

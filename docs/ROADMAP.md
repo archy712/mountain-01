@@ -392,14 +392,14 @@
 
 > **🔶#15 확정: 국립공원공단 `mountain.csv`로 등산로 좌표 확보(PoC 통과).** Task 029는 폴리라인 오버레이를 **정식 구현**한다(국립공원 범위). 국립공원 밖 산은 산 위치 마커 + 탐방로 목록으로 표시한다.
 
-- **Task 028: 카카오맵 SDK 통합 구현**
-  - 카카오맵 JS 키 발급 및 **도메인 등록**, CSP/스크립트 정책 확인
-  - `KakaoMap` Client Component 구현 — SDK **지연 로딩**(`next/script` `lazyOnload` 또는 동적 로드), 지도 인스턴스 생명주기 관리 및 언마운트 정리
-  - `mountains.lat/lng` 기반 산 위치 마커 및 초기 줌 레벨 설정
-  - `/mountains/[id]` 지도 섹션 및 `/mountains/[id]/map` 전체화면 지도 연결
-  - **스크립트 로드 실패 폴백** — 정적 좌표 텍스트 + 외부 지도 링크 제공
-  - **테스트 체크리스트**: Playwright MCP로 지도 렌더링, 스크립트 차단 시 폴백 노출, 지도 로딩이 LCP를 저해하지 않는지 확인
-  - **산출물**: `components/kakao-map.tsx`, `app/mountains/[id]/map/page.tsx`
+- **✅ Task 028: 카카오맵 SDK 통합 구현** - 완료
+  - ✅ 카카오맵 JS 키 발급·도메인 등록(`http://localhost:3000`)·**카카오맵 제품 활성화**(콘솔 개편으로 도메인은 앱 키 하위·JS 키 설정으로 이동, 제품 미활성 시 `OPEN_MAP_AND_LOCAL disabled` 403을 브라우저가 `ERR_BLOCKED_BY_ORB`로 차단하는 것 실측 규명). 앱 키는 서버 컴포넌트가 `publicEnv.kakaoMapKey`(NEXT_PUBLIC)로 읽어 prop 주입 → 클라이언트 번들에 서버 키 미노출
+  - ✅ `KakaoMap` Client Component — SDK **지연 로딩**(`autoload=false` 스크립트를 **모듈 스코프 캐시로 1회만** 주입, `kakao.maps.load` 콜백 이후 지도 생성). 생명주기: `useEffect` 로 지도·마커 생성, 언마운트 시 마커 `setMap(null)` 정리, 초기화 예외 try/catch → 폴백. `role="application"`+`aria-label` 접근성
+  - ✅ `mountains.lat/lng` 기반 산 위치 마커 + 초기 줌 레벨(상세 섹션 level 6·전체화면 level 5)
+  - ✅ `/mountains/[id]` 지도 섹션 및 `/mountains/[id]/map` 전체화면 지도 연결(둘 다 PPR 정적 셸 유지 → 클라이언트에서 비동기 부착, **지도가 LCP 요소가 아님** 실측 확인)
+  - ✅ **폴백**(스크립트 로드 실패 + 앱 키 미설정 공통 경로) — 정적 좌표 텍스트("위도/경도") + 카카오맵 외부 링크(`map.kakao.com/link/map/{name},{lat},{lng}`) 제공. 지도가 없어도 앱 크래시 없이 위치 확인·이동 가능. 최소 타입 선언(`types/kakao-maps.d.ts`)으로 `any` 없이 타입 안전
+  - ✅ **테스트**: Playwright MCP(360px) — **키 없음 폴백**(상세·전체화면 둘 다 정적 좌표+외부 링크 노출) → **키 설정·제품 활성화 후 실 지도 렌더**(가야산 상왕봉 마커·지형 타일·`window.kakao.maps` 로드·컨테이너 canvas/img·폴백 미표시) 라이브 실증, 콘솔 에러 0건. LCP 요소=점수 span(지도 아님)으로 지도 비저해 확인. `typecheck`·`lint`·`build` 통과(`/mountains/[id]`·`.../map` `◐` PPR 프리렌더)
+  - **산출물**: ✅ `components/kakao-map.tsx`, `types/kakao-maps.d.ts`, `app/(main)/mountains/[id]/page.tsx`(지도 섹션 연동), `app/(main)/mountains/[id]/map/page.tsx`(전체화면 연동)
   - **의존성**: Task 001(#15), Task 027
 
 - **Task 029: 등산로 GeoJSON 적재 및 오버레이 구현**
