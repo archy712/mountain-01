@@ -412,14 +412,14 @@
   - **산출물**: ✅ `components/trail-overlay.tsx`, `components/kakao-map.tsx`(핸들 컨텍스트·children), `lib/trails/csv-to-geojson.ts`, `lib/data/mountain-detail.ts`(`getTrailPathsForMountain`), `lib/types/mountain.ts`(`TrailPath`), `supabase/seed/{gen-trails-geojson.ts,load-trails-geojson.ts,trails_geojson.sql}`, `app/(main)/mountains/[id]/{page.tsx,map/page.tsx}`
   - **의존성**: Task 028, Task 017 (CSV 파서 재사용)
 
-- **Task 030: PWA 적용 및 오프라인 폴백 구현**
-  - `app/manifest.ts`(또는 `manifest.json`) 작성 — 확정 브랜드명(🔶#1), 테마 색상, `display: standalone`, 아이콘 세트(192/512/maskable) 생성
-  - 서비스워커 구현 — 🔶#13 확정 전략(앱 셸 캐시 + 데이터 네트워크 우선), 버전 관리 및 구버전 캐시 정리
-  - `PwaInstallPrompt` 동작 구현 — `beforeinstallprompt` 캡처, 설치 배너 노출/디스미스 상태 저장
-  - 오프라인 폴백 — `/offline` 라우팅 및 **마지막 조회 결과 캐시 표시**("N분 전 기준" 라벨 재사용)
-  - Lighthouse PWA 항목 점검
-  - **테스트 체크리스트**: Playwright MCP로 오프라인 전환 시 캐시 결과/`/offline` 노출, 서비스워커 등록 및 갱신 확인
-  - **산출물**: `app/manifest.ts`, `public/sw.js`, `public/icons/*`, `app/offline/page.tsx`, `components/pwa-install-prompt.tsx`
+- **✅ Task 030: PWA 적용 및 오프라인 폴백 구현** - 완료
+  - ✅ `app/manifest.ts`(Next 16 `/manifest.webmanifest`) — 브랜드명 "산길날씨"/short_name(결정 002 #1), `display: standalone`, portrait, 흰 배경·테마색(viewport themeColor 정합), 아이콘 세트. 아이콘은 `sharp` 로 SVG(산+태양 글리프)→PNG **192/512(any)+512(maskable, 안전영역 내)+180(apple-touch)** 생성. layout 에 apple-web-app·apple-touch-icon 메타 배선
+  - ✅ 서비스워커(`public/sw.js`, 손수 작성·의존성 0, 결정 003 #13) — **앱 셸 precache + 정적자원(`/_next/static`·아이콘·manifest) cache-first**, **네비게이션·API·RSC 데이터 network-first(캐시 폴백)**. `activate` 에서 **버전(v1) 외 `sangil-*` 캐시 정리**(타사 캐시 보존). 오프라인 미스: 네비게이션은 **자체 완결 인라인 오프라인 HTML**(Next 청크 의존 0 → ChunkLoadError 회피), RSC 프리페치는 204·기타는 503 으로 콘솔 노이즈 억제
+  - ✅ `PwaInstallPrompt` 동작 — `beforeinstallprompt` 캡처·`preventDefault`(기본 미니바 억제) 후 배너 노출, "설치"→`prompt()`, "닫기"→`localStorage` 디스미스 기록(재노출 억제). 이미 설치(standalone)·디스미스 상태면 숨김
+  - ✅ 오프라인 폴백 — 마지막 조회한 산 상세는 **캐시된 페이지로 렌더**("N분 전 기준" 라벨 포함), 미조회 페이지는 인라인 오프라인 안내. `ServiceWorkerRegister`(프로덕션 전용, dev HMR 충돌 회피)로 등록
+  - ✅ **proxy 매처 보정** — `/sw.js`·`/manifest.webmanifest` 가 인증 가드에 걸려 로그인 리다이렉트되던 문제를 매처 제외로 해결(쿠키 로직 불변). 카카오맵 제품 활성화 흐름처럼 **에어코리아 게이트웨이류 무관**
+  - ✅ **테스트**: Playwright MCP(360px, 프로덕션 빌드) — 매니페스트 서빙·head 링크, **SW 등록·활성·제어**, precache/runtime 캐시 적재, **오프라인(서버 중단) 캐시 페이지 렌더 0 에러 + 미캐시→인라인 폴백 0 에러**, **버전 정리(v0 삭제·v1 유지·타사 보존)**, **설치 배너(prompt 호출·디스미스 지속)** 전부 실증. `typecheck`·`lint`·`build` 통과. ⏳ Lighthouse 정식 리포트는 Task 032 성능 검증에서 함께 수행(installability 요건 매니페스트·SW·아이콘·standalone 충족 확인)
+  - **산출물**: ✅ `app/manifest.ts`, `public/sw.js`, `public/icons/*`(svg+png 5종), `components/service-worker-register.tsx`, `components/pwa-install-prompt.tsx`, `app/offline/page.tsx`(유지), `app/layout.tsx`(SW 등록·메타), `proxy.ts`(매처)
   - **의존성**: Task 002(#1), Task 003(#13), Task 027
 
 - **Task 031: 3단계 완료 기준 검증 (통합 테스트)**

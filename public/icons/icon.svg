@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="산길날씨 아이콘">
+  <rect width="512" height="512" fill="#1da54f"/>
+  <circle cx="344" cy="182" r="40" fill="#ffffff" fill-opacity="0.9"/>
+  <path d="M104 380 L214 236 L300 348 L336 300 L408 380 Z" fill="#ffffff" fill-opacity="0.5"/>
+  <path d="M128 384 L242 232 L356 384 Z" fill="#ffffff"/>
+</svg>

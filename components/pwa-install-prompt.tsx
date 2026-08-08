@@ -1,23 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * 홈 화면 설치 유도 배너 UI (Task 012, 3단계 PWA 준비).
+ * 홈 화면 설치 유도 배너 (Task 012 UI → Task 030 동작 연결).
  *
- * 현재는 **배너 UI 골격만** 담당한다. 실제 설치 트리거(`beforeinstallprompt` 캡처,
- * 설치/디스미스 상태의 세션 저장, 이미 설치된 경우 숨김)는 Phase 5(Task 030)에서
- * 연결한다. 지금은 마운트 시 노출되고 닫기 버튼으로 감출 수 있는 상태만 갖는다.
+ * 동작:
+ *  - `beforeinstallprompt`(Android Chrome 등)를 캡처·`preventDefault` 해 기본 미니바를 막고,
+ *    우리 배너를 노출한다. iOS Safari 등 이벤트 미지원 환경에서는 배너를 띄우지 않는다.
+ *  - "설치" → 저장해둔 이벤트의 `prompt()` 호출, 사용자 선택 후 배너를 닫는다.
+ *  - "닫기" → `localStorage` 에 디스미스 기록(재노출 억제). 이미 설치(standalone)면 처음부터 숨김.
  *
  * `(main)` 레이아웃 하단에 고정 배치되어 앱 전역에서 노출된다.
  */
-export function PwaInstallPrompt({ className }: { className?: string }) {
-  const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+const DISMISS_KEY = "sangil-pwa-dismissed";
+
+function isStandalone(): boolean {
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    // iOS Safari 홈 화면 실행 플래그
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+export function PwaInstallPrompt({ className }: { className?: string }) {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    if (isStandalone()) return;
+    if (localStorage.getItem(DISMISS_KEY) === "1") return;
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault(); // 브라우저 기본 설치 미니바 억제
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    // 설치 완료되면 배너 정리
+    const onInstalled = () => setDeferredPrompt(null);
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null); // prompt 는 1회용
+  };
+
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      // localStorage 불가 환경은 무시(세션 내 숨김만)
+    }
+    setDeferredPrompt(null);
+  };
+
+  // 설치 가능 이벤트를 받았을 때만 노출
+  if (!deferredPrompt) return null;
 
   return (
     <div
@@ -43,9 +97,9 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
           </p>
         </div>
 
-        {/* Task 030에서 beforeinstallprompt.prompt() 연결 */}
         <button
           type="button"
+          onClick={handleInstall}
           className="inline-flex h-11 shrink-0 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
         >
           설치
@@ -53,7 +107,7 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
 
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           aria-label="설치 안내 닫기"
           className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
