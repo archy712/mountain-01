@@ -1,18 +1,26 @@
 import { notFound } from "next/navigation";
 
+import { AirQualityBadge } from "@/components/air-quality-badge";
+import { ConditionScoreGauge } from "@/components/condition-score-gauge";
+import { FavoriteButton } from "@/components/favorite-button";
+import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { MountainDetail } from "@/components/mountain-detail";
+import { ScoreBreakdown } from "@/components/score-breakdown";
 import { TrailList } from "@/components/trail-list";
+import { UvIndexBadge } from "@/components/uv-index-badge";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getMockMountainDetail } from "@/lib/mock";
+import { hasData } from "@/lib/types";
 
 /**
- * 산 상세 결과 화면 (Task 010, 1단계 범위: 메타·날씨·탐방로).
+ * 산 상세 결과 화면 (Task 010 1단계 + Task 011 2단계).
  *
- * "결론 우선" 정보 위계: 산 식별(메타) → 날씨 요약(히어로) → 탐방로 상태 순으로
- * 스크롤 없이 오늘 산행 가부를 판단하게 한다. 컨디션 점수·장비·대기질은 Task 011.
+ * "결론 우선" 위계: 산 식별(메타) → **컨디션 점수(히어로 결론)** → 근거(감점·날씨·
+ * 대기/자외선) → 추천 장비 → 탐방로. 스크롤 없이 오늘 산행 가부를 판단하게 한다.
  *
  * 현재는 더미(`getMockMountainDetail`). 실데이터 연동·`notFound()` 정식 처리는 Task 019.
- * 소스별 부분 실패는 각 컴포넌트(`WeatherSummaryCard`·`TrailList`)가 격리 렌더한다.
+ * 소스별 부분 실패는 각 컴포넌트가 격리 렌더하고, 대기질 측정소 부재(결정 001 #5)는
+ * 아래에서 안내 문구로 대체한다.
  */
 export default async function MountainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,10 +28,45 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
   if (!detail) notFound();
 
+  const condition = detail.condition && hasData(detail.condition) ? detail.condition.data : null;
+  const air = detail.air && hasData(detail.air) ? detail.air.data : null;
+  const airFailed = detail.air !== undefined && !hasData(detail.air);
+  const uv = detail.uv && hasData(detail.uv) ? detail.uv.data : null;
+  const gear = detail.gear ?? [];
+
   return (
     <div className="space-y-6 py-6">
-      <MountainDetail mountain={detail.mountain} />
+      <div className="flex items-start justify-between gap-3">
+        <MountainDetail mountain={detail.mountain} />
+        <FavoriteButton className="shrink-0" />
+      </div>
+
+      {condition ? (
+        <>
+          <ConditionScoreGauge condition={condition} />
+          <ScoreBreakdown condition={condition} />
+        </>
+      ) : null}
+
       <WeatherSummaryCard result={detail.weather} />
+
+      {air || uv || airFailed ? (
+        <section aria-labelledby="air-uv-heading" className="space-y-2">
+          <h2 id="air-uv-heading" className="text-base font-semibold">
+            대기·자외선
+          </h2>
+          {air ? <AirQualityBadge air={air} /> : null}
+          {airFailed ? (
+            <p className="text-sm text-muted-foreground">
+              인근 측정소가 없어 대기질 정보를 제공하지 못했어요.
+            </p>
+          ) : null}
+          {uv ? <UvIndexBadge uv={uv} /> : null}
+        </section>
+      ) : null}
+
+      <GearRecommendationList gear={gear} />
+
       <TrailList result={detail.trails} />
     </div>
   );
