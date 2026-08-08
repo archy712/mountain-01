@@ -249,13 +249,16 @@
   - **산출물**: ✅ `lib/api/{fetcher,cache,errors,index}.ts`, `next.config.ts`(cacheLife 프로필)
   - **의존성**: Task 003, Task 006
 
-- **Task 016: 기상청 단기예보 연동 구현**
-  - 기상청 단기예보(+ 확정 시 초단기실황 혼용) 클라이언트 구현 — `base_date`/`base_time` 산출 로직(발표 시각 규칙) 포함
-  - 응답 파싱 및 정규화 — `TMP`, `POP`, `SKY`, `PTY`, `WSD`, `REH`를 `WeatherSnapshot`으로 변환, 하늘상태/강수형태 코드 → 한국어 라벨 매핑
-  - Route Handler `GET /api/weather?mountainId=` 구현 — `mountains.grid_nx/grid_ny` 조회 후 호출, 캐시 TTL 적용
-  - 실패 폴백 — "날씨 정보를 불러오지 못했습니다" + 재시도, 탐방로 정보는 정상 노출되도록 부분 실패 격리
-  - **테스트 체크리스트**: Playwright MCP로 정상 응답 렌더링, API 500/타임아웃 주입 시 폴백 UI 노출 및 페이지 크래시 없음, 자정 전후 `base_time` 경계 케이스 확인
-  - **산출물**: `app/api/weather/route.ts`, `lib/api/kma-forecast.ts`
+- **✅ Task 016: 기상청 단기예보 연동 구현** - 완료
+  - ✅ 단기예보(getVilageFcst) 클라이언트 — `base_date`/`base_time` 산출(KST 환산, 발표시각 [02·05·08·11·14·17·20·23]시 + 10분 여유, 02:10 이전 전날 2300 롤백). **초단기실황이 아닌 단기예보 채택 근거**: `WeatherSnapshot`이 요구하는 POP·SKY·TMP는 초단기실황에 없고 단기예보에만 존재 → 6종을 한 소스로 충족(결정 001 #3 "혼용"의 초단기 보정은 향후 확장 여지)
+  - ✅ 응답 파싱·정규화 — 오늘(targetDate) 예보만 카테고리별 (시각→값)으로 모아 현재 시각 최근접 슬롯 채택, `TMP·POP·SKY·PTY·WSD·REH`→`WeatherSnapshot`, SKY/PTY 코드→시맨틱 매핑(미매핑 안전 폴백). 순수 로직은 프레임워크 무의존 `kma-forecast-core.ts`로 분리해 단위 검증 가능
+  - ✅ Route Handler `GET /api/weather?mountainId=` — `mountains.grid_nx/grid_ny` 조회 후 호출, `'use cache'`+`cacheLife("weather-30m")`+`cacheTag`로 캐싱. 봉투: 성공 ok / stale→partial(issues) / 실패 error, 요청오류만 4xx(400 파라미터·404 산 없음)
+  - ✅ 실패 폴백 — `withStaleFallback` 마지막 성공 스냅샷("N분 전 기준"), 실패 시 error 봉투로 **크래시 없이** 격리(탐방로 등 타 소스 독립). `toApiError`가 정규화 실패 메시지를 보존하도록 소폭 보강
+  - ✅ **proxy 공개경로에 `/api/` 추가** — 비로그인 상세 페이지가 소비하는 공개 데이터 API가 로그인 HTML로 리다이렉트되던 문제 해결(쿠키 로직 불변, 보호 API는 라우트 자체 401 예정 — Task 026)
+  - ✅ **serviceKey 이중 인코딩 버그 수정** — `.env.local` 키가 Encoding 형태라 fetcher의 URLSearchParams가 `%`를 재인코딩→코드30. 호출부에서 `decodeURIComponent`로 1회만 인코딩(에어코리아·자외선 Task 021·022도 동일 규칙 적용 필요)
+  - ✅ **테스트**: 순수 로직 단위 20/20 통과(base_time 자정/발표시각 경계 9종·정규화 성공/최근접폴백/코드매핑/resultCode≠00/빈items/필수결측/타일자 11종). Playwright 라이브 검증 — 북한산 28℃맑음·설악산 비·한라산 지역별 상이한 실데이터 ok 봉투, 파라미터누락 400·미존재산 404 봉투, 앱 콘솔 JS 에러 0(400/404는 테스트 유발 HTTP 로그). `typecheck`·`lint`·`build` 통과
+  - ⏳ **상세 페이지 실연동·부분실패 UI 노출은 Task 019**에서 수행(현재 상세는 더미 유지) — Task 016은 API·정규화 레이어 확립까지
+  - **산출물**: ✅ `app/api/weather/route.ts`, `lib/api/kma-forecast.ts`, `lib/api/kma-forecast-core.ts`, `lib/api/errors.ts`(toApiError 보강), `lib/supabase/proxy.ts`(`/api/` 공개), `scratchpad/test-forecast.ts`(로직 검증)
   - **의존성**: Task 014, Task 015
 
 - **Task 017: 탐방로 통제 데이터 적재 및 오늘 통제 여부 계산 구현**

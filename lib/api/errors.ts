@@ -76,9 +76,26 @@ export function fetchErrorFromStatus(status: number): FetchError {
   });
 }
 
+/** throw 값에 정규화 계층이 실어 보낸 `ApiError` 가 있으면 꺼낸다(정규화 실패 메시지 보존). */
+function carriedApiError(err: unknown): ApiError | undefined {
+  if (err && typeof err === "object" && "apiError" in err) {
+    const carried = (err as { apiError: unknown }).apiError;
+    if (
+      carried &&
+      typeof carried === "object" &&
+      typeof (carried as ApiError).code === "string" &&
+      typeof (carried as ApiError).message === "string"
+    ) {
+      return carried as ApiError;
+    }
+  }
+  return undefined;
+}
+
 /**
  * 임의의 throw 값 → `ApiError` 로 정규화한다.
  * - `FetchError`: 실린 code/message 사용
+ * - `apiError` 를 실은 에러(정규화 계층): 그 ApiError 사용
  * - `AbortError`(타임아웃): timeout
  * - 그 외: unknown
  * 절대 다시 throw 하지 않는다(부분 실패 격리 계약).
@@ -87,6 +104,8 @@ export function toApiError(err: unknown): ApiError {
   if (err instanceof FetchError) {
     return apiError(err.code, err.message);
   }
+  const carried = carriedApiError(err);
+  if (carried) return carried;
   if (err instanceof DOMException && err.name === "AbortError") {
     return apiError("timeout");
   }

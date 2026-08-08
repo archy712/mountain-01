@@ -55,7 +55,11 @@ export async function updateSession(request: NextRequest) {
     pathname === "/mountains" ||
     pathname.startsWith("/mountains/") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/login");
+    pathname.startsWith("/login") ||
+    // API 라우트는 페이지 로그인 리다이렉트(HTML) 대상이 아니다. 공개 데이터 API
+    // (날씨·탐방로 등, 비로그인 상세 페이지가 소비)는 그대로 열고, 인증이 필요한
+    // API(예: /api/favorites, Task 026)는 라우트 핸들러가 직접 401 JSON 을 반환한다.
+    pathname.startsWith("/api/");
 
   if (!user && !isPublicPath) {
     // no user, potentially respond by redirecting the user to the login page
