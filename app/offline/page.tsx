@@ -1,10 +1,21 @@
 import Link from "next/link";
+import { WifiOff } from "lucide-react";
 
-// 오프라인 폴백 화면. PWA 서비스워커·마지막 조회 캐시 표시는 Phase 5(Task 030)에서 구현한다.
-// `(main)` 레이아웃을 상속하지 않는 독립 화면이다.
+/**
+ * 오프라인 폴백 화면 (Task 012 안내 UI).
+ *
+ * PWA 서비스워커·마지막 조회 캐시 표시("N분 전 기준")는 Phase 5(Task 030)에서 연결한다.
+ * `(main)` 레이아웃을 상속하지 않는 독립 화면이다.
+ */
 export default function OfflinePage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-screen-sm flex-col items-center justify-center gap-4 px-5 text-center">
+      <span
+        className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        aria-hidden="true"
+      >
+        <WifiOff className="size-7" />
+      </span>
       <h1 className="text-lg font-semibold">오프라인 상태예요</h1>
       <p className="text-sm text-muted-foreground">
         인터넷 연결을 확인해 주세요. 연결되면 마지막으로 본 정보를 다시 불러옵니다.

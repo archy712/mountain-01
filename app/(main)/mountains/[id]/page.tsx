@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Maximize2 } from "lucide-react";
 
 import { AirQualityBadge } from "@/components/air-quality-badge";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { FavoriteButton } from "@/components/favorite-button";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
+import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
 import { TrailList } from "@/components/trail-list";
@@ -68,6 +71,31 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       <GearRecommendationList gear={gear} />
 
       <TrailList result={detail.trails} />
+
+      {/* 지도 섹션 자리표시자 (Task 012) — 카카오맵·폴리라인은 Task 028·029 */}
+      <section aria-labelledby="map-heading" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="map-heading" className="text-base font-semibold">
+            지도
+          </h2>
+          <Link
+            href={`/mountains/${id}/map`}
+            className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Maximize2 className="size-4" aria-hidden="true" />
+            전체화면
+          </Link>
+        </div>
+        <div className="relative overflow-hidden rounded-lg border">
+          <div className="flex min-h-[200px] items-center justify-center bg-muted/40 px-4 text-center text-sm text-muted-foreground">
+            카카오맵과 등산로가 이 자리에 표시됩니다. (Task 028·029)
+          </div>
+          <MapLegend
+            statuses={["open", "partial", "closed"]}
+            className="absolute right-3 bottom-3 left-3 sm:right-auto"
+          />
+        </div>
+      </section>
     </div>
   );
 }

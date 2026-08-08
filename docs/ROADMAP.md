@@ -194,21 +194,24 @@
   - **산출물**: ✅ `app/(main)/mountains/[id]/page.tsx`, ✅ `components/weather-summary-card.tsx`, ✅ `components/mountain-detail.tsx`, ✅ `components/trail-list.tsx`
   - **의존성**: Task 005, Task 008
 
-- **Task 011: 컨디션 점수 및 장비 추천 UI 구현 (2단계 범위)**
-  - `ConditionScoreGauge` — 0～100 게이지, **텍스트 등급/메시지 병기 필수**(접근성), 등급별 색상 토큰 적용
-  - `ScoreBreakdown` — 주요 감점 요인 2～3개 리스트("강수확률 70% −20" 형식), "일부 데이터 제외" 배지
-  - `GearRecommendationList` — 조건별 장비 카드 목록, 추천 근거 문구 병기
-  - `AirQualityBadge`(PM10/PM2.5 등급), `UvIndexBadge`(UV 지수 구간)
-  - `FavoriteButton` UI(비활성/활성 상태, 비로그인 시 로그인 유도 문구)
-  - **산출물**: `components/condition-score-gauge.tsx`, `components/score-breakdown.tsx`, `components/gear-recommendation-list.tsx`, `components/air-quality-badge.tsx`, `components/uv-index-badge.tsx`, `components/favorite-button.tsx`
+- **✅ Task 011: 컨디션 점수 및 장비 추천 UI 구현 (2단계 범위)** - 완료
+  - ✅ `ConditionScoreGauge` — 0～100 원형 게이지(SVG), **등급·메시지 텍스트 병기 필수**(색상 단독 금지), `--grade-*` 토큰을 `currentColor`로 링/텍스트 일관 적용, `role="img"` 접근성 라벨
+  - ✅ `ScoreBreakdown` — 주요 감점 요인 2～3개 리스트("강수확률 70% −20" 형식), `excludedVariables` 존재 시 "일부 데이터 제외" 배지
+  - ✅ `GearRecommendationList` — 조건별 장비 카드 목록, 발동 근거 문구 병기, 빈 목록 폴백
+  - ✅ `AirQualityBadge`(PM10/PM2.5 값+등급 텍스트 병기·측정소/거리), `UvIndexBadge`(UV 값+구간 라벨)
+  - ✅ `FavoriteButton` UI — 비활성/활성 토글(`aria-pressed`), 비로그인 시 로그인 유도 팝오버(결정 002 #12)
+  - ✅ 상세 페이지 "결론 우선" 위계 통합(메타 → 점수 히어로 → 감점 근거 → 날씨 → 대기·자외선 → 장비 → 탐방로), 부분 실패(한라산 대기질 측정소 부재) 격리 렌더
+  - **산출물**: ✅ `components/condition-score-gauge.tsx`, `components/score-breakdown.tsx`, `components/gear-recommendation-list.tsx`, `components/air-quality-badge.tsx`, `components/uv-index-badge.tsx`, `components/favorite-button.tsx`, `app/(main)/mountains/[id]/page.tsx`(통합)
   - **의존성**: Task 008, Task 010
 
-- **Task 012: 즐겨찾기·지도·오프라인 화면 UI 구현 (2～3단계 범위)**
-  - `/favorites` — 저장한 산 카드 목록(요약 점수 포함), 빈 상태 및 비로그인 안내 UI
-  - `/mountains/[id]` 지도 섹션 자리표시자 + `MapLegend`(개방/통제 색상 범례, 텍스트 병기)
-  - `/mountains/[id]/map` 전체화면 지도 레이아웃 골격
-  - `/offline` 네트워크 단절 안내 화면, `PwaInstallPrompt` 배너 UI
-  - **산출물**: `app/favorites/page.tsx`, `app/mountains/[id]/map/page.tsx`, `app/offline/page.tsx`, `components/map-legend.tsx`, `components/pwa-install-prompt.tsx`
+- **✅ Task 012: 즐겨찾기·지도·오프라인 화면 UI 구현 (2～3단계 범위)** - 완료
+  - ✅ `/favorites` — 저장한 산 카드 목록(요약 컨디션 점수 칩: 점수+등급 텍스트 병기), 빈 상태·비로그인 안내 UI. `cacheComponents` 규약 준수로 `searchParams` 접근부를 `<Suspense>` 분리, Phase 2 검증용 `?state=empty`·`?state=guest` 지원(Task 026 실데이터 시 세션·목록 유무로 대체). 라우트는 proxy 보호라 비로그인 시 `/auth/login` 리다이렉트(의도된 동작, 시각 검증은 인증 활성화 Task 025로 연기)
+  - ✅ `/mountains/[id]` 지도 섹션 자리표시자 + `MapLegend`(색상 점+상태 아이콘+라벨 3중 병기, 색상 단독 구분 금지) + 전체화면 링크
+  - ✅ `/mountains/[id]/map` 전체화면 지도 레이아웃 골격 — 뒤로가기·산 이름 타이틀·풀높이(70dvh) 지도 자리표시자·범례 오버레이
+  - ✅ `/offline` 네트워크 단절 안내 화면(WifiOff 아이콘·홈 CTA), `PwaInstallPrompt` 하단 고정 배너 UI를 `(main)` 레이아웃 전역 마운트(닫기 상태만 담당, 실제 `beforeinstallprompt` 트리거는 Task 030)
+  - ✅ `MapLegend`는 상태 목록 prop 지원(지도/상세는 개방·부분통제·통제 3종 노출), `safe-area-inset` 대응
+  - ✅ Playwright MCP 스모크(360px): 상세 지도 섹션·범례·PWA 배너·전체화면 지도·오프라인 렌더, `/favorites`→`/auth/login` 리다이렉트, 콘솔 에러 0건. `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/(main)/favorites/page.tsx`, ✅ `app/(main)/mountains/[id]/map/page.tsx`, ✅ `app/offline/page.tsx`, ✅ `components/map-legend.tsx`, ✅ `components/pwa-install-prompt.tsx`, ✅ `app/(main)/mountains/[id]/page.tsx`(지도 섹션 추가), ✅ `app/(main)/layout.tsx`(배너 마운트)
   - **의존성**: Task 005, Task 008
 
 - **Task 013: 반응형·접근성 기준 검증**
