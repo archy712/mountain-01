@@ -1,0 +1,23 @@
+# 빌드 산출물
+.next
+out
+build
+*.tsbuildinfo
+
+# 의존성
+node_modules
+
+# 자동 생성 파일 (수동 포맷 금지)
+next-env.d.ts
+lib/supabase/database.types.ts
+
+# 락파일
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 정적 자산
+public
+
+# 훅
+.husky
