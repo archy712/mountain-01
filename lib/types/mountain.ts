@@ -37,6 +37,17 @@ export interface Mountain {
   gridNy: number;
 }
 
+/**
+ * 자동완성/인기 산 목록용 경량 산 요약 (Task 018).
+ * 검색 API·인기 산 카드가 상세로 직결하는 데 필요한 최소 필드만 담는다.
+ */
+export interface MountainSuggestion {
+  id: string;
+  name: string;
+  region: string;
+  altitude: number | null;
+}
+
 export interface Trail {
   id: string;
   mountainId: string;

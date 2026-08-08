@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command as CommandPrimitive } from "cmdk";
 import { MapPin, Search, X } from "lucide-react";
@@ -8,20 +8,20 @@ import { MapPin, Search, X } from "lucide-react";
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { searchMountains } from "@/lib/mock";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
-import type { Mountain } from "@/lib/types";
+import type { ApiResponse, MountainSuggestion } from "@/lib/types";
 
 /**
- * 산 이름 자동완성 검색 인풋 (Task 009).
+ * 산 이름 자동완성 검색 인풋 (Task 009 UI → Task 018 실데이터 연동).
  *
- * - 입력 시 더미 후보(`searchMountains`)를 지역명 병기로 제안한다(결정 002 #2, 동명 산 구분).
- * - 선택 즉시 `/mountains/[id]` 상세로 직결하고 최근 검색에 기록한다(목록 페이지 생략).
+ * - 입력 시 `/api/mountains/search` 로 서버 검색(부분일치 + 초성 + 지역)을 조회해
+ *   지역명 병기 후보로 제안한다(결정 002 #2, 동명 산 구분).
+ * - 선택 즉시 `/mountains/[id]` 상세로 직결하고, 최근 검색(localStorage) 기록 +
+ *   `search_logs` 익명 로깅(fire-and-forget)을 남긴다.
  * - `cmdk` 로 키보드 내비게이션(↑/↓/Enter/Esc)과 combobox ARIA 를 확보한다.
  * - 인풋·후보 모두 44px 이상 터치 타깃을 보장한다.
  *
- * 더미 데이터는 동기이지만, Task 018 서버 연동 시의 비동기 로딩 UX 를 위해
- * 짧은 디바운스 로딩(스켈레톤)을 함께 노출한다.
+ * 디바운스(180ms) + 직전 요청 취소(AbortController)로 입력 후 300ms 내 후보 노출을 노린다.
  */
 
 const DEBOUNCE_MS = 180;
@@ -32,23 +32,49 @@ export function MountainSearchInput({ className }: { className?: string }) {
 
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [results, setResults] = useState<MountainSuggestion[]>([]);
+  const [fetching, setFetching] = useState(false);
   const [focused, setFocused] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 입력 디바운스: 모든 상태 갱신을 타이머 콜백에서 수행(동기 setState 회피).
-  // 빈 입력은 즉시 반영해 드롭다운이 곧바로 닫히도록 한다.
+  // 입력 디바운스: 빈 입력은 즉시 반영해 드롭다운이 곧바로 닫히도록 한다.
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(query), query.trim() === "" ? 0 : DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const results = useMemo(() => searchMountains(debounced), [debounced]);
+  // 디바운스된 질의로 서버 검색. 직전 요청은 취소해 순서 역전(stale 응답)을 막는다.
+  // setState 는 중첩 async 함수 안에서만 호출한다(effect 본문 동기 setState 회피).
+  useEffect(() => {
+    const q = debounced.trim();
+    if (q === "") return;
 
-  const hasQuery = query.trim() !== "";
-  // 로딩은 파생 값: 입력이 있으나 디바운스가 아직 따라잡지 못한 상태
-  const loading = hasQuery && debounced !== query;
-  const open = focused && hasQuery;
-  const showEmpty = open && !loading && debounced.trim() !== "" && results.length === 0;
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const run = async () => {
+      setFetching(true);
+      try {
+        const res = await fetch(`/api/mountains/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal,
+        });
+        const body = (await res.json()) as ApiResponse<MountainSuggestion[]>;
+        if (cancelled) return;
+        setResults(body.status === "ok" ? body.data : []);
+      } catch {
+        // 취소는 무시. 그 외 실패는 결과 없음으로 처리(앱 크래시 없음).
+        if (!cancelled && !controller.signal.aborted) setResults([]);
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    };
+    void run();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [debounced]);
 
   useEffect(() => {
     return () => {
@@ -56,7 +82,28 @@ export function MountainSearchInput({ className }: { className?: string }) {
     };
   }, []);
 
-  function handleSelect(mountain: Mountain) {
+  const hasQuery = query.trim() !== "";
+  // 디바운스가 아직 안 따라잡았거나 요청 진행 중이면 로딩.
+  const loading = hasQuery && (debounced !== query || fetching);
+  const open = focused && hasQuery;
+  const showEmpty = open && !loading && debounced.trim() !== "" && results.length === 0;
+
+  function logSelection(mountain: MountainSuggestion) {
+    // 익명 검색 로깅(결정 002 #14). 최선노력이라 실패는 무시하고 흐름을 막지 않는다.
+    try {
+      void fetch("/api/search-logs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: query.trim(), mountainId: mountain.id }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      // 무시
+    }
+  }
+
+  function handleSelect(mountain: MountainSuggestion) {
+    logSelection(mountain);
     add({ id: mountain.id, name: mountain.name, region: mountain.region });
     setFocused(false);
     router.push(`/mountains/${mountain.id}`);

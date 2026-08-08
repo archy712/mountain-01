@@ -33,6 +33,17 @@ const nextConfig: NextConfig = {
       revalidate: 6 * 60 * 60, // 탐방로(정적+오늘 통제 계산) 6시간
       expire: 12 * 60 * 60,
     },
+    // 산 마스터(거의 불변)·검색 로그 집계용 (Task 018). 시드 갱신 시 태그로 무효화.
+    "mountains-1d": {
+      stale: 24 * 60 * 60,
+      revalidate: 24 * 60 * 60, // 산 마스터 목록 1일
+      expire: 48 * 60 * 60,
+    },
+    "search-1h": {
+      stale: 60 * 60,
+      revalidate: 60 * 60, // 인기 산/검색 로그 집계 1시간
+      expire: 2 * 60 * 60,
+    },
   },
 };
 

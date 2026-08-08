@@ -31,6 +31,10 @@ export const CACHE_PROFILE = {
   uv: "uv-3h",
   /** 탐방로(정적 CSV + 오늘 통제 계산): revalidate 6시간 */
   trails: "trails-6h",
+  /** 산 마스터 목록(거의 불변, Task 018): revalidate 1일 */
+  mountains: "mountains-1d",
+  /** 인기 산/검색 로그 집계(Task 018): revalidate 1시간 */
+  search: "search-1h",
 } as const;
 
 export type CacheProfileName = (typeof CACHE_PROFILE)[keyof typeof CACHE_PROFILE];
@@ -44,6 +48,8 @@ export const CACHE_TTL_SECONDS: Record<CacheProfileName, number> = {
   "air-1h": 60 * 60,
   "uv-3h": 3 * 60 * 60,
   "trails-6h": 6 * 60 * 60,
+  "mountains-1d": 24 * 60 * 60,
+  "search-1h": 60 * 60,
 };
 
 // ── 캐시 키 빌더 (결정 003 캐시 키 표) ──────────────────────────────

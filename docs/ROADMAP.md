@@ -273,14 +273,15 @@
   - **산출물**: ✅ `app/api/trails/route.ts`, `lib/trails/parse-knps-csv.ts`, `lib/trails/seasonal-closure.ts`, `lib/api/mountain-name-matcher.ts`, `supabase/seed/{trails.sql,gen-trails.ts}`, `scratchpad/test-trails.ts`
   - **의존성**: Task 001, Task 014 (탐방로는 정적 CSV라 Task 015 외부 API 프록시 불필요)
 
-- **Task 018: 산 검색 및 자동완성 기능 구현**
-  - Route Handler `GET /api/mountains/search?q=` 구현 — `mountains` 부분일치/초성 검색, 결과 상한 및 정렬(인기도·정확도)
-  - 자동완성 UI 실데이터 연동 — 디바운스(150～200ms) 적용, **입력 후 300ms 내 후보 노출** 목표 달성
-  - 산 선택 → `/mountains/[id]` 이동 플로우 연결 (🔶#2 확정 구조 반영), 동명 산 다건 시 지역 병기
-  - 최근 검색 기록 `localStorage` 연동 및 인기 산 목록 실데이터 전환
-  - `search_logs` 익명 로깅 (🔶#14 on으로 확정된 경우에만) — insert-only RLS 준수
-  - **테스트 체크리스트**: Playwright MCP로 "북한" 입력 → 300ms 내 후보 노출 측정, 결과 없음 케이스, 특수문자/공백 입력 방어, 선택 후 상세 이동 확인
-  - **산출물**: `app/api/mountains/search/route.ts`, `components/mountain-search-input.tsx` 연동
+- **✅ Task 018: 산 검색 및 자동완성 기능 구현** - 완료
+  - ✅ Route Handler `GET /api/mountains/search?q=` — 산 마스터 30여 종이 작아 캐시된 전체 목록을 받아 **JS 에서 부분일치 + 초성("ㅂㅎㅅ"→북한산) + 지역 검색**. 순수 코어(`lib/search/{hangul,mountain-search}.ts`)로 분리해 단위 검증 가능. **정렬은 정확도(정확>접두>포함>초성>지역) → 인기도(search_logs 선택 로그 tiebreak) → 가나다순**, 상한 8. 빈/공백 질의는 200+빈목록(에러 아님)
+  - ✅ 자동완성 UI 실데이터 연동 — `mountain-search-input.tsx` 를 mock→실 API 로 전환, 디바운스 180ms + **직전 요청 취소(AbortController)**로 순서역전 방지. effect 본문 동기 setState 회피(중첩 async). **웜 캐시 응답 4~20ms 로 300ms 목표 크게 상회**
+  - ✅ 산 선택 → `/mountains/[id]` 직결(결정 002 #2), 지역명 병기로 동명 산 구분. 최근 검색 `localStorage` 유지
+  - ✅ 인기 산 목록 실데이터 전환 — `PopularMountains` async 서버 컴포넌트가 `getPopularMountains`(선택 로그 상위 → 부족분 마스터 이름순 백필)로 조회, 홈은 `<Suspense>` 스켈레톤 폴백. 홈 `/` 는 정적 프리렌더(revalidate 1h) 유지
+  - ✅ `search_logs` 익명 로깅(결정 002 #14) — 후보 **선택 시** `POST /api/search-logs`(fire-and-forget, keepalive)로 query+mountain_id insert. RLS insert-only(anon) 준수, 라이브 검증서 1건 정확 기록
+  - ✅ 캐싱 — 쿠키 비의존 공개 클라이언트(`lib/supabase/public.ts`)로 공개 데이터를 `'use cache'` 안에서 조회(server.ts 는 cookies() 때문에 use cache 불가). 프로필 2종 추가(`mountains-1d`·`search-1h`, next.config·cache.ts 동기화)
+  - ✅ **테스트**: 검색 코어 단위 22/22(초성·부분일치·지역·정렬 tiebreak·상한·빈/공백/특수문자 방어). Playwright 라이브(360px) — 북한→북한산·ㅂㅎㅅ→북한산·강원 지역검색·상한8·에베레스트 "결과 없어요"·공백/특수문자 0건·선택 후 상세 이동·search_logs 로깅·인기 산 실데이터, 앱 콘솔 JS 에러 0. `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/api/mountains/search/route.ts`, `app/api/search-logs/route.ts`, `lib/search/{hangul,mountain-search}.ts`, `lib/data/mountains.ts`, `lib/supabase/public.ts`, `components/{mountain-search-input,popular-mountains}.tsx`, `app/(main)/page.tsx`, `next.config.ts`·`lib/api/cache.ts`(캐시 프로필), `scratchpad/test-search.ts`
   - **의존성**: Task 014, Task 009
 
 - **Task 019: 상세 페이지 실데이터 연동 및 폴백 처리**
