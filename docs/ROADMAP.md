@@ -422,15 +422,16 @@
   - **산출물**: ✅ `app/manifest.ts`, `public/sw.js`, `public/icons/*`(svg+png 5종), `components/service-worker-register.tsx`, `components/pwa-install-prompt.tsx`, `app/offline/page.tsx`(유지), `app/layout.tsx`(SW 등록·메타), `proxy.ts`(매처)
   - **의존성**: Task 002(#1), Task 003(#13), Task 027
 
-- **Task 031: 3단계 완료 기준 검증 (통합 테스트)**
-  - PRD 4.3 완료 기준 5항목 전수 검증 (Playwright MCP E2E)
-    - 산 상세에서 카카오맵과 등산로 폴리라인 표시
-    - 통제 구간 색상 구분(데이터 보유 시)
-    - Android Chrome "홈 화면에 추가" 동작
-    - 오프라인 시 마지막 조회 결과 또는 오프라인 안내 표시
-    - 지도 스크립트 로드 실패 시 정적 좌표/링크 폴백 제공
-  - 지도 도입 후 성능 회귀 검증 — 상세 페이지 LCP 유지 확인
-  - **산출물**: `docs/test-reports/phase5-map-pwa.md`
+- **✅ Task 031: 3단계 완료 기준 검증 (통합 테스트)** - 완료
+  - ✅ PRD 4.3 완료 기준 5항목 전수 통과 (Playwright MCP E2E, 360px, 프로덕션 빌드)
+    - ✅ 카카오맵 + 등산로 폴리라인 표시(가야산 타일+폴리라인 11세그먼트, 상세·전체화면)
+    - ✅ 통제 구간 색상 구분(주왕산 개방 8 초록 + 통제 6 빨강, 범례 텍스트 병기)
+    - ✅ "홈 화면에 추가"(설치 배너·preventDefault·`prompt()` 호출·디스미스 지속)
+    - ✅ 오프라인(캐시된 상세 렌더 0에러 + 미캐시→인라인 오프라인 폴백 0에러)
+    - ✅ 지도 스크립트 로드 실패 폴백(`dapi.kakao.com` 차단 시 정적 좌표+카카오맵 링크)
+  - ✅ 지도 도입 후 성능 회귀 검증 — **LCP 요소=컨디션 점수 히어로(지도 아님) → 지도 무회귀**. 웜 852ms·FCP 116ms(지도·오버레이는 셸 이후 비동기 스트리밍이라 임계경로 밖). 콜드 11s(외부 API)·정밀 4G·Lighthouse 는 Task 032
+  - ✅ SW 등록·활성·제어, 매니페스트 서빙·링크, 앱셸 precache/런타임 캐시, **버전 갱신 정리**(v0 삭제·v1 유지·타사 보존) 실증
+  - **산출물**: ✅ `docs/test-reports/phase5-map-pwa.md`
   - **의존성**: Task 029, Task 030
 
 ---
