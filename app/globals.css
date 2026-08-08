@@ -29,6 +29,19 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* 산길날씨 아웃도어 톤 (Task 008) */
+    /* 탐방로 상태색 — 색상 단독 구분 금지, 항상 아이콘·텍스트 병기 */
+    --status-open: 142 70% 38%;
+    --status-closed: 0 72% 48%;
+    --status-partial: 35 92% 42%;
+    --status-unknown: 0 0% 45%;
+    /* 컨디션 점수 등급색 (매우좋음→위험) */
+    --grade-excellent: 152 65% 36%;
+    --grade-good: 96 50% 36%;
+    --grade-fair: 42 92% 40%;
+    --grade-poor: 25 88% 46%;
+    --grade-dangerous: 0 74% 48%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -55,6 +68,17 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* 산길날씨 아웃도어 톤 — 다크모드(명도 상향) */
+    --status-open: 142 60% 55%;
+    --status-closed: 0 72% 62%;
+    --status-partial: 38 92% 58%;
+    --status-unknown: 0 0% 65%;
+    --grade-excellent: 152 55% 52%;
+    --grade-good: 96 48% 55%;
+    --grade-fair: 42 90% 58%;
+    --grade-poor: 25 88% 60%;
+    --grade-dangerous: 0 74% 63%;
   }
 }
 

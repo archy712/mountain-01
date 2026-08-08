@@ -51,6 +51,21 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        // 탐방로 상태색 (Task 008) — 아이콘·텍스트 병기 전제
+        status: {
+          open: "hsl(var(--status-open))",
+          closed: "hsl(var(--status-closed))",
+          partial: "hsl(var(--status-partial))",
+          unknown: "hsl(var(--status-unknown))",
+        },
+        // 컨디션 점수 등급색 (Task 008)
+        grade: {
+          excellent: "hsl(var(--grade-excellent))",
+          good: "hsl(var(--grade-good))",
+          fair: "hsl(var(--grade-fair))",
+          poor: "hsl(var(--grade-poor))",
+          dangerous: "hsl(var(--grade-dangerous))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
