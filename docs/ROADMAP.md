@@ -122,12 +122,12 @@
 
 ### Phase 1: 애플리케이션 골격 구축
 
-- **Task 004: 스타터킷 정리 및 프로젝트 기반 설정**
-  - `components/tutorial/*`, `components/hero.tsx`, `components/next-logo.tsx`, `components/supabase-logo.tsx`, `components/deploy-button.tsx` 등 스타터 잔존물 제거
-  - `app/layout.tsx` 메타데이터(제목·설명·OG)를 산길날씨 기준으로 교체, `viewport` 모바일 최적화 설정
-  - `.env.local` 확장 — 외부 API 키 서버 전용 환경변수 추가(`KMA_SERVICE_KEY`, `AIRKOREA_SERVICE_KEY`, `TRAIL_API_KEY`, `NEXT_PUBLIC_KAKAO_MAP_KEY`), `lib/env.ts`로 검증 유틸 작성
-  - `docs/guides/*` 5종 준수 확인 (경로 별칭 `@/*`, kebab-case 파일명, PascalCase 컴포넌트명)
-  - **산출물**: `app/layout.tsx`, `lib/env.ts`, `.env.local.example`
+- **✅ Task 004: 스타터킷 정리 및 프로젝트 기반 설정** - 완료
+  - ✅ 스타터 잔존물 제거 — `components/tutorial/*`, `hero.tsx`, `next-logo.tsx`, `supabase-logo.tsx`, `deploy-button.tsx` 삭제. `app/page.tsx`는 최소 SanGil 플레이스홀더로 교체(정식 홈은 Task 005/009), `app/protected/*`는 스타터 흔적만 제거·인증 구조 보존(리다이렉트 경로 정비는 Task 025)
+  - ✅ `app/layout.tsx` 메타데이터 교체 — 산길날씨 title 템플릿·description·OG(ko_KR)·`applicationName: SanGil`, `viewport`(device-width·viewportFit cover·themeColor), `lang="ko"`
+  - ✅ `lib/env.ts` 검증 유틸 — 서버 전용 `serverEnv`(`KMA_SERVICE_KEY`·`AIRKOREA_SERVICE_KEY`·`KMA_LIVING_INDEX_KEY`, 지연 평가 throw), `publicEnv`(카카오맵, Phase 5), `.env.local.example` 작성. **`TRAIL_API_KEY`는 정적 CSV 채택으로 불필요(결정 001 #4) → 제외**
+  - ✅ `docs/guides/*` 규약 준수 — `@/*` 별칭, kebab-case 파일명, PascalCase 컴포넌트명. `npm run typecheck`·`lint`·`build` 통과 확인
+  - **산출물**: ✅ `app/layout.tsx`, ✅ `lib/env.ts`, ✅ `.env.local.example`
   - **의존성**: Task 002
 
 - **Task 005: 라우트 구조 및 공통 레이아웃 골격 구현** - 우선순위
