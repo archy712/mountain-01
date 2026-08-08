@@ -103,3 +103,19 @@
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+
+/*
+ * 자체 포커스 표시를 가진 컴포넌트 대응(검색 인풋 등).
+ * 바깥 컨테이너가 포커스 링을 그리는 경우, 실제 포커스를 받는 안쪽 요소
+ * (`data-focus-ring="managed"`)의 전역 아웃라인은 끄고, 컨테이너
+ * (`data-focus-ring="container"`)가 focus-within 시 아웃라인을 대신 표시해
+ * 검은 사각형 중복 없이 포커스 가시성을 유지한다. 위 전역 규칙과 같은
+ * unlayered 레벨이라 소스 순서상 뒤에 와서 이긴다.
+ */
+[data-focus-ring="managed"]:focus-visible {
+  outline: none;
+}
+[data-focus-ring="container"]:focus-within {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}

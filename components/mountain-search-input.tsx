@@ -116,13 +116,15 @@ export function MountainSearchInput({ className }: { className?: string }) {
       className={cn("relative overflow-visible bg-transparent", className)}
     >
       <div
+        data-focus-ring="container"
         className={cn(
           "flex min-h-12 items-center gap-2 rounded-xl border bg-card px-3.5 shadow-sm transition-colors",
-          "focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40",
+          "focus-within:border-ring",
         )}
       >
         <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <CommandPrimitive.Input
+          data-focus-ring="managed"
           value={query}
           onValueChange={setQuery}
           onFocus={() => {
