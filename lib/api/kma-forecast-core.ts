@@ -40,24 +40,33 @@ export interface VilageBase {
 }
 
 /**
- * 조회 시점 기준으로 사용 가능한 **가장 최근** 단기예보 발표(base_date/base_time)를 구한다.
- * - KST 로 환산 후, `BASE_HOURS` 중 (현재시각 ≥ 발표시각+10분)인 최신 슬롯을 선택.
- * - 02:10 이전이면 전날 23:00 발표로 롤백(자정 경계).
+ * "오늘 예보"에 쓸 수 있는 당일 발표 시각(HHmm). 23시 발표는 제외한다.
+ *
+ * ⚠️ 23:00 발표는 **익일 0000시부터의 예보만** 포함하고 발표 당일 데이터는 없다(실측 확인).
+ * 우리 앱은 "오늘"을 보여주므로, 23:10~23:59 에도 23:00 이 아니라 20:00 발표를 써야
+ * 오늘 21·22·23시 값을 얻는다. 23:00 발표(익일치)는 자정 경계 롤백에서 소비한다.
+ */
+const SAME_DAY_BASE_HOURS = BASE_HOURS.filter((h) => h !== 23);
+
+/**
+ * 조회 시점 기준으로 "오늘 예보"를 담은 **가장 최근** 단기예보 발표(base_date/base_time)를 구한다.
+ * - KST 로 환산 후, `SAME_DAY_BASE_HOURS` 중 (현재시각 ≥ 발표시각+10분)인 최신 슬롯을 선택.
+ * - 02:10 이전이면 전날 23:00 발표로 롤백(그 발표가 오늘 0000시부터를 담고 있음, 자정 경계).
  */
 export function getVilageBaseDateTime(now: Date = new Date()): VilageBase {
   const kst = toKst(now);
   const hour = kst.getUTCHours();
   const minute = kst.getUTCMinutes();
 
-  for (let i = BASE_HOURS.length - 1; i >= 0; i--) {
-    const h = BASE_HOURS[i];
+  for (let i = SAME_DAY_BASE_HOURS.length - 1; i >= 0; i--) {
+    const h = SAME_DAY_BASE_HOURS[i];
     const available = hour > h || (hour === h && minute >= AVAILABILITY_MARGIN_MIN);
     if (available) {
       return { baseDate: toYmd(kst), baseTime: `${pad2(h)}00` };
     }
   }
 
-  // 02:10 이전 → 전날 23:00 발표.
+  // 02:10 이전(00:00~02:09) → 전날 23:00 발표(오늘 0000시부터 예보를 담고 있음).
   const prev = new Date(kst.getTime() - 24 * 60 * 60 * 1000);
   return { baseDate: toYmd(prev), baseTime: "2300" };
 }
