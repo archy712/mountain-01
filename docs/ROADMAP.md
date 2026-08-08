@@ -378,17 +378,12 @@
   - **산출물**: ✅ `app/api/favorites/route.ts`, `components/favorite-button.tsx`(낙관적 토글), `components/favorites-list.tsx`, `app/(main)/favorites/page.tsx`, `app/(main)/mountains/[id]/page.tsx`(초기 즐겨찾기 상태)
   - **의존성**: Task 025, Task 014, Task 023
 
-- **Task 027: 2단계 완료 기준 검증 (통합 테스트)**
-  - PRD 4.2 완료 기준 6항목 전수 검증 (Playwright MCP E2E)
-    - 0～100 점수와 등급/메시지 표시
-    - 주요 감점 요인 2～3개 근거 노출
-    - 조건에 맞는 장비 추천 리스트 노출
-    - 로그인 사용자의 즐겨찾기 추가/삭제
-    - `favorites` RLS로 본인 데이터만 접근
-    - 미세먼지/자외선 실패 시 해당 변수 제외 후 점수 계산(부분 폴백)
-  - 알고리즘 회귀 검증 — 동일 입력 → 동일 점수(`calc_version` 고정 시), 버전 변경 시 캐시 무효화 확인
-  - 엣지 케이스 — 전 소스 실패, 극단 기상값, 동시 즐겨찾기 토글
-  - **산출물**: `docs/test-reports/phase4-condition.md`
+- **✅ Task 027: 2단계 완료 기준 검증 (통합 테스트)** - 완료
+  - ✅ PRD 4.2 완료 기준 6항목 전수 통과 (Playwright MCP E2E) — 점수/등급/메시지(관악 95·계룡 99·설악 71), 감점 근거 2~3개(설악 강수확률 60% −19·강수형태 비 −10), 장비 추천(설악 방수 자켓·레인커버), 즐겨찾기 추가/삭제(DB 1행↔0행), `favorites` RLS 격리, 부분 폴백(라이브 `excludedVariables:["air"]`)
+  - ✅ 회귀 검증 — 동일 입력 → **동일 결과**(순수 함수, 계산시각 주입), `calcVersion:"v1"` 고정. **버전 변경 시 캐시 무효화**·TTL 만료를 `condition_scores` 실쿼리로 실증(`v0` 무시, `v1`+30분 이내 최신만)
+  - ✅ 엣지 케이스 — 극단 기상값 0 클램프·breakdown≤3, 전 소스(날씨) 실패 시 섹션 격리, 전 변수 결측 폴백, 등급 경계 매핑, **동시 즐겨찾기 토글 멱등**(2연속 POST→1행)
+  - ✅ 기준선 — `typecheck`·`lint`·`format:check`·**`build`** 통과(`/mountains/[id]`·`/favorites`·`/auth/login` PPR 프리렌더 확인), `get_advisors(security)` RLS 경고 0건
+  - **산출물**: ✅ `docs/test-reports/phase4-condition.md`
   - **의존성**: Task 024, Task 026
 
 ---
