@@ -52,3 +52,6 @@ next-env.d.ts
 
 # 임시 작업 디렉토리 (PoC·테스트 스크립트·샘플 응답 등 재생성 가능 산출물)
 /scratchpad/
+
+# Playwright MCP 세션 아티팩트 (스냅샷·콘솔 로그)
+/.playwright-mcp/
