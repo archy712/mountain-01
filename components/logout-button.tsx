@@ -10,8 +10,14 @@ export function LogoutButton() {
   const logout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    // 로그아웃 후 공개 홈으로. (로그인 페이지 대신 1단계 기능을 바로 쓸 수 있게)
+    router.push("/");
+    router.refresh();
   };
 
-  return <Button onClick={logout}>Logout</Button>;
+  return (
+    <Button onClick={logout} size="sm" variant="outline">
+      로그아웃
+    </Button>
+  );
 }

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Maximize2 } from "lucide-react";
 
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
+import { FavoriteButton } from "@/components/favorite-button";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
@@ -17,6 +18,7 @@ import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
 import { getAllMountains } from "@/lib/data/mountains";
 import { getMountainMeta, getTrailsForMountain } from "@/lib/data/mountain-detail";
+import { createClient } from "@/lib/supabase/server";
 import { hasData, type Mountain } from "@/lib/types";
 
 /**
@@ -68,7 +70,14 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6 py-6">
-      <MountainDetail mountain={mountain} />
+      <MountainDetail
+        mountain={mountain}
+        action={
+          <Suspense fallback={<Skeleton className="size-11 rounded-full" />}>
+            <FavoriteAction />
+          </Suspense>
+        }
+      />
 
       <Suspense fallback={<ConditionSectionSkeleton />}>
         <ConditionSection mountain={mountain} />
@@ -108,6 +117,18 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       </section>
     </div>
   );
+}
+
+/**
+ * 즐겨찾기 버튼 스트리밍 서브트리. 로그인 여부(요청별 세션)에 따라 저장/로그인 유도 UX 가
+ * 갈리므로 정적 셸에 끌려 들어가지 않도록 별도 <Suspense> 홀로 분리한다. 실제 저장(토글)
+ * 연동은 Task 026이며, 지금은 로그인 여부만 전달해 비로그인 클릭 시 로그인 유도를 연결한다.
+ */
+async function FavoriteAction() {
+  await connection();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return <FavoriteButton isAuthenticated={Boolean(data?.claims)} />;
 }
 
 /**

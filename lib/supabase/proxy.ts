@@ -62,9 +62,13 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/");
 
   if (!user && !isPublicPath) {
-    // no user, potentially respond by redirecting the user to the login page
+    // 미인증 → 로그인 페이지로. 원래 목적지(pathname+query)를 `next` 로 실어
+    // 로그인 성공 후 복귀시킨다(Task 025). 쿠키 처리에는 관여하지 않는다.
     const url = request.nextUrl.clone();
+    const next = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     url.pathname = "/auth/login";
+    url.search = "";
+    url.searchParams.set("next", next);
     return NextResponse.redirect(url);
   }
 

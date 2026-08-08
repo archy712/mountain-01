@@ -359,14 +359,14 @@
   - **산출물**: ✅ `lib/condition/gear-rules.ts`, `lib/condition/service.ts`(번들화), `lib/types/condition.ts`(`ConditionBundle`), `app/api/condition/route.ts`, `app/(main)/mountains/[id]/page.tsx`(장비 섹션), `components/gear-recommendation-list.tsx` 연동
   - **의존성**: Task 023
 
-- **Task 025: 인증 활성화 및 보호 라우트 정비**
-  - 스타터킷 인증 흐름을 산길날씨 기준으로 정비 — `app/auth/*` 로그인/회원가입/비밀번호 재설정 카피 및 리다이렉트 경로 조정
-  - `lib/supabase/proxy.ts`의 `updateSession()` 보호 경로에 `/favorites` 추가 (`/`, `/mountains/*`는 계속 비로그인 허용) — **쿠키 처리 로직은 변경 금지**
-  - 서버 컴포넌트 이중 방어 — `/favorites`에서 `getClaims()` 재확인 후 미인증 시 `redirect("/auth/login")`
-  - 로그인 폼은 기존 패턴 유지 (Client Component에서 `supabase.auth.*` 직접 호출)
-  - 비로그인 사용자에게 즐겨찾기 클릭 시 로그인 유도 UX 연결
-  - **테스트 체크리스트**: Playwright MCP로 비로그인 `/favorites` 접근 시 리다이렉트, 로그인 후 복귀, 로그아웃 후 세션 만료, 1단계 기능은 비로그인으로 계속 사용 가능한지 확인
-  - **산출물**: `lib/supabase/proxy.ts`, `app/auth/*`, `app/favorites/page.tsx`
+- **✅ Task 025: 인증 활성화 및 보호 라우트 정비** - 완료
+  - ✅ 스타터킷 인증 흐름 산길날씨 기준 한글화·리다이렉트 정비 — 로그인/회원가입/비밀번호 재설정(forgot·update)/성공·에러 페이지·Google 버튼·로그아웃 전부 한글 카피. 로그인 성공 후 **`next` 파라미터 또는 기본 `/favorites`** 이동(기존 `/protected` 대체), OAuth 콜백·이메일 리다이렉트 목적지도 `/favorites` 로 통일
+  - ✅ `proxy.ts` — `/favorites` 는 기존 기본-차단 정책으로 이미 보호됨(공개: `/`·`/mountains/*`·`/offline`·`/auth/*`·`/api/*`). 미인증 리다이렉트에 **`?next=<원래경로>`** 부착해 로그인 후 복귀 지원(쿠키 처리 로직 불변)
+  - ✅ **서버 이중 방어** — `/favorites` 서버 컴포넌트에서 `getClaims()` 재확인 후 미인증 시 `redirect("/auth/login?next=/favorites")`. 로그인 페이지는 내부 경로만 허용(`safeNext`)해 오픈 리다이렉트 차단
+  - ✅ 로그인 폼 기존 패턴 유지(Client Component `supabase.auth.signInWithPassword` 직접 호출), `next` prop 이어받아 이동
+  - ✅ 헤더(`SiteHeader`)에 인증 컨트롤 통합 — 즐겨찾기 링크 상시 노출(비로그인 클릭→proxy 로그인 유도), 로그인/로그아웃 토글. 상세 페이지에 `FavoriteButton`(서버 `getClaims` 로 `isAuthenticated` 주입) 배치 → 비로그인 클릭 시 "로그인하면 저장할 수 있어요" 유도(실제 토글은 Task 026)
+  - ✅ **테스트**: Playwright E2E — 비로그인 `/favorites`→`?next=/favorites` 리다이렉트, 로그인 후 `/favorites` 복귀, 로그아웃→홈·재접근 시 재리다이렉트(세션 만료), 홈·상세 비로그인 정상, 게스트 하트 로그인 유도. E2E 계정 `sangil-e2e@example.com` 사용(Task 026 RLS 검증에도 활용). `typecheck`·`lint`·`prettier` 통과
+  - **산출물**: ✅ `lib/supabase/proxy.ts`, `app/auth/login/page.tsx`, `components/{login,sign-up,forgot-password,update-password,google-auth,auth,logout}-*.tsx`, `components/site-header.tsx`, `app/(main)/favorites/page.tsx`, `app/(main)/mountains/[id]/page.tsx`(FavoriteButton), `components/mountain-detail.tsx`
   - **의존성**: Task 002(#12), Task 020
 
 - **Task 026: 즐겨찾기 기능 구현 (RLS 포함)**

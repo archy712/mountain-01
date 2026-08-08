@@ -1,21 +1,21 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronRight, Heart, Mountain as MountainIcon, Search } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
 import { getMockCondition, getMountainById } from "@/lib/mock";
 import { SCORE_GRADE_LABEL, type Mountain, type ScoreGrade } from "@/lib/types";
 
 /**
- * 즐겨찾기 화면 UI (Task 012, 2단계 범위).
+ * 즐겨찾기 화면 (Task 012 UI · Task 025 인증 게이트).
  *
- * 이 라우트는 proxy.ts 보호 경로라 비로그인 시 `/auth/login` 으로 리다이렉트된다.
- * 인증 활성화·favorites CRUD 실데이터 연동은 Task 025·026에서 진행하며, 여기서는
- * 더미 데이터로 목록/빈 상태/비로그인 안내 세 화면의 마크업을 완성한다.
- *
- * Phase 2 UI 검증용으로 `?state=empty`·`?state=guest` 쿼리로 각 상태를 확인할 수 있다
- * (Task 026 실데이터 연동 시 세션·목록 유무로 대체).
+ * 보호 라우트다. proxy.ts 가 비로그인 요청을 `/auth/login?next=/favorites` 로 리다이렉트하고,
+ * 이 서버 컴포넌트가 `getClaims()` 로 **이중 방어**한다(미인증이면 로그인으로 재차 redirect).
+ * 따라서 여기 도달하는 사용자는 항상 인증 상태다. 목록은 아직 더미 데이터이며 favorites
+ * CRUD·실데이터 연동은 Task 026에서 대체한다. `?state=empty` 로 빈 상태를 확인할 수 있다.
  */
 
 const DUMMY_FAVORITE_IDS = ["bukhansan", "seoraksan", "hallasan"];
@@ -87,36 +87,19 @@ function EmptyState() {
   );
 }
 
-/** 비로그인 안내 (인증 활성화 후 전환 UX용, Task 025·026) */
-function GuestNotice() {
-  return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed p-8 text-center">
-      <Heart className="size-8 text-muted-foreground" aria-hidden="true" />
-      <div className="space-y-1">
-        <p className="font-medium">로그인하면 즐겨찾기를 쓸 수 있어요</p>
-        <p className="text-sm text-muted-foreground">
-          자주 가는 산을 저장하고 컨디션 점수를 한눈에 모아 보세요.
-        </p>
-      </div>
-      <Link
-        href="/auth/login"
-        className="inline-flex h-11 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground"
-      >
-        로그인하기
-      </Link>
-    </div>
-  );
-}
-
 /**
- * searchParams(요청 데이터) 접근부는 별도 async 컴포넌트로 분리해 `<Suspense>` 로
- * 감싼다(`cacheComponents: true` 규약: 캐시되지 않은 요청 데이터는 Suspense 경계 필요).
+ * 세션·검색데이터(요청 데이터) 접근부를 async 컴포넌트로 분리해 `<Suspense>` 로 감싼다
+ * (`cacheComponents: true` 규약). 인증 이중 방어를 여기서 수행한다.
  */
 async function FavoritesContent({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) {
+    // proxy 를 우회해 도달한 경우까지 막는 이중 방어(결정 002 #12).
+    redirect("/auth/login?next=/favorites");
+  }
+
   const { state } = await searchParams;
-
-  if (state === "guest") return <GuestNotice />;
-
   const favorites =
     state === "empty"
       ? []
