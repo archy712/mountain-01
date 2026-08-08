@@ -238,14 +238,15 @@
   - **산출물**: ✅ 적용된 마이그레이션, `lib/geo/kma-grid.ts`, `supabase/seed/mountains.sql`(+생성기 `supabase/seed/gen-mountains.mjs`), `lib/supabase/database.types.ts`
   - **의존성**: Task 007, Task 002(#7 결정)
 
-- **Task 015: 외부 API 서버 프록시 및 캐싱 기반 구조 구축** - 우선순위
-  - **모든 외부 호출을 서버(Route Handler/서버 유틸)에서만 수행**하는 공통 fetch 래퍼 구현 — API 키는 서버 환경변수로만 접근, 클라이언트 번들 노출 차단
-  - 공통 정책 구현 — 타임아웃, 재시도(지수 백오프 1회), 호출 실패 시 표준 에러 매핑, 응답 정규화 파이프라인
-  - 캐싱 레이어 구현 — Task 003에서 확정한 방식(`"use cache"` + `cacheLife` 또는 `revalidate`)으로 소스별 TTL 적용(날씨/대기질/탐방로), 캐시 키에 `mountainId`·`base_date/base_time` 포함
-  - 최근 성공 응답 보존 로직 — 실패 시 stale 캐시를 `fetchedAt`과 함께 반환하여 "N분 전 기준" 라벨 지원
-  - `next.config.ts`의 `cacheComponents: true` 전제 하 동작 검증
-  - **테스트 체크리스트**: Playwright MCP `browser_network_requests`로 클라이언트에서 외부 도메인 직접 호출 0건 확인, 캐시 히트 시 응답 시간 단축 확인, 강제 실패 주입 시 stale 폴백 동작 확인
-  - **산출물**: `lib/api/fetcher.ts`, `lib/api/cache.ts`, `lib/api/errors.ts`
+- **✅ Task 015: 외부 API 서버 프록시 및 캐싱 기반 구조 구축** - 완료
+  - ✅ 서버 전용 공통 fetch 래퍼(`lib/api/fetcher.ts`) — `window` 런타임 가드로 클라이언트 import 차단(`server-only` 미호이스팅 대체), 키는 호출부가 `serverEnv`로 주입(래퍼는 키 미접근). `fetchJson`/`fetchText` + `searchParams` 직렬화
+  - ✅ 공통 정책 — 타임아웃(AbortController, 기본 8s), **지수 백오프 재시도 1회**(5xx·429·타임아웃·네트워크만 재시도, 4xx 즉시 실패), 표준 에러 매핑(`lib/api/errors.ts`: `ApiErrorCode`별 한국어 메시지·`FetchError`·`toApiError`)
+  - ✅ 캐싱 레이어(`lib/api/cache.ts`) — `next.config.ts` 커스텀 `cacheLife` 프로필 5종(weather-30m/vilage-3h/air-1h/uv-3h/trails-6h, 결정 003 TTL) + 소스별 캐시 키 빌더(`weatherKey`·`vilageKey`·`airKey`·`uvKey`·`trailsKey`, `mountainId`·`base_date/base_time` 포함) + 무효화 태그. 소스 모듈이 `'use cache'` 안에서 `cacheLife`/`cacheTag`로 사용(Task 016+)
+  - ✅ stale 폴백 `withStaleFallback` — 신선 조회 실패 시 마지막 성공 스냅샷을 `PartialResult.stale`(+`fetchedAt`)로 반환("N분 전 기준" 라벨 지원), 스냅샷 없으면 `failure`
+  - ✅ `cacheComponents: true` 전제 빌드 검증 통과(커스텀 cacheLife 프로필 정상 인식)
+  - ✅ **로직 검증 23/23 통과**(실제 컴파일 산출물 대상): 재시도(500→성공·지속500·400즉시), 타임아웃, 백오프 지연, 에러 매핑, 캐시 키/태그·TTL, success→stale→failure 전이. `typecheck`·`lint`·`build` 통과
+  - ⏳ **Playwright 네트워크/캐시히트/stale 폴백 E2E는 이 인프라를 소비하는 첫 실엔드포인트(Task 016 날씨)에서 수행** — 현재는 소비 라우트 부재로 로직 단위 검증으로 대체
+  - **산출물**: ✅ `lib/api/{fetcher,cache,errors,index}.ts`, `next.config.ts`(cacheLife 프로필)
   - **의존성**: Task 003, Task 006
 
 - **Task 016: 기상청 단기예보 연동 구현**
