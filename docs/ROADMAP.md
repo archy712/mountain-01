@@ -326,12 +326,15 @@
   - **산출물**: ✅ `app/api/air-quality/route.ts`, `lib/api/airkorea.ts`, `lib/api/airkorea-core.ts`, `lib/geo/nearest-station.ts`, `lib/api/fetcher.ts`(cache 옵션), `scratchpad/test-air.ts`
   - **의존성**: Task 015, Task 020
 
-- **Task 022: 자외선 지수 연동 구현**
-  - 기상청 생활기상지수 V5 자외선 클라이언트 구현 — `GET /1360000/LivingWthrIdxServiceV5/getUVIdxV5` (`areaNo` 행정구역코드, `time` YYYYMMDDHH 06·18시 발표), 응답 `h0`~`h75`(3시간 간격 UV 예보값) 파싱
-  - Route Handler `GET /api/uv?mountainId=` 구현 — 캐시 TTL 적용
-  - UV 구간 → 등급 라벨 매핑(낮음/보통/높음/매우높음/위험) 및 실패 시 부분 폴백 신호 반환
-  - **테스트 체크리스트**: Playwright MCP로 UV 배지 렌더링 및 API 실패 시 배지 숨김/대체 문구 확인
-  - **산출물**: `app/api/uv/route.ts`, `lib/api/kma-uv.ts`
+- **✅ Task 022: 자외선 지수 연동 구현** - 완료
+  - ✅ 생활기상지수 V5 자외선 클라이언트 — `getUVIdxV5`(`areaNo`·`time` YYYYMMDDHH) 조회, `h0`~`h75`(발표시각+3h 간격) 파싱. **발표시각 06·18시 산출**(40분 여유, 06:40 이전 전날18 롤백) + **현재 시각 최근접 슬롯 채택**(날씨 스냅샷과 동일 철학). 순수 로직은 `kma-uv-core.ts`로 분리
+  - ✅ **areaNo 매핑**(🔶#6) — 위경도→areaNo API 부재라 시드 30종별 **시군구 법정동코드를 라이브 전수 검증**(getUVIdxV5 resultCode 00)해 정적 테이블(`MOUNTAIN_AREA_NO`, mountainId 기준)로 고정. **강원=51·전북=52 특별자치도 신 코드 필수**(구 42·45 는 "검색결과 없음") 실측 규명
+  - ✅ **광주(29)·전남(46) 서비스 미커버 확인·대응** — 전 시군구·시도 코드·발표시각 변형 스캔 결과 **UV 데이터 자체 부재** 판명. 무등산·월출산은 **최근접 유효 코드(전북 정읍 5218)로 근사**(UV 는 위도 기반이라 ±1° 영향 미미, 등급 버킷 변동 거의 없음). 미매핑 mountainId 는 `not_covered`(UV 제외)
+  - ✅ Route Handler `GET /api/uv?mountainId=` — `'use cache'`(uv-3h, 캐시키 (areaNo, 발표시각))+`cacheTag`. 봉투: 성공 ok / stale→partial(issues) / 실패 error, 요청오류만 4xx(400·404). `withStaleFallback` "N분 전 기준" 폴백. 절대 throw 없음(소스 독립 격리)
+  - ✅ UV 구간→등급 매핑(`uvGradeFromValue`, 낮음 0~2/보통 3~5/높음 6~7/매우높음 8~10/위험 11+, Task 006 `UV_GRADE_THRESHOLDS` 재사용), `not_covered`/`parse_error`/`upstream_error` 분기
+  - ✅ **테스트**: 순수 로직 단위 24/24(발표시각 06/18 경계·여유, 등급 구간 경계, 최근접 슬롯·빈슬롯 skip·resultCode 99→not_covered·03→upstream·빈 item). Playwright 라이브(360px) — 7개 지역 ok 봉투(야간 UV0 낮음·time 슬롯 정확), 무등산·월출산 근사 매핑 ok, 파라미터누락 400·미존재 404. **낮 시각(12시) 실데이터 등급 실증**: 서울 UV10 매우높음·제주 6 높음·설악(양양) 5 보통·정읍 8 매우높음. `typecheck`·`lint`·`build` 통과
+  - ⏳ UV 배지(`UvIndexBadge`) 상세 연동은 컨디션 점수 통합(Task 023~) 시점으로 (Task 022는 API·정규화 레이어)
+  - **산출물**: ✅ `app/api/uv/route.ts`, `lib/api/kma-uv.ts`, `lib/api/kma-uv-core.ts`, `scratchpad/test-uv.ts`
   - **의존성**: Task 015, Task 020
 
 - **Task 023: 컨디션 점수 산출 엔진 구현**
