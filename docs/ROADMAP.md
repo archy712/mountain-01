@@ -165,13 +165,14 @@
 
 > 이 Phase는 외부 API 없이 하드코딩 더미 데이터만으로 전 화면을 완성한다. Phase 3～5의 백엔드 작업과 병렬 진행 가능하다.
 
-- **Task 008: 디자인 토큰 및 공통 컴포넌트 라이브러리 구축**
-  - 아웃도어 톤 색상 토큰 추가 — `app/globals.css`의 `:root`/`.dark` HSL 변수와 `tailwind.config.ts`의 `theme.extend.colors`를 **동시** 수정 (상태 색상: `--status-open`, `--status-closed`, `--status-partial`, 등급 색상 5종)
-  - shadcn/ui 프리미티브 추가 — `npx shadcn@latest add` 로 `command`(자동완성), `skeleton`, `alert`, `tabs`, `sheet`, `separator`, `progress`
-  - 상태 표시 공통 컴포넌트 — `components/trail-status-badge.tsx` (색상 단독 구분 금지: 아이콘 + 텍스트 병행)
-  - 로딩/에러 공통 컴포넌트 — `components/result-skeleton.tsx`, `components/error-fallback.tsx`(사용자 친화 메시지 + 재시도 버튼), `components/stale-data-notice.tsx`("N분 전 기준" 라벨)
-  - 더미 데이터 유틸 — `lib/mock/mountains.ts`, `lib/mock/weather.ts`, `lib/mock/condition.ts` (Task 006 타입 준수)
-  - **산출물**: `components/ui/*`, `components/trail-status-badge.tsx`, `components/result-skeleton.tsx`, `components/error-fallback.tsx`, `lib/mock/*`
+- **✅ Task 008: 디자인 토큰 및 공통 컴포넌트 라이브러리 구축** - 완료
+  - ✅ 아웃도어 톤 색상 토큰 추가 — `app/globals.css`의 `:root`/`.dark` HSL 변수와 `tailwind.config.ts`의 `theme.extend.colors` **동시** 수정 (상태색 4종 `--status-open/closed/partial/unknown` + 등급색 5종 `--grade-excellent~dangerous`, 다크모드 명도 상향)
+  - ✅ shadcn/ui 프리미티브 추가 — `command`(자동완성)·`skeleton`·`alert`·`tabs`·`sheet`·`separator`·`progress` (+의존성 `dialog`), 프로젝트 HSL 토큰 방식 정합 확인
+  - ✅ 상태 표시 공통 컴포넌트 — `components/trail-status-badge.tsx` (색상 단독 구분 금지: 상태별 아이콘 + `TRAIL_STATUS_LABEL` 병기, sm/md 사이즈)
+  - ✅ 로딩/에러 공통 컴포넌트 — `result-skeleton.tsx`(상세 골격 스켈레톤·`aria-busy`), `error-fallback.tsx`(`ApiError.message` + 재시도 버튼), `stale-data-notice.tsx`("N분 전 기준", 마운트 후 계산으로 하이드레이션/캐시 오염 회피)
+  - ✅ 더미 데이터 유틸 — `lib/mock/{mountains,weather,condition}.ts` + `index.ts` 배럴(`getMockMountainDetail`로 `MountainDetailData` 조합, 한라산 대기질 `no_station` 등 부분 실패 재현), Task 006 타입 준수
+  - ✅ `typecheck`·`lint` 통과
+  - **산출물**: ✅ `components/ui/*`, ✅ `components/{trail-status-badge,result-skeleton,error-fallback,stale-data-notice}.tsx`, ✅ `lib/mock/*`
   - **의존성**: Task 006
 
 - **Task 009: 홈/검색 화면 UI 구현**
