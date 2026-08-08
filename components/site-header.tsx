@@ -11,7 +11,10 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-screen-sm items-center justify-between px-5">
-        <Link href="/" className="text-base font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center text-base font-semibold tracking-tight"
+        >
           산길날씨
         </Link>
         <ThemeSwitcher />

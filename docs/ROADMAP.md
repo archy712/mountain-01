@@ -214,13 +214,15 @@
   - **산출물**: ✅ `app/(main)/favorites/page.tsx`, ✅ `app/(main)/mountains/[id]/map/page.tsx`, ✅ `app/offline/page.tsx`, ✅ `components/map-legend.tsx`, ✅ `components/pwa-install-prompt.tsx`, ✅ `app/(main)/mountains/[id]/page.tsx`(지도 섹션 추가), ✅ `app/(main)/layout.tsx`(배너 마운트)
   - **의존성**: Task 005, Task 008
 
-- **Task 013: 반응형·접근성 기준 검증**
-  - 360px / 390px / 768px / 1024px 뷰포트 레이아웃 깨짐 검사 (Playwright MCP `browser_resize` + 스냅샷)
-  - 터치 타깃 최소 44x44px 전수 검사, 폼 라벨·`aria-*` 속성 점검
-  - 색상 단독 정보 전달 금지 원칙 준수 확인 (탐방로 상태, 컨디션 등급 모두 텍스트/아이콘 병기)
-  - 키보드 내비게이션 및 포커스 링 확인, 다크모드 대비 검증
-  - **테스트 체크리스트**: Playwright MCP로 홈 → 자동완성 → 상세 → 즐겨찾기 전 화면 스냅샷 및 콘솔 에러 0건 확인
-  - **산출물**: 접근성 점검 결과 및 수정 커밋
+- **✅ Task 013: 반응형·접근성 기준 검증** - 완료
+  - ✅ 360/390/768/1024px 뷰포트 검사 — 전 뷰포트 가로 오버플로 0px, `main` 640px(`max-w-screen-sm`) 캡 유지 확인
+  - ✅ 터치 타깃 44×44px 전수 검사 → **5건 위반 수정**(헤더 로고·테마 스위처·상세 전체화면 링크·PWA 설치/닫기·지도 뒤로가기)
+  - ✅ 접근성 이름 점검 → **테마 스위처 무명 버튼**에 `aria-label="테마 변경"` 추가. 검색 입력은 `combobox` role·라벨 완비(Task 009), 상세 제목 위계(h1→h2→h3) 스킵 없음 확인
+  - ✅ **키보드 포커스 링 전역 미표시(WCAG 2.4.7) 발견·수정** — Tailwind v4+v3 하이브리드에서 shadcn `focus-visible:ring-*` 유틸이 CSS 미생성 → `app/globals.css`에 unlayered `:focus-visible` 아웃라인 추가로 `!important` 없이 전역 포커스 가시성 보장. Tab 이동·포커스 렌더 검증
+  - ✅ 색상 단독 구분 금지 준수(탐방로 상태·컨디션 등급·지도 범례 모두 아이콘/텍스트 병기), 다크모드 대비 확인(상태/등급색 명도 상향)
+  - ✅ Playwright MCP 스모크(360px 홈·상세·지도·오프라인) 앱 콘솔 에러 0건. `typecheck`·`lint`·`build` 통과
+  - ⚠️ **잔여(범위 밖)**: `/favorites` 화면 내부·`app/auth/*` 폼 터치 타깃은 인증 활성화 **Task 025**에서 정비(로그인 폼 라벨은 존재해 a11y 충족)
+  - **산출물**: ✅ `docs/test-reports/phase2-a11y-responsive.md`, 수정 커밋(`app/globals.css`·`components/theme-switcher.tsx`·`components/site-header.tsx`·`components/pwa-install-prompt.tsx`·`app/(main)/layout.tsx`·상세/지도 page)
   - **의존성**: Task 009, Task 010, Task 011, Task 012
 
 ---

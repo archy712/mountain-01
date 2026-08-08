@@ -80,7 +80,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           </h2>
           <Link
             href={`/mountains/${id}/map`}
-            className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="inline-flex h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <Maximize2 className="size-4" aria-hidden="true" />
             전체화면

@@ -24,7 +24,7 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
         <Link
           href={`/mountains/${id}`}
           aria-label="상세로 돌아가기"
-          className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>

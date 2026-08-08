@@ -46,7 +46,7 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
         {/* Task 030에서 beforeinstallprompt.prompt() 연결 */}
         <button
           type="button"
-          className="inline-flex h-9 shrink-0 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
+          className="inline-flex h-11 shrink-0 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
         >
           설치
         </button>
@@ -55,7 +55,7 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="설치 안내 닫기"
-          className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <X className="size-4" aria-hidden="true" />
         </button>

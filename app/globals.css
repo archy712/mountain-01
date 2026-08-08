@@ -90,3 +90,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * 키보드 포커스 링 (Task 013 발견 대응).
+ * 이 Tailwind v4 + v3 `@config` 하이브리드에서 shadcn 프리미티브의
+ * `focus-visible:ring-*` 유틸이 box-shadow 를 생성하지 않아 키보드 포커스가
+ * 보이지 않는다(WCAG 2.4.7). 레이어 밖(unlayered) 규칙은 utilities 레이어의
+ * `focus-visible:outline-none` 을 항상 이기므로 `!important` 없이 전역 포커스
+ * 가시성을 보장한다. 아웃라인은 레이아웃 이동 없이 표시되며 border-radius 를 따른다.
+ */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
