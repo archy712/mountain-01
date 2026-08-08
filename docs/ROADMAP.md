@@ -149,14 +149,14 @@
   - **산출물**: ✅ `lib/types/{api,mountain,weather,air,condition,index}.ts`
   - **의존성**: Task 001
 
-- **Task 007: Supabase 스키마 설계 및 마이그레이션 작성 (적용 제외)**
-  - `mountains` DDL 설계 — `id`(uuid PK), `name`, `region`, `altitude`, `grid_nx`/`grid_ny`, `lat`/`lng`, 검색용 인덱스(`name` trigram 또는 부분일치 인덱스)
-  - `trails` DDL 설계 — `id`, `mountain_id`(FK→mountains), `name`, `status`(개방/통제/부분통제 enum 또는 check), `closed_reason`, `path_geojson`(jsonb, 3단계용 nullable)
-  - `favorites` DDL 설계 — `id`, `user_id`(FK→auth.users), `mountain_id`, `created_at`, `(user_id, mountain_id)` 유니크 제약
-  - `condition_scores` DDL 설계 — `id`, `mountain_id`, `score`, `grade`, `breakdown`(jsonb), `calc_version`, `computed_at`, 조회 인덱스
-  - `search_logs` DDL 설계 — `id`, `query`, `mountain_id`(nullable), `created_at`
-  - RLS 정책 SQL 작성 — `mountains`/`trails` 공개 select·쓰기 차단, `favorites`는 `user_id = auth.uid()` 조건 select/insert/delete, `condition_scores` 공개 select·서비스 롤 쓰기, `search_logs` insert만 허용·select 차단
-  - **산출물**: `supabase/migrations/*_sangil_core_schema.sql`, `supabase/migrations/*_sangil_rls.sql` (작성만, 적용은 Task 014)
+- **✅ Task 007: Supabase 스키마 설계 및 마이그레이션 작성 (적용 제외)** - 완료
+  - ✅ `mountains` DDL — uuid PK, name/region/altitude(nullable)/lat/lng/grid_nx/grid_ny, **name 트라이그램 GIN 인덱스**(pg_trgm, extensions 스키마)
+  - ✅ `trails` DDL — mountain_id FK(cascade), name, `status` check(open/closed/partial/unknown = TrailStatus), closed_reason, closed_period, path_geojson(jsonb nullable, 3단계용), mountain_id 인덱스
+  - ✅ `favorites` DDL — user_id FK(auth.users), mountain_id FK, `(user_id, mountain_id)` 유니크, user_id·mountain_id 인덱스
+  - ✅ `condition_scores` DDL — score check(0~100), grade check(ScoreGrade), breakdown(jsonb), calc_version, `(mountain_id, calc_version, computed_at desc)` 조회 인덱스
+  - ✅ `search_logs` DDL — query, mountain_id(nullable, on delete set null) + 인덱스
+  - ✅ RLS 정책 SQL(멱등) — mountains/trails/condition_scores 공개 select·쓰기 차단, favorites `(select auth.uid())=user_id` select/insert/delete, search_logs insert-only·select 차단. 인덱스 없는 FK 보완(advisor 0건 목표)
+  - **산출물**: ✅ `supabase/migrations/20260808120000_sangil_core_schema.sql`, `20260808120100_sangil_rls.sql` (**작성만 — 적용·타입 재생성은 Task 014**)
   - **의존성**: Task 003 (RLS 정책 확정), Task 006
 
 ---
