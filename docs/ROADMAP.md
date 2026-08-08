@@ -229,13 +229,13 @@
 
 ### Phase 3: 1단계 MVP 핵심 기능 구현 (날씨 + 탐방로)
 
-- **Task 014: DB 마이그레이션 적용 및 산 마스터 시드 적재** - 우선순위
-  - Task 007에서 작성한 마이그레이션을 `mcp__supabase__apply_migration`으로 적용 (core schema → RLS 순)
-  - 산 마스터 시드 데이터 구축 — 주요 산 목록(이름·지역·고도·위경도) 수집 및 `mountains` 적재
-  - **위경도 → 기상청 격자(nx, ny) 변환 유틸** 구현 및 시드 시 `grid_nx`/`grid_ny` 사전 적재 (🔶#7 확정안 반영)
-  - `mcp__supabase__generate_typescript_types`로 **`lib/supabase/database.types.ts` 재생성** 및 `Tables<"mountains">` 등 헬퍼 사용 전환
-  - `mcp__supabase__get_advisors`로 RLS 미적용·인덱스 누락 경고 0건 확인
-  - **산출물**: 적용된 마이그레이션, `lib/geo/kma-grid.ts`, `supabase/seed/mountains.sql`, `lib/supabase/database.types.ts`
+- **✅ Task 014: DB 마이그레이션 적용 및 산 마스터 시드 적재** - 완료
+  - ✅ Task 007 마이그레이션 `apply_migration` 적용 (core schema → RLS 순) — 원격 DB 반영, 5개 테이블 전부 RLS 활성 확인
+  - ✅ 산 마스터 시드 30종 구축·적재 — 국립공원(산악형) + 주요 근교/도립산(이름·지역·고도·위경도), `mountains` 적재. id 는 결정론적 UUID v5(slug 기반)로 재실행 멱등
+  - ✅ **위경도 → 기상청 격자(nx, ny) 변환 유틸**(`lib/geo/kma-grid.ts`, 기상청 공식 DFS/LCC 식) 구현 + 시드 시 `grid_nx`/`grid_ny` 사전 적재(🔶#7). **단위 검증**: 공식 예시 좌표(서울 60/127·제주 53/38) 재현 + 30종 roundtrip 격자 자기일관성 통과
+  - ✅ `generate_typescript_types`로 `lib/supabase/database.types.ts` 재생성(5개 도메인 테이블). ⚠️ 스타터 `profiles`는 생성 마이그레이션 부재로 재생성분에서 누락 → 인증 정비(Task 025) 전까지 스타터 인증 코드 컴파일 위해 타입 블록 수동 보존(주석 명시)
+  - ✅ `get_advisors` — 보안 경고 0건, 인덱스 누락·RLS 미적용 경고 0건(잔여 `unused_index` INFO는 미쿼리 상태 정상). `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ 적용된 마이그레이션, `lib/geo/kma-grid.ts`, `supabase/seed/mountains.sql`(+생성기 `supabase/seed/gen-mountains.mjs`), `lib/supabase/database.types.ts`
   - **의존성**: Task 007, Task 002(#7 결정)
 
 - **Task 015: 외부 API 서버 프록시 및 캐싱 기반 구조 구축** - 우선순위

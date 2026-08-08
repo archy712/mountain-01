@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      condition_scores: {
+        Row: {
+          breakdown: Json
+          calc_version: string
+          computed_at: string
+          grade: string
+          id: string
+          mountain_id: string
+          score: number
+        }
+        Insert: {
+          breakdown?: Json
+          calc_version: string
+          computed_at?: string
+          grade: string
+          id?: string
+          mountain_id: string
+          score: number
+        }
+        Update: {
+          breakdown?: Json
+          calc_version?: string
+          computed_at?: string
+          grade?: string
+          id?: string
+          mountain_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condition_scores_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          mountain_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mountain_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mountain_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mountains: {
+        Row: {
+          altitude: number | null
+          created_at: string
+          grid_nx: number
+          grid_ny: number
+          id: string
+          lat: number
+          lng: number
+          name: string
+          region: string
+        }
+        Insert: {
+          altitude?: number | null
+          created_at?: string
+          grid_nx: number
+          grid_ny: number
+          id?: string
+          lat: number
+          lng: number
+          name: string
+          region: string
+        }
+        Update: {
+          altitude?: number | null
+          created_at?: string
+          grid_nx?: number
+          grid_ny?: number
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          region?: string
+        }
+        Relationships: []
+      }
+      // NOTE: profiles 는 스타터킷 인증 전용 테이블이다. 이 테이블을 생성하는
+      // 마이그레이션이 저장소에 아직 없어(트리거 마이그레이션만 존재) 원격 DB 미반영
+      // 상태이며, 타입 재생성 결과에도 빠진다. 인증 활성화(Task 025)에서 정식 정비
+      // 전까지 스타터 인증 코드(app/protected/profile, components/profile-form) 컴파일을
+      // 위해 직전 생성분을 수동 보존한다.
       profiles: {
         Row: {
           avatar_url: string | null
@@ -43,6 +151,76 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      search_logs: {
+        Row: {
+          created_at: string
+          id: string
+          mountain_id: string | null
+          query: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mountain_id?: string | null
+          query: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mountain_id?: string | null
+          query?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_logs_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trails: {
+        Row: {
+          closed_period: string | null
+          closed_reason: string | null
+          created_at: string
+          id: string
+          mountain_id: string
+          name: string
+          path_geojson: Json | null
+          status: string
+        }
+        Insert: {
+          closed_period?: string | null
+          closed_reason?: string | null
+          created_at?: string
+          id?: string
+          mountain_id: string
+          name: string
+          path_geojson?: Json | null
+          status?: string
+        }
+        Update: {
+          closed_period?: string | null
+          closed_reason?: string | null
+          created_at?: string
+          id?: string
+          mountain_id?: string
+          name?: string
+          path_geojson?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trails_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
