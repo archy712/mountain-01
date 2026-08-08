@@ -5,15 +5,18 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Maximize2 } from "lucide-react";
 
+import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { MapLegend } from "@/components/map-legend";
 import { MountainDetail } from "@/components/mountain-detail";
+import { ScoreBreakdown } from "@/components/score-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrailList } from "@/components/trail-list";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
+import { getConditionForMountain } from "@/lib/condition";
 import { getAllMountains } from "@/lib/data/mountains";
 import { getMountainMeta, getTrailsForMountain } from "@/lib/data/mountain-detail";
-import type { Mountain } from "@/lib/types";
+import { hasData, type Mountain } from "@/lib/types";
 
 /**
  * 산 마스터(고정 30종 시드)를 정적 파라미터로 프리렌더한다.
@@ -66,6 +69,10 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
     <div className="space-y-6 py-6">
       <MountainDetail mountain={mountain} />
 
+      <Suspense fallback={<ConditionSectionSkeleton />}>
+        <ConditionSection mountain={mountain} />
+      </Suspense>
+
       <Suspense fallback={<WeatherCardSkeleton />}>
         <WeatherSection mountain={mountain} />
       </Suspense>
@@ -103,6 +110,35 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 }
 
 /**
+ * 컨디션 점수 스트리밍 서브트리 — "결론 우선" 히어로. 날씨·대기질·자외선을 병렬 조회해
+ * 0~100 점수·등급·감점 근거를 계산한다(Task 023). 대기질/자외선 실패는 감점에서 제외되고
+ * "일부 데이터 제외" 배지로 투명하게 고지된다. 날씨 자체가 사용 불가면 섹션을 숨긴다
+ * (날씨 카드가 별도로 실패 상태를 안내). 매 요청 달라지는 동적 데이터라 connection() 명시.
+ */
+async function ConditionSection({ mountain }: { mountain: Mountain }) {
+  await connection();
+  const result = await getConditionForMountain({
+    id: mountain.id,
+    gridNx: mountain.gridNx,
+    gridNy: mountain.gridNy,
+    lat: mountain.lat,
+    lng: mountain.lng,
+  });
+
+  if (!hasData(result)) return null;
+  const condition = result.data;
+
+  // 게이지 자체가 `aria-labelledby` 로 라벨된 섹션이라, 래퍼는 랜드마크·제목을 중복하지
+  // 않도록 순수 스타일 컨테이너(div)로 둔다.
+  return (
+    <div className="space-y-4 rounded-lg border p-5">
+      <ConditionScoreGauge condition={condition} />
+      <ScoreBreakdown condition={condition} />
+    </div>
+  );
+}
+
+/**
  * 날씨 스트리밍 서브트리. 격자 좌표로 오늘 스냅샷을 조회한다(실패는 카드가 폴백).
  * 날씨는 발표시각·외부 API 로 **매 요청 달라지는 동적 데이터**라, 정적 셸 프리렌더에
  * 끌려 들어가지 않도록 `connection()` 으로 동적 홀임을 명시한다(현재 시각 사용 허용).
@@ -124,6 +160,20 @@ async function TrailSection({ mountainId }: { mountainId: string }) {
   await connection();
   const result = await getTrailsForMountain(mountainId);
   return <TrailList result={result} />;
+}
+
+/** 컨디션 점수 섹션 스트리밍 대기용 스켈레톤(게이지 원형 + 근거 카드). */
+function ConditionSectionSkeleton() {
+  return (
+    <div className="space-y-4 rounded-lg border p-5" aria-busy="true">
+      <div className="flex flex-col items-center gap-3">
+        <Skeleton className="size-[168px] rounded-full" />
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <Skeleton className="h-24 w-full rounded-lg" />
+    </div>
+  );
 }
 
 /** 날씨 카드 스트리밍 대기용 스켈레톤(CLS 최소화). */

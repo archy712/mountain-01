@@ -337,14 +337,17 @@
   - **산출물**: ✅ `app/api/uv/route.ts`, `lib/api/kma-uv.ts`, `lib/api/kma-uv-core.ts`, `scratchpad/test-uv.ts`
   - **의존성**: Task 015, Task 020
 
-- **Task 023: 컨디션 점수 산출 엔진 구현**
-  - 100점 기준 감점 알고리즘 구현 (PRD 4.2 v1 가중치) — POP −25 / PTY −10 / TMP −20 / WSD −15 / 미세먼지 −20 / UV −10, **각 변수 선형 보간**, 합계 초과 시 0으로 클램프
-  - 점수 → 등급/메시지 매핑 구현 (매우 좋음 80～100 / 좋음 60～79 / 보통 40～59 / 나쁨 20～39 / 위험 0～19)
-  - `ScoreBreakdown` 산출 — 감점 기여도 상위 2～3개 요인을 근거로 반환
-  - **부분 폴백** — 대기질/자외선 실패 시 해당 변수를 제외하고 계산, `excludedVariables` 표기 및 "일부 데이터 제외" 배지 노출
-  - **서버에서만 계산**하고 `calc_version` 태깅 (🔶#10 확정안), `condition_scores` 캐시 테이블 저장/조회 (🔶#9 확정 방식)
-  - **테스트 체크리스트**: 경계값 단위 검증(POP 30%/70%, TMP 5℃/22℃, WSD 7/14m/s, 감점 합계 >100), Playwright MCP로 게이지·등급·근거 렌더링 및 부분 제외 배지 확인
-  - **산출물**: `lib/condition/score.ts`, `lib/condition/grade.ts`, `app/api/condition/route.ts`, `condition_scores` 캐시 연동
+- **✅ Task 023: 컨디션 점수 산출 엔진 구현** - 완료
+  - ✅ 100점 기준 감점 엔진(`computeConditionScore`, 순수 함수) — POP 30→70% 선형 −25 / PTY 유형별 단계(약 −5·본격 −10) / TMP 쾌적 5~22℃ 이탈폭 선형(이탈 15℃서 최대 −20) / WSD 7→14m/s 선형 −15 / 미세먼지 나쁨 −10·매우나쁨 −20(PM10·PM2.5 중 나쁜 등급) / UV 6→11 선형 −10. **각 감점 정수 반올림 후 합산**해 breakdown −합과 (100−score) 일치, 합계 초과 시 0 클램프. `calcVersion="v1"` 태깅(🔶#10)
+  - ✅ 점수 → 등급/메시지 매핑(`grade.ts`) — 도메인 `SCORE_GRADE_THRESHOLDS` 단일 출처 재사용(매우좋음 80~/좋음 60~/보통 40~/나쁨 20~/위험 0~), 등급별 메시지 상수
+  - ✅ `ScoreBreakdown` 산출 — 감점 후보를 크기순 정렬해 상위 3개 반환(근거 노출용)
+  - ✅ **부분 폴백** — 대기질/자외선 결측 시 해당 변수만 감점 후보에서 제외하고 `excludedVariables` 표기(점수는 나머지로 계산). 상세 화면 `ScoreBreakdown`이 "일부 데이터 제외" 배지 렌더(Task 011 컴포넌트 연동)
+  - ✅ 오케스트레이터(`service.ts`) — 날씨·대기·자외선 **병렬 조회**, 날씨 실패면 점수 불가(failure)·날씨 stale면 결과도 stale 승계, 대기/자외선 실패는 excluded 처리. **서버에서만 계산**(입력 원천이 서버 프록시 전용)
+  - ✅ `condition_scores` 캐시(🔶#9) — 공개 SELECT로 최신·현재버전·TTL(30분) 이내 행 조회(`readCachedScore`), 신선 행 없을 때만 append 저장으로 행 폭증 방지. **쓰기는 서비스 롤 전용**(RLS)이라 `lib/supabase/admin.ts` 서비스 롤 클라이언트 사용. `SUPABASE_SERVICE_ROLE_KEY` 미설정 시 저장만 생략(계산·표시는 정상, graceful degrade)
+  - ✅ Route Handler `GET /api/condition?mountainId=` — 봉투: 성공 ok / 날씨 stale→partial(issues) / 실패 error, 요청오류만 4xx(400·404). 상세 페이지에 **컨디션 점수 히어로 섹션**(게이지+근거) `<Suspense>` 스트리밍 통합
+  - ✅ **부수 버그 수정(Task 016 날씨 레이어)** — 23시 발표는 **익일 예보만** 포함(당일 데이터 0건, 실측 확인)이라 23:10~23:59 사이 날씨·컨디션이 전부 `parse_error`로 먹통이던 문제 규명. `getVilageBaseDateTime`이 당일 발표 후보에서 23시를 제외(20시 발표로 폴백, 당일 21~23시 포함)하도록 수정. 23시 발표(익일치)는 기존 자정 롤백 경로가 소비
+  - ✅ **테스트**: 경계값 단위 21/21(POP 30/70%, TMP 5/22℃·이탈, WSD 7/14, UV 6/11, 미세먼지 등급, 감점 합계 >100→0 클램프, excluded 2종, breakdown 상위 3 제한). Playwright 라이브 — 관악산 95점·계룡산 99점 게이지·등급·근거 렌더 정상, 400·404 봉투, 날씨 실패 시 컨디션 섹션 격리(비크래시). `typecheck`·`lint`·`prettier` 통과
+  - **산출물**: ✅ `lib/condition/{score,grade,service,cache,index}.ts`, `lib/supabase/admin.ts`, `app/api/condition/route.ts`, `app/(main)/mountains/[id]/page.tsx`(컨디션 섹션), `lib/api/kma-forecast-core.ts`(버그수정), `lib/env.ts`(서비스 롤 키)
   - **의존성**: Task 021, Task 022, Task 014
 
 - **Task 024: 장비 추천 규칙 엔진 구현**

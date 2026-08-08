@@ -38,6 +38,18 @@ export const serverEnv = {
 } as const;
 
 /**
+ * 서버 전용, 선택적 시크릿(미설정 허용).
+ * - Supabase 서비스 롤 키: `condition_scores` 등 RLS 로 쓰기가 막힌 캐시 테이블에
+ *   서버에서만 write 하기 위한 키(결정 003 RLS: 쓰기는 서비스 롤만). 미설정이면
+ *   점수 캐시 영속을 건너뛰고 계산 결과만 반환한다(graceful degrade, Task 023).
+ */
+export const optionalServerEnv = {
+  get supabaseServiceRoleKey(): string | undefined {
+    return process.env.SUPABASE_SERVICE_ROLE_KEY;
+  },
+} as const;
+
+/**
  * 클라이언트에 노출되어도 되는 공개 키.
  * 카카오맵 JS 키는 Phase 5(Task 028)에서 발급·도메인 등록 후 사용한다.
  * 아직 미설정일 수 있으므로 undefined 를 허용한다.
