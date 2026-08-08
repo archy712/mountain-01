@@ -1,9 +1,19 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { publicEnv } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
+/**
+ * Google OAuth 로그인 버튼 + "또는" 구분선.
+ *
+ * Supabase 프로젝트에 Google provider 가 활성화돼야 동작한다. 미구성 상태에서는
+ * `signInWithOAuth` 가 전체 페이지를 Supabase authorize 로 보내고 400
+ * "provider is not enabled" JSON 으로 사용자를 튕겨 낸다(클라이언트에서 잡을 수 없는
+ * 전체 리다이렉트). 이를 막기 위해 **`NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` 일 때만
+ * 렌더**한다. 구분선까지 함께 담아, 꺼져 있으면 흔적 없이 사라진다.
+ */
 export function GoogleAuthButton({
   next = "/favorites",
   label = "Google로 계속하기",
@@ -13,6 +23,9 @@ export function GoogleAuthButton({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Google provider 미구성 시 버튼 자체를 숨긴다(깨진 흐름 차단).
+  if (!publicEnv.googleAuthEnabled) return null;
 
   const handleGoogleLogin = async () => {
     const supabase = createClient();
@@ -39,6 +52,9 @@ export function GoogleAuthButton({
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+        <span className="relative z-10 bg-card px-2 text-muted-foreground">또는</span>
+      </div>
       <Button
         type="button"
         variant="outline"

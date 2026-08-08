@@ -87,9 +87,7 @@ export function LoginForm({
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "로그인 중..." : "로그인"}
               </Button>
-              <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-                <span className="relative z-10 bg-card px-2 text-muted-foreground">또는</span>
-              </div>
+              {/* 구분선은 GoogleAuthButton 이 자체 포함(미구성 시 통째로 숨김) */}
               <GoogleAuthButton next={next} label="Google로 계속하기" />
             </div>
             <div className="mt-4 text-center text-sm">

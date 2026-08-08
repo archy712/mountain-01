@@ -58,6 +58,15 @@ export const publicEnv = {
   get kakaoMapKey(): string | undefined {
     return process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
   },
+  /**
+   * Google OAuth 로그인 노출 여부. Supabase 프로젝트에 Google provider 를 활성화하고
+   * (대시보드 Auth → Providers), Google Cloud OAuth 자격증명을 등록한 뒤 `"true"` 로 켠다.
+   * 미설정이면 로그인/회원가입 화면에서 Google 버튼을 숨겨, 미구성 상태의 깨진 흐름
+   * (Supabase 400 "provider is not enabled")로 사용자가 튕기지 않게 한다.
+   */
+  get googleAuthEnabled(): boolean {
+    return process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+  },
 } as const;
 
 /**
