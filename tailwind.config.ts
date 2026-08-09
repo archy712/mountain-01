@@ -79,9 +79,21 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(250%)" },
         },
+        // 로딩 칩 시머 스윕 — 반투명 하이라이트가 좌→우로 지나가 "확인 중" 진행감을 준다.
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" },
+        },
+        // 값 도착 시 부드러운 등장(툭 튀는 팝 방지).
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
       },
       animation: {
         "indeterminate-progress": "indeterminate-progress 1.15s ease-in-out infinite",
+        shimmer: "shimmer 1.4s ease-in-out infinite",
+        "fade-in": "fade-in 0.3s ease-out",
       },
     },
   },

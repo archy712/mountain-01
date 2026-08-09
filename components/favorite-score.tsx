@@ -21,12 +21,13 @@ const GRADE_CHIP: Record<ScoreGrade, string> = {
   dangerous: "border-grade-dangerous/30 bg-grade-dangerous/10 text-grade-dangerous",
 };
 
-/** 색상 단독 구분 금지: 점수 + 등급 텍스트 병기 */
+/** 색상 단독 구분 금지: 점수 + 등급 텍스트 병기. 값 도착 시 부드럽게 등장(fade-in). */
 function ScoreChip({ score, grade }: { score: number; grade: ScoreGrade }) {
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        "animate-fade-in motion-reduce:animate-none",
         GRADE_CHIP[grade],
       )}
     >
@@ -36,13 +37,28 @@ function ScoreChip({ score, grade }: { score: number; grade: ScoreGrade }) {
   );
 }
 
-/** 점수 산출 대기용 플레이스홀더(칩 크기 예약 → CLS 회피). */
+/**
+ * 점수 산출 대기용 로딩 칩.
+ *
+ * 회색 블록 대신 **"확인 중" 라벨 + 시머 스윕**으로 무엇을 기다리는지 친절하게 전달한다.
+ * - 접근성: `role="status"` + `aria-label` 로 스크린리더에도 로딩을 알린다(예전 aria-hidden 개선).
+ * - 모션 축소: `prefers-reduced-motion` 에서 시머를 감춰 정적 라벨만 남긴다.
+ * - CLS: 실제 칩과 동일 높이(h-[22px])·라운드·테두리를 유지해 값이 들어와도 밀리지 않는다.
+ */
 export function FavoriteScoreSkeleton() {
   return (
     <span
-      aria-hidden="true"
-      className="inline-flex h-[22px] w-14 shrink-0 animate-pulse rounded-full bg-muted"
-    />
+      role="status"
+      aria-label="컨디션 점수 확인 중"
+      className="relative inline-flex h-[22px] shrink-0 items-center overflow-hidden rounded-full border border-dashed border-border bg-muted/50 px-2 text-xs font-medium text-muted-foreground"
+    >
+      {/* 시머 하이라이트가 좌→우로 지나가며 진행감을 준다(모션 축소 시 숨김). */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-foreground/10 to-transparent motion-reduce:hidden"
+      />
+      <span className="relative">확인 중</span>
+    </span>
   );
 }
 
