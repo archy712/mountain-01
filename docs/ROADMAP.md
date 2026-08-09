@@ -523,6 +523,7 @@
   - **"지금 갈 만한 산"**: 후보 풀(소수)의 오늘 컨디션을 계산해 **점수순 정렬**, 콜드스타트 백필을 이름순 대신 **대표 산 큐레이션**(북한산·설악산·지리산·한라산…)으로 채워 친숙한 산이 노출되게 함(`getPopularMountainsGeo`, 좌표 포함). 검색 로그가 쌓이면 자동으로 실인기 반영
   - 각 컨디션 블록은 독립 `<Suspense>` 스트리밍이라 히어로·검색은 즉시 렌더(홈 PPR 유지). 로그인/로그아웃·큐레이션 풀 Playwright 검증, `typecheck`·`lint`·`build` 통과
   - **산출물**: `components/{condition-chip,home-mountain-card,home-conditions-skeleton,home-favorite-conditions,today-condition-picks}.tsx`, `lib/data/mountains.ts`(`getPopularMountainsGeo`+큐레이션), `app/(main)/page.tsx`, `components/favorite-score.tsx`(공용 칩 재사용). 구 `components/popular-mountains.tsx`·`getPopularMountains` 제거
+  - **속도 개선(후속)**: "지금 갈 만한 산"이 정렬을 위해 후보 8곳×(날씨·대기·자외선) 최대 24개 외부호출을 **모두 기다린 뒤** 렌더돼 로그아웃 첫 방문(콜드 캐시)에서 체감이 느리던 문제를 해소. **엄격한 컨디션순 정렬을 포기**하고 큐레이션 4곳을 이름·지역·고도로 **즉시 렌더**(값싼 `'use cache'` DB → 정적 셸에 포함, 홈 revalidate 1h), 컨디션 칩만 카드별 `<Suspense>` 로 스트리밍(`FavoriteScore` 재사용). 동명 산(지리산 1,915m vs 399m)은 **가장 높은 산을 대표로** 합쳐 유명한 쪽을 노출. 외부호출 8→4곳, 부제도 "오늘 컨디션을 확인해 보세요"로 정직화. Playwright 로 정적 셸에 카드 4곳 즉시 포함·칩 스트리밍·지리산 1,915m 확인
 
 - **✅ 로그인 후 착지 지점 마이페이지 통일** - 완료
   - 인증 성공 후 기본 목적지를 `/favorites`→`/mypage`(개인 허브)로 통일. 명시적 `?next=`(보호 라우트 복귀)는 보존. 로그인 폼·로그인 페이지 `safeNext`·OAuth 콜백·비밀번호 재설정·회원가입 이메일 확인·GoogleAuthButton 기본값, 로그인 안내 문구 갱신

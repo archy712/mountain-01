@@ -39,9 +39,9 @@ export default function HomePage() {
 
       <RecentSearches />
 
-      <Suspense fallback={<HomeConditionsSkeleton cards={4} />}>
-        <TodayConditionPicks />
-      </Suspense>
+      {/* 큐레이션 산 메타는 정적 셸에 즉시 렌더되고(값싼 캐시 DB), 각 산의 컨디션 칩만
+          카드 내부 <Suspense> 로 스트리밍된다 — 별도 바깥 Suspense 불필요. */}
+      <TodayConditionPicks />
 
       <Link href="/top100" className="block">
         <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">

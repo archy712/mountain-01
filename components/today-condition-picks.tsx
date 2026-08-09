@@ -1,51 +1,38 @@
-import { connection } from "next/server";
+import { Suspense } from "react";
 
-import { ConditionChip } from "@/components/condition-chip";
+import { ConditionChipSkeleton } from "@/components/condition-chip";
+import { FavoriteScore } from "@/components/favorite-score";
 import { HomeMountainCard } from "@/components/home-mountain-card";
-import { getConditionForMountain } from "@/lib/condition";
 import { getPopularMountainsGeo } from "@/lib/data/mountains";
-import { hasData } from "@/lib/types";
+import type { Mountain } from "@/lib/types";
 
 /**
- * 홈 "지금 갈 만한 산" 블록 (모든 사용자). 후보 풀의 **오늘 컨디션을 실제로 계산해
- * 점수 높은 순으로 정렬**한 상위 4곳을 보여준다 — 라벨이 데이터와 일치한다("인기 산"
- * 이라던 예전 블록은 로그가 없으면 이름순 백필이라 사실상 임의였다).
+ * 홈 "지금 갈 만한 산" 블록 (모든 사용자) — **카드별 스트리밍**.
  *
- * 비용/차단 관리: 후보 풀은 소수(8곳)로 제한하고 컨디션을 병렬 계산한다. 정렬을 위해
- * 풀 전체를 기다려야 하므로(카드별 스트리밍 불가) 이 블록은 홈에서 독립 `<Suspense>` 로
- * 감싸 나머지(히어로·검색·즐겨찾기)를 막지 않게 한다. 날씨 실패로 점수가 없는 산은
- * 랭킹에서 제외하고, 전부 실패하면 블록을 숨긴다. 동적 데이터라 `connection()` 명시.
+ * 예전엔 후보 8곳의 컨디션을 전부 계산해 점수순 정렬했는데, 정렬을 위해 8곳×(날씨·대기·자외선)
+ * 최대 24개 외부 호출을 **모두 기다린 뒤에야** 카드가 그려져 로그아웃 첫 방문(콜드 캐시)에서
+ * 체감이 느렸다. 이제 **큐레이션 대표 산 4곳을 이름·지역·고도로 즉시 렌더**하고(값싼 DB,
+ * `'use cache'` → 정적 셸에 포함), 각 산의 오늘 컨디션 칩만 카드별 `<Suspense>` 로 독립
+ * 스트리밍한다(로그인 사용자의 "내 산 컨디션"·즐겨찾기 화면과 동일 패턴). 접속 즉시 유용한
+ * 산 목록이 보이고 점수는 `fade-in` 으로 채워진다. 엄격한 컨디션순 정렬은 포기한다(홈은
+ * 진입점이라 즉시성이 정렬보다 중요). 컨디션 계산 실패 카드는 칩만 비고 카드는 유지된다.
  */
 
-const CANDIDATE_POOL = 8;
 const VISIBLE_PICKS = 4;
 
 export async function TodayConditionPicks() {
-  await connection();
-  const pool = await getPopularMountainsGeo(CANDIDATE_POOL);
-  if (pool.length === 0) return null;
-
-  const scored = await Promise.all(
-    pool.map(async (m) => {
-      const condition = await getConditionForMountain({
-        id: m.id,
-        gridNx: m.gridNx,
-        gridNy: m.gridNy,
-        lat: m.lat,
-        lng: m.lng,
-      });
-      return { mountain: m, score: hasData(condition) ? condition.data.score : null };
-    }),
-  );
-
-  const ranked = scored
-    // score 가 있는 항목만 남기며 동시에 타입을 non-null 로 좁힌다(assertion 없이).
-    .flatMap((s) => (s.score ? [{ mountain: s.mountain, score: s.score }] : []))
-    .sort((a, b) => b.score.score - a.score.score)
-    .slice(0, VISIBLE_PICKS);
-
-  // 후보 전원의 컨디션 계산이 실패(날씨 소스 다운 등)하면 블록을 숨긴다.
-  if (ranked.length === 0) return null;
+  // 값싼 DB 조회(`'use cache'`). 후보를 넉넉히 받아 동명 산(예: 지리산 1,915m vs 399m)을
+  // 이름 기준으로 합치되 **가장 높은 산을 대표로**(대개 유명한 쪽) 남긴다. Map 은 첫 등장
+  // 순서(=큐레이션 순위)를 유지하므로 값만 갱신하면 순서는 그대로다. connection() 을 쓰지
+  // 않아 카드 메타는 정적 셸에 포함된다.
+  const pool = await getPopularMountainsGeo(8);
+  const byName = new Map<string, Mountain>();
+  for (const m of pool) {
+    const current = byName.get(m.name);
+    if (!current || (m.altitude ?? 0) > (current.altitude ?? 0)) byName.set(m.name, m);
+  }
+  const picks = Array.from(byName.values()).slice(0, VISIBLE_PICKS);
+  if (picks.length === 0) return null;
 
   return (
     <section aria-labelledby="today-picks-heading" className="space-y-3">
@@ -53,17 +40,29 @@ export async function TodayConditionPicks() {
         <h2 id="today-picks-heading" className="text-sm font-semibold text-muted-foreground">
           지금 갈 만한 산
         </h2>
-        <p className="text-xs text-muted-foreground">오늘 컨디션이 좋은 순</p>
+        <p className="text-xs text-muted-foreground">오늘 컨디션을 확인해 보세요</p>
       </div>
       <ul className="grid grid-cols-2 gap-3">
-        {ranked.map(({ mountain, score }) => (
-          <li key={mountain.id}>
+        {picks.map((m) => (
+          <li key={m.id}>
             <HomeMountainCard
-              id={mountain.id}
-              name={mountain.name}
-              region={mountain.region}
-              altitude={mountain.altitude}
-              chip={<ConditionChip score={score.score} grade={score.grade} />}
+              id={m.id}
+              name={m.name}
+              region={m.region}
+              altitude={m.altitude}
+              chip={
+                <Suspense fallback={<ConditionChipSkeleton />}>
+                  <FavoriteScore
+                    mountain={{
+                      id: m.id,
+                      gridNx: m.gridNx,
+                      gridNy: m.gridNy,
+                      lat: m.lat,
+                      lng: m.lng,
+                    }}
+                  />
+                </Suspense>
+              }
             />
           </li>
         ))}
