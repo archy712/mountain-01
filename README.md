@@ -1,10 +1,10 @@
-# 산길날씨 (SanGil)
+# 산길정보 (SanGil)
 
 > 산 이름 하나로 **"지금 이 산에 가도 되는지"**를 출발 전 3초 안에 판단하게 해주는 등산 날씨·탐방로 통합 모바일 웹 앱
 
-산길날씨는 흩어진 정보(기상청 날씨, 탐방로 개방 여부, 미세먼지·자외선)를 하나의 결론으로 압축해 보여줍니다. 주말·휴일 산행을 계획하는 등산객이 스마트폰으로 빠르게 판단할 수 있도록 모바일 우선으로 설계합니다.
+산길정보는 흩어진 정보(기상청 날씨, 탐방로 개방 여부, 미세먼지·자외선)를 하나의 결론으로 압축해 보여줍니다. 주말·휴일 산행을 계획하는 등산객이 스마트폰으로 빠르게 판단할 수 있도록 모바일 우선으로 설계합니다.
 
-> ℹ️ **개발 현황.** 1~3단계 핵심 기능(날씨·탐방로 → 컨디션 점수·장비 추천·인증 → 지도·PWA)이 구현 완료되었고, 현재 품질·성능·운영(Phase 6)과 상세 화면 정보 고도화를 진행 중입니다. 단계별 상세·진행 상황은 [`docs/PRD.md`](docs/PRD.md), [`docs/ROADMAP.md`](docs/ROADMAP.md)를 참고하세요.
+> ℹ️ **개발 현황.** 1~3단계 핵심 기능(날씨·탐방로 → 컨디션 점수·장비 추천·인증 → 지도·PWA)에 더해 품질·성능·운영(Phase 6: 성능·접근성·계측/모니터링·CI·배포)과 상세 화면 정보 확장까지 완료했습니다. 최근에는 즐겨찾기 카드별 점수 스트리밍과 로딩 UX(친절한 로딩 상태·접근성) 개선을 반영했고, 다음으로 **개인화·콘텐츠 확장(Phase 7: 100대명산 목록·방문완료·마이페이지)**을 계획하고 있습니다. 단계별 상세·진행 상황은 [`docs/PRD.md`](docs/PRD.md), [`docs/ROADMAP.md`](docs/ROADMAP.md)를 참고하세요.
 
 ## 주요 기능 (단계별)
 
@@ -69,7 +69,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[Supabase publishable(또는 anon) 키]
 >
 > 두 값이 없으면 `lib/utils.ts`의 `hasEnvVars`가 `false`가 되어 UI가 튜토리얼/경고 모드로 폴백합니다.
 
-외부 데이터 연동(1단계 이후)에 필요한 공공데이터 API 키는 서버 전용 환경변수(`KMA_SERVICE_KEY`, `AIRKOREA_SERVICE_KEY`, `KMA_LIVING_INDEX_KEY`, `TRAIL_API_KEY` 등)로 추가됩니다. 발급 방법과 결정 사항은 [`docs/decisions/001-data-sources.md`](docs/decisions/001-data-sources.md)를 참고하세요.
+외부 데이터 연동(1단계 이후)에 필요한 공공데이터 API 키는 서버 전용 환경변수(`KMA_SERVICE_KEY`, `AIRKOREA_SERVICE_KEY`, `KMA_LIVING_INDEX_KEY`)로 추가됩니다. 탐방로·등산로는 국립공원공단 정적 CSV를 적재해 별도 API 키가 필요 없습니다(결정 001 #4). 발급 방법과 결정 사항은 [`docs/decisions/001-data-sources.md`](docs/decisions/001-data-sources.md)를 참고하세요.
 
 ### 개발 서버 실행
 
@@ -95,16 +95,22 @@ npm run format:check # 포맷 위반 검사
 ## 프로젝트 구조
 
 ```
-app/                 # App Router 라우트 (인증 흐름, 보호 영역)
+app/
+  (main)/            # 앱 본체 — 홈/검색, 산 상세(mountains/[id]), 즐겨찾기 (공통 헤더 레이아웃)
   auth/              # 로그인·회원가입·비밀번호 재설정·이메일 확인
-  protected/         # 인증 필요 영역
+  api/               # 서버 라우트 핸들러 (검색·날씨·대기·자외선·컨디션·즐겨찾기·계측 등)
+  protected/         # 스타터킷 잔존 보호 영역
 components/          # 페이지별 컴포넌트 (kebab-case), PascalCase 컴포넌트명
   ui/                # shadcn/ui 프리미티브
 lib/
+  api/               # 외부 API 서버 프록시·캐싱·정규화 (기상·대기·자외선)
+  condition/         # 컨디션 점수 산출·장비 추천 엔진
+  data/              # 산 마스터·상세 서버 데이터 접근
+  analytics/         # 클라이언트 KPI 계측
   supabase/          # client.ts · server.ts · proxy.ts (컨텍스트별 클라이언트 3종)
   utils.ts           # cn() 등 유틸
 proxy.ts             # 루트 프록시 (구 middleware) — 세션 갱신·라우트 보호
-docs/                # PRD · ROADMAP · 결정 기록 · 개발 가이드
+docs/                # PRD · ROADMAP · 결정 기록 · 개발 가이드 · 운영(operations)
 ```
 
 - `src/` 디렉토리를 사용하지 않으며, 경로 별칭 `@/*`는 프로젝트 루트로 매핑됩니다.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-Next.js 16 (App Router) + Supabase Auth 스타터 킷입니다. `@supabase/ssr`로 쿠키 기반 세션을 Client Component, Server Component, Route Handler, `proxy.ts` 전반에서 공유합니다.
+**산길정보**(SanGil) — 산 이름 하나로 오늘 날씨·탐방로 개방 여부·등산 컨디션을 3초 안에 판단하게 해주는 모바일 웹 앱입니다. Next.js 16 (App Router) + Supabase 기반이며(Supabase Auth 스타터킷에서 출발), `@supabase/ssr`로 쿠키 기반 세션을 Client Component, Server Component, Route Handler, `proxy.ts` 전반에서 공유합니다.
 
 ## 명령어
 
@@ -39,7 +39,7 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 `docs/` 하위 문서:
 
 - `docs/guides/` — 아키텍처/스타일/폼 처리/Next.js 16 등 상세 가이드 5종. 관련 작업 전 참고.
-- `docs/PRD.md` (제품 요구사항), `docs/ROADMAP.md` (Phase/Task 개발 로드맵), `docs/decisions/` (기술 결정 기록, 예: 외부 데이터 소스·API 선정) — 진행 중인 프로덕트("산길날씨") 기획 문서. 기능 작업 시 해당 Task/결정을 확인하세요.
+- `docs/PRD.md` (제품 요구사항), `docs/ROADMAP.md` (Phase/Task 개발 로드맵), `docs/decisions/` (기술 결정 기록, 예: 외부 데이터 소스·API 선정) — 진행 중인 프로덕트("산길정보") 기획 문서. 기능 작업 시 해당 Task/결정을 확인하세요.
 
 ### Supabase 클라이언트 3종 — 컨텍스트별로 반드시 구분해서 사용
 
@@ -65,6 +65,11 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 - 날씨는 `lib/api/kma-forecast.ts`에 `getWeatherSnapshot`(현재값)과 `getWeatherForecast`(현재+시간별+3일+체감온도+오늘 최저/최고) 두 진입점이 있고, **동일한 `'use cache'` 원시 응답을 재사용**하므로 확장 예보를 써도 추가 네트워크가 없습니다(단, `withStaleFallback` 키는 `:forecast` 접미사로 분리).
 - 외부 API 없이 파생하는 정보: 일출·일몰은 `lib/geo/sun-times.ts`(위경도 기반 계산), 탐방로 코스 요약은 `lib/trails/summary.ts`(순수 집계), 체감온도는 `kma-forecast-core.ts`(기온·습도·풍속 산출).
 
+### 로딩·스켈레톤 UX 관례
+
+- 데이터 대기 화면은 **실제 레이아웃을 흉내 낸 스켈레톤(CLS 회피)** + 상단 `LoadingBar`(무한 진행바, `components/loading-bar.tsx`) + `aria-busy`/`role="status"`+sr-only 라벨 + `motion-reduce:` 대응을 관례로 합니다. 회색 빈 박스 하나로 "멈춤"처럼 보이지 않게 합니다(홈 인기 산·로그인 패널·검색 자동완성 등).
+- **카드/섹션 단위 스트리밍**: 값싼 데이터(DB)는 즉시 렌더하고, 비싼 데이터(외부 API)만 독립 `<Suspense>` + `connection()` 로 스트리밍합니다. 즐겨찾기 목록은 산 메타를 즉시 렌더하고 각 산의 컨디션 점수만 카드별로 스트리밍하며(`components/favorite-score.tsx`), 상세 페이지 섹션 스트리밍과 동일한 패턴입니다. 로딩 칩은 회색 블록이 아니라 "확인 중" 라벨 + 시머, 값 도착 시 `fade-in` 으로 등장합니다.
+
 ### 계측·모니터링 (Task 035)
 
 - **KPI 이벤트**는 `analytics_events` 테이블에 적재합니다(insert-only RLS, select 차단, 개인정보 미수집). 클라이언트는 `lib/analytics/client.ts`의 `track()`(fire-and-forget, `anon_id`는 localStorage 익명 UUID)로 보내고, `app/api/analytics/route.ts`가 이벤트명 화이트리스트 검증 후 `createPublicClient()`로 insert 합니다(`search_logs` 패턴 동일). 계측은 사용자 흐름을 막지 않는 best-effort 이며, `components/analytics-tracker.tsx`(세션)·`mountain-view-tracker.tsx`(상세)와 검색/즐겨찾기/PWA 컴포넌트에서 호출됩니다.
@@ -80,7 +85,7 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 ### 스타일링
 
 - Tailwind CSS v4 + shadcn/ui(`new-york` 스타일, `components.json` 참고)이지만, 색상 테마는 v4의 `@theme`/oklch 방식이 아니라 **`tailwind.config.ts` + `@config` 지시어(`app/globals.css`)로 v3 방식 HSL CSS 변수**(`--background`, `--primary` 등)를 계속 사용하는 하이브리드 구성입니다. 새 색상 토큰을 추가할 때는 `app/globals.css`의 `:root`/`.dark`와 `tailwind.config.ts`의 `theme.extend.colors`를 함께 수정해야 합니다.
-- 커스텀 애니메이션(키프레임)도 `@theme` 가 아니라 **`tailwind.config.ts`의 `theme.extend.keyframes`/`animation`**에 정의합니다(예: 로딩 인디케이터 `indeterminate-progress`, `components/loading-bar.tsx`). 접근성상 `motion-reduce:` 변형으로 모션 축소도 함께 처리합니다.
+- 커스텀 애니메이션(키프레임)도 `@theme` 가 아니라 **`tailwind.config.ts`의 `theme.extend.keyframes`/`animation`**에 정의합니다(예: 로딩 인디케이터 `indeterminate-progress`(`components/loading-bar.tsx`), 로딩 칩 `shimmer`·값 등장 `fade-in`(`components/favorite-score.tsx`)). 접근성상 `motion-reduce:` 변형으로 모션 축소도 함께 처리합니다.
 - 다크모드는 `next-themes`의 `ThemeProvider`를 `app/layout.tsx`에서 직접 사용합니다(별도 provider 래퍼 컴포넌트 없음).
 - 클래스 조합은 `lib/utils.ts`의 `cn()`(clsx + tailwind-merge)을 사용합니다.
 
