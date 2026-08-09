@@ -46,12 +46,14 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   // 공개 경로: 1단계 전면 비로그인 정책 (결정 002 #12 / 확정 라우트 표).
-  // `/`, `/mountains/*`(상세·지도), `/offline`, 인증 흐름(`/auth/*`, `/login*`)은
-  // 로그인 없이 접근 가능. 그 외(`/favorites`, `/protected/*` 등)는 인증 요구.
+  // `/`, `/mountains/*`(상세·지도), `/top100`(100대명산 목록), `/offline`,
+  // 인증 흐름(`/auth/*`, `/login*`)은 로그인 없이 접근 가능.
+  // 그 외(`/favorites`, `/protected/*` 등)는 인증 요구.
   const { pathname } = request.nextUrl;
   const isPublicPath =
     pathname === "/" ||
     pathname === "/offline" ||
+    pathname === "/top100" ||
     pathname === "/mountains" ||
     pathname.startsWith("/mountains/") ||
     pathname.startsWith("/auth") ||

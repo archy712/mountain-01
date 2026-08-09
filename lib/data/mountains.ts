@@ -34,6 +34,27 @@ export async function getAllMountains(): Promise<MountainSuggestion[]> {
 }
 
 /**
+ * 산림청 100대명산 목록을 캐시 조회한다(`/top100` 화면, Task 036).
+ * 거의 불변 콘텐츠라 산 마스터와 동일한 1일 캐시(mountains-1d). 정렬/필터는 클라이언트가
+ * 담당하므로 여기서는 이름 오름차순으로 안정 정렬만 해서 넘긴다.
+ */
+export async function getTop100Mountains(): Promise<MountainSuggestion[]> {
+  "use cache";
+  cacheLife(CACHE_PROFILE.mountains);
+  cacheTag(sourceTag("mountains"));
+
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("mountains")
+    .select("id, name, region, altitude")
+    .eq("is_top100", true)
+    .order("name", { ascending: true });
+
+  if (error || !data) return [];
+  return data;
+}
+
+/**
  * 산 id → 선택 로그 수(인기도) 맵을 캐시 조회한다.
  * `search_logs.mountain_id` 가 있는 최근 로그만 집계한다(정렬 tiebreak 용).
  */

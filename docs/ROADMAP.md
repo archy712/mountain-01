@@ -487,11 +487,14 @@
 
 ### Phase 7: 개인화·콘텐츠 확장 (4단계 후보)
 
-- **Task 036: 100대명산 목록 화면** - 우선순위
-  - 산 마스터(`mountains`)에 **100대명산 여부 플래그**(예: `is_top100 boolean`) 추가 및 산림청 100대명산 기준으로 시드 확장/표시(현재 30개 → 100대명산 커버). 출처·라이선스는 `docs/decisions/001-data-sources.md` 기준으로 확인
-  - 메인(홈) 화면에 **100대명산 섹션**(또는 전용 `/top100` 라우트) 노출: 지역·고도 등으로 정렬/필터, 각 항목 탭 시 산 상세로 직결
-  - 거의 불변 데이터이므로 `'use cache'`(`mountains` 프로필) 재사용, 기존 인기 산 그리드·스켈레톤·접근성 로딩 패턴 재활용
-  - **산출물**: 마이그레이션(플래그 컬럼 + 시드), `components/top100-list.tsx`(가칭), 홈/전용 라우트, `lib/supabase/database.types.ts` 재생성
+- **✅ Task 036: 100대명산 목록 화면** - 완료
+  - ✅ `mountains.is_top100 boolean not null default false` 컬럼 + 부분 인덱스(`mountains_is_top100_idx`) 마이그레이션 적용. 별도 테이블 대신 플래그(단순 필터라 정규화 이득 없음)
+  - ✅ 산림청 100대명산(2002) 시드 확장 — 시드 생성기(`gen-mountains.mjs`)에 `is_top100` 필드 추가 + 신규 75종 입력, **총 105종(100대명산 100 + 비대상 5: 남산-서울·북악산·인왕산·수락산·청계산)**. 100대명산 남산(경주)은 서울 남산과 별도 slug로 구분, 동명 산(백운산×3·지리산×2)은 지역 병기로 구분. 좌표는 대표 정상 근사값(격자 5km), roundtrip 자기일관성 105/105 통과. 목록·고도·지역 출처와 라이선스는 `docs/decisions/001-data-sources.md`에 기록(정밀 좌표는 공공데이터 15125127 API로 후속 정밀화 여지)
+  - ✅ 전용 **`/top100` 라우트** 신설(홈 섹션 대신 — 100개가 홈 "결론 우선" 위계를 해침). 홈에 진입 배너 링크 추가, `proxy.ts` 공개 경로에 `/top100` 편입
+  - ✅ 데이터 계층 `getTop100Mountains()`(`'use cache'` + mountains-1d 프로필 + `is_top100` 필터), UI `components/top100-list.tsx`(클라이언트: 지역 칩 필터·고도 정렬, 데이터 재요청 없음). **목록엔 이름·지역·고도만 노출하고 컨디션 점수 미표시**(100종×외부 API 호출 폭증 방지)
+  - ✅ 스켈레톤·`LoadingBar`·`role="status"` 로딩 관례 재사용, 색상 단독 구분 없음, 44px 터치 타깃, 키보드 접근성(aria-pressed)
+  - ✅ **테스트**: Playwright(360/768px) — 홈 배너→`/top100`, 100곳 렌더, 경기 필터 14곳(전부 경기 포함), 고도 높은순 정렬(필터 조합 시 화악산 1,468→소요산 588 내림차순), 명지산 카드→상세 **실날씨 정상 연동**(23℃·컨디션 99·일동면 측정소 3.7km — 신규 좌표 검증), 가로 오버플로 0px, 콘솔 에러 0. `typecheck`·`lint`·`build` 통과, DB `is_top100=true` 100건 일치
+  - **산출물**: ✅ `supabase/migrations/20260809160000_mountains_top100_flag.sql`, `supabase/seed/{gen-mountains.mjs,mountains.sql}`, `lib/data/mountains.ts`(`getTop100Mountains`), `components/top100-list.tsx`, `app/(main)/top100/page.tsx`, `app/(main)/page.tsx`(배너), `lib/supabase/proxy.ts`(공개 경로), `lib/supabase/database.types.ts`, `docs/decisions/001-data-sources.md`, `docs/tasks/task-036-top100-list.md`
   - **의존성**: Task 014, Task 018
 
 - **Task 037: 방문완료 기록 및 방문 목록 화면** - 우선순위

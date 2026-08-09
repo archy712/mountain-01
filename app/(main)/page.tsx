@@ -1,9 +1,12 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import { ChevronRight, Mountain as MountainIcon } from "lucide-react";
 
 import { LoadingBar } from "@/components/loading-bar";
 import { MountainSearchInput } from "@/components/mountain-search-input";
 import { PopularMountains } from "@/components/popular-mountains";
 import { RecentSearches } from "@/components/recent-searches";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -27,6 +30,24 @@ export default function HomePage() {
       <MountainSearchInput />
 
       <RecentSearches />
+
+      <Link href="/top100" className="block">
+        <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            aria-hidden="true"
+          >
+            <MountainIcon className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold tracking-tight">100대명산 둘러보기</span>
+            <span className="block text-xs text-muted-foreground">
+              산림청 선정 100대명산을 지역·고도로 탐색
+            </span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </Card>
+      </Link>
 
       <Suspense fallback={<PopularMountainsSkeleton />}>
         <PopularMountains />

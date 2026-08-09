@@ -150,6 +150,7 @@ export type Database = {
           grid_nx: number
           grid_ny: number
           id: string
+          is_top100: boolean
           lat: number
           lng: number
           name: string
@@ -161,6 +162,7 @@ export type Database = {
           grid_nx: number
           grid_ny: number
           id?: string
+          is_top100?: boolean
           lat: number
           lng: number
           name: string
@@ -172,6 +174,7 @@ export type Database = {
           grid_nx?: number
           grid_ny?: number
           id?: string
+          is_top100?: boolean
           lat?: number
           lng?: number
           name?: string
