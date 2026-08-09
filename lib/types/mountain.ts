@@ -69,15 +69,32 @@ export interface Trail {
   waypoints: string | null;
 }
 
+/** 난이도 5단계(별 개수). 1=매우 쉬움 … 5=매우 어려움. */
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
+
+/** 난이도 단계 → 한국어 라벨. */
+export const DIFFICULTY_LEVEL_LABEL: Record<DifficultyLevel, string> = {
+  1: "매우 쉬움",
+  2: "쉬움",
+  3: "보통",
+  4: "어려움",
+  5: "매우 어려움",
+};
+
 /**
- * 난이도 지수 → 한국어 라벨(쉬움/보통/어려움). KNPS 지수는 값이 좁게 몰려 있어(대부분 2.0~2.5)
- * 실측 삼분위(≈2.1/2.35)로 상대 구분한다. 미상/미평가(null·0 이하)는 null(표시 안 함).
+ * 오름 소요시간(분) → 1~5 단계(별 개수). **KNPS "난이도 지수"는 경사/지형만 반영하고 코스
+ * 길이를 무시**해 등산객 체감과 크게 어긋난다(예: 12km·오름 7시간 50분 대청봉코스(백담)가
+ * 지수 2.11로 "쉬움"). 오름 소요시간은 거리·경사를 함께 반영한 총 노력 지표이고 전 코스에
+ * 존재(결측 0)하므로 이를 기준으로 삼는다. 실측 **5분위(≈45 / 80 / 120 / 210분)**로 별 1~5개에
+ * 매핑한다. 미상(null·0 이하)은 null(별 대신 "정보 없음" 처리).
  */
-export function trailDifficultyLabel(difficulty: number | null): "쉬움" | "보통" | "어려움" | null {
-  if (difficulty == null || difficulty <= 0) return null;
-  if (difficulty < 2.1) return "쉬움";
-  if (difficulty < 2.35) return "보통";
-  return "어려움";
+export function trailDifficultyLevel(goMinutes: number | null): DifficultyLevel | null {
+  if (goMinutes == null || goMinutes <= 0) return null;
+  if (goMinutes <= 45) return 1;
+  if (goMinutes <= 80) return 2;
+  if (goMinutes <= 120) return 3;
+  if (goMinutes <= 210) return 4;
+  return 5;
 }
 
 export type TrailNormalizer = Normalizer<Trail[]>;

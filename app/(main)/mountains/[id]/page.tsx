@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
-import { AirQualityBadge } from "@/components/air-quality-badge";
+import { AirUvSummary } from "@/components/air-uv-summary";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -20,7 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SunTimesRow } from "@/components/sun-times-row";
 import { TrailList } from "@/components/trail-list";
 import { TrailSelectionProvider } from "@/components/trail-selection";
-import { UvIndexBadge } from "@/components/uv-index-badge";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherForecast } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
@@ -203,12 +202,7 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
     <div className="space-y-4 rounded-lg border p-5">
       <ConditionScoreGauge condition={score} />
       <ScoreBreakdown condition={score} />
-      {air || uv ? (
-        <div className="space-y-2 border-t pt-4">
-          {air ? <AirQualityBadge air={air} /> : null}
-          {uv ? <UvIndexBadge uv={uv} /> : null}
-        </div>
-      ) : null}
+      {air || uv ? <AirUvSummary air={air} uv={uv} className="border-t pt-4" /> : null}
       <GearRecommendationList gear={gear} />
     </div>
   );

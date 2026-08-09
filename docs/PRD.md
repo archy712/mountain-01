@@ -163,7 +163,7 @@
 | 회원가입        | `/auth/sign-up`   | (스타터 킷 재사용)                              |
 | 즐겨찾기        | `/favorites`      | 저장한 산 카드 목록 (로그인 필요)               |
 
-- 주요 컴포넌트: `ConditionScoreGauge`, `ScoreBreakdown`, `GearRecommendationList`, `AirQualityBadge`, `UvIndexBadge`, `FavoriteButton`.
+- 주요 컴포넌트: `ConditionScoreGauge`, `ScoreBreakdown`, `GearRecommendationList`, `AirUvSummary`(대기질·자외선 3칸 타일), `FavoriteButton`.
 
 #### 컨디션 점수 알고리즘 (초안)
 

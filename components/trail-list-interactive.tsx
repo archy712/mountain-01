@@ -1,10 +1,14 @@
 "use client";
 
+import { Split } from "lucide-react";
+
+import { TrailDifficulty } from "@/components/trail-difficulty";
 import { TrailStatusBadge } from "@/components/trail-status-badge";
 import { useTrailSelection } from "@/components/trail-selection";
 import { TRAIL_HIGHLIGHT_COLOR } from "@/lib/trails/colors";
+import { isSpurTrail } from "@/lib/trails/spurs";
 import { cn } from "@/lib/utils";
-import { trailDifficultyLabel, type Trail } from "@/lib/types";
+import { type Trail } from "@/lib/types";
 
 /** 거리(m) → "2.9km" / "820m". 미상이면 null. */
 function formatDistance(m: number | null): string | null {
@@ -38,23 +42,39 @@ export function TrailListInteractive({ trails }: { trails: Trail[] }) {
   return (
     <ul className="space-y-2">
       {trails.map((trail) => {
-        // 코스 정보(거리·소요시간·난이도) 요약 칩 (Task 033 #4).
-        const difficultyLabel = trailDifficultyLabel(trail.difficulty);
+        // 코스 정보(거리·소요시간) 요약 칩 (Task 033 #4). 난이도는 별점으로 별도 표시(Task 034).
         const goText = formatMinutes(trail.goMinutes);
-        const meta = [
-          formatDistance(trail.distanceM),
-          goText ? `오름 ${goText}` : null,
-          difficultyLabel ? `난이도 ${difficultyLabel}` : null,
-        ].filter((v): v is string => Boolean(v));
+        const meta = [formatDistance(trail.distanceM), goText ? `오름 ${goText}` : null].filter(
+          (v): v is string => Boolean(v),
+        );
+        // 본선 갈림길에서 갈라지는 지선(곁길)은 배지+캡션으로 맥락을 준다(Task 034, 큐레이션).
+        const spur = isSpurTrail(trail.name);
 
         const body = (
           <>
             <div className="flex items-center justify-between gap-3">
-              <span className="font-medium">{trail.name}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate font-medium">{trail.name}</span>
+                {spur ? (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <Split className="size-3" aria-hidden="true" />
+                    지선
+                  </span>
+                ) : null}
+              </span>
               <TrailStatusBadge status={trail.status} size="sm" />
             </div>
             {meta.length > 0 ? (
               <p className="mt-1.5 text-xs text-muted-foreground">{meta.join(" · ")}</p>
+            ) : null}
+            <div className="mt-1.5">
+              <TrailDifficulty goMinutes={trail.goMinutes} />
+            </div>
+            {spur ? (
+              <p className="mt-1.5 text-xs text-muted-foreground/80">
+                본선 탐방로 중간 갈림길에서 갈라지는 지선이에요. 거리·시간은 갈림길 기준이라
+                들머리부터는 더 걸려요.
+              </p>
             ) : null}
             {trail.waypoints ? (
               <p className="mt-1 truncate text-xs text-muted-foreground/80" title={trail.waypoints}>

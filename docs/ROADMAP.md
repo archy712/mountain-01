@@ -458,13 +458,14 @@
 - **✅ Task 034: 산 상세 정보 확장 및 로딩 UX 개선** - 완료
   - ✅ **탐방로 거리·소요시간 버그 수정** — KNPS CSV 파서가 코스ID 단위로만 중복 제거해 여러 세그먼트(일련번호)로 쪼개진 코스(예: 한라산 성판악)에서 첫 세그먼트만 남던 문제 해결. 중복 제거 키에 `일련번호`를 포함해 세그먼트를 보존, `gen-trails`의 (산,코스명) 합산이 정상 동작하도록 수정 후 시드 재생성·DB 반영(성판악 2.3km/1시간30분 → **9.6km/4시간30분**)
   - ✅ **스트리밍 로딩 인디케이터 바** — 컨디션 히어로·날씨·탐방로 스켈레톤 상단에 순수 CSS 무한(indeterminate) 진행바를 얹어 로딩 진행감 전달(의존성·클라이언트 JS 0, `aria-hidden`+컨테이너 `aria-busy`, `prefers-reduced-motion` 대응). 스켈레톤은 유지해 CLS 회피
-  - ✅ **미세먼지·자외선 실수치 노출** — 서버가 이미 조회하던 값을 `ConditionBundle`에 실어 감점 근거를 실제 수치로 뒷받침(기존 `AirQualityBadge`·`UvIndexBadge` 재사용): PM10/PM2.5·측정소·거리, UV 지수·등급
+  - ✅ **미세먼지·자외선 실수치 노출** — 서버가 이미 조회하던 값을 `ConditionBundle`에 실어 감점 근거를 실제 수치로 뒷받침. 초기엔 기존 배지 2종을 재사용했으나, 자외선이 고아처럼 떨어져 보이는 문제로 **날씨 카드와 동일한 3칸 타일(PM10·PM2.5·자외선) 패널 `AirUvSummary`로 통합**(기존 `AirQualityBadge`·`UvIndexBadge` 제거): PM10/PM2.5·측정소·거리, UV 지수·등급
+  - ✅ **탐방로 난이도 별점** — KNPS 난이도 지수(경사만 반영, 코스 길이 무시)가 체감과 어긋나 **오름 소요시간 기준**(5분위)으로 별 5개 스케일 시각화(`TrailDifficulty`, 색상+텍스트 병기). 소요시간은 전 코스에 존재해 한라산 등 지수 결측 산도 표시됨
   - ✅ **확장 예보** — 동일 단기예보 응답 하나를 재파싱(추가 네트워크 0)해 체감온도(호주 기상청 apparent temperature)·오늘 최저/최고(TMN·TMX)·시간대별·3일 예보 제공. `getWeatherForecast`(스냅샷과 캐시 공유, stale 키 분리), `HourlyForecastStrip`·`DailyForecastList`
   - ✅ **일출·일몰** — 위경도로 USNO 알고리즘 계산(외부 API 불필요, `lib/geo/sun-times.ts`), 실측 대비 1~2분 오차 검증. `SunTimesRow`
   - ✅ **코스 요약 통계** — 개방/통제 현황·거리 범위 집계 바를 탐방로 목록 상단에 추가(`lib/trails/summary.ts`, `TrailSummaryBar`)
   - ✅ **문서 반영** — 신규 데이터 소스가 필요한 상세 확장(4순위: 실시간 통제·산불위험·주차/교통·편의시설·사진·후기·계절/야생동물)을 `README.md`·`docs/PRD.md`(10.1)에 향후 개발 계획으로 기재
   - ✅ **검증** — `typecheck`·`lint` 통과, Playwright MCP 라이브(한라산)에서 신규 섹션 전수 렌더 확인
-  - **산출물**: `lib/api/kma-forecast-core.ts`·`kma-forecast.ts`, `lib/geo/sun-times.ts`, `lib/trails/summary.ts`, `lib/types/{weather,condition}.ts`, `lib/condition/service.ts`, `components/{loading-bar,weather-icons,hourly-forecast-strip,daily-forecast-list,sun-times-row,trail-summary-bar,weather-summary-card,trail-list}.tsx`, `lib/trails/parse-knps-csv.ts`, `supabase/seed/trails.sql`, `app/(main)/mountains/[id]/page.tsx`, `tailwind.config.ts`
+  - **산출물**: `lib/api/kma-forecast-core.ts`·`kma-forecast.ts`, `lib/geo/sun-times.ts`, `lib/trails/summary.ts`, `lib/types/{weather,condition,mountain}.ts`, `lib/condition/service.ts`, `components/{loading-bar,weather-icons,hourly-forecast-strip,daily-forecast-list,sun-times-row,trail-summary-bar,trail-difficulty,air-uv-summary,weather-summary-card,trail-list,trail-list-interactive}.tsx`, `lib/trails/parse-knps-csv.ts`, `supabase/seed/trails.sql`, `app/(main)/mountains/[id]/page.tsx`, `tailwind.config.ts` (기존 `air-quality-badge`·`uv-index-badge` 제거)
   - **의존성**: Task 019, Task 023, Task 029
 
 - **Task 035: 계측·모니터링 및 배포 파이프라인 구축**
