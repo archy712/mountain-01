@@ -9,6 +9,7 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { track } from "@/lib/analytics/client";
 import type { ApiResponse, MountainSuggestion } from "@/lib/types";
 
 /**
@@ -25,6 +26,20 @@ import type { ApiResponse, MountainSuggestion } from "@/lib/types";
  */
 
 const DEBOUNCE_MS = 180;
+
+/** 검색 세션 계측 중복 방지 플래그(같은 탭 세션에서 1회). */
+const SEARCH_SESSION_FLAG = "sangil_search_session";
+
+/** 브라우저 세션당 한 번만 `search_session` 을 기록한다(완료율 분모). */
+function trackSearchSessionOnce() {
+  try {
+    if (window.sessionStorage.getItem(SEARCH_SESSION_FLAG)) return;
+    window.sessionStorage.setItem(SEARCH_SESSION_FLAG, "1");
+  } catch {
+    // sessionStorage 불가 — 가드 없이 진행.
+  }
+  track("search_session");
+}
 
 export function MountainSearchInput({ className }: { className?: string }) {
   const router = useRouter();
@@ -60,7 +75,10 @@ export function MountainSearchInput({ className }: { className?: string }) {
         });
         const body = (await res.json()) as ApiResponse<MountainSuggestion[]>;
         if (cancelled) return;
-        setResults(body.status === "ok" ? body.data : []);
+        const rows = body.status === "ok" ? body.data : [];
+        setResults(rows);
+        // 검색 세션 계측(완료율 분모, Task 035): 결과가 노출되는 첫 시점 1회.
+        if (rows.length > 0) trackSearchSessionOnce();
       } catch {
         // 취소는 무시. 그 외 실패는 결과 없음으로 처리(앱 크래시 없음).
         if (!cancelled && !controller.signal.aborted) setResults([]);
@@ -104,6 +122,8 @@ export function MountainSearchInput({ className }: { className?: string }) {
 
   function handleSelect(mountain: MountainSuggestion) {
     logSelection(mountain);
+    // 검색→결과 확인 완료 계측(완료율 분자, Task 035).
+    track("search_result_selected", { mountainId: mountain.id });
     add({ id: mountain.id, name: mountain.name, region: mountain.region });
     setFocused(false);
     router.push(`/mountains/${mountain.id}`);

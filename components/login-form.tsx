@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /**
- * 로그인 폼 (산길날씨). 스타터 패턴 유지 — Client Component 에서 `supabase.auth` 직접 호출.
+ * 로그인 폼 (산길정보). 스타터 패턴 유지 — Client Component 에서 `supabase.auth` 직접 호출.
  * `next` 는 로그인 성공 후 복귀 경로(기본 `/favorites`). 보호 라우트 접근 시 proxy 가
  * `?next=` 로 실어 주며, 여기서 그대로 이어받아 이동한다(Task 025).
  */

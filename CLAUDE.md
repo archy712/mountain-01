@@ -65,6 +65,12 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 - 날씨는 `lib/api/kma-forecast.ts`에 `getWeatherSnapshot`(현재값)과 `getWeatherForecast`(현재+시간별+3일+체감온도+오늘 최저/최고) 두 진입점이 있고, **동일한 `'use cache'` 원시 응답을 재사용**하므로 확장 예보를 써도 추가 네트워크가 없습니다(단, `withStaleFallback` 키는 `:forecast` 접미사로 분리).
 - 외부 API 없이 파생하는 정보: 일출·일몰은 `lib/geo/sun-times.ts`(위경도 기반 계산), 탐방로 코스 요약은 `lib/trails/summary.ts`(순수 집계), 체감온도는 `kma-forecast-core.ts`(기온·습도·풍속 산출).
 
+### 계측·모니터링 (Task 035)
+
+- **KPI 이벤트**는 `analytics_events` 테이블에 적재합니다(insert-only RLS, select 차단, 개인정보 미수집). 클라이언트는 `lib/analytics/client.ts`의 `track()`(fire-and-forget, `anon_id`는 localStorage 익명 UUID)로 보내고, `app/api/analytics/route.ts`가 이벤트명 화이트리스트 검증 후 `createPublicClient()`로 insert 합니다(`search_logs` 패턴 동일). 계측은 사용자 흐름을 막지 않는 best-effort 이며, `components/analytics-tracker.tsx`(세션)·`mountain-view-tracker.tsx`(상세)와 검색/즐겨찾기/PWA 컴포넌트에서 호출됩니다.
+- **외부 API 성공률·응답시간**은 `lib/api/cache.ts`의 `withStaleFallback` 한 곳에서 계측해 `api_logs`에 적재합니다(`lib/api/metrics.ts`, 소스는 캐시 키 접두사에서 파생, fire-and-forget). 소스 모듈은 수정하지 않습니다. `latency_ms`는 "요청 관찰 지연"이라 `'use cache'` 히트 시 near-zero 입니다(성공률 분포는 캐시와 무관하게 정확). 집계 SQL·임계치는 `docs/operations/monitoring.md` 참조.
+- **CI**: `.github/workflows/ci.yml`가 `master` push/PR에서 `typecheck→lint→format:check→build`를 강제합니다. `build`는 `/mountains/[id]` generateStaticParams가 빌드타임에 산 목록을 읽으므로 **publishable(공개) Supabase 자격증명**(`NEXT_PUBLIC_SUPABASE_URL`·`_PUBLISHABLE_KEY`)을 저장소 Secrets로 주입해야 통과합니다(서버 전용 키는 지연 평가라 불필요). 배포 절차는 `docs/operations/deployment.md`.
+
 ### Next.js 16 관련 특이사항
 
 - `middleware.ts`가 아니라 **`proxy.ts`**를 사용합니다(Next 16에서 이름이 바뀜, `export function proxy`).

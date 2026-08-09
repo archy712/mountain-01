@@ -15,6 +15,7 @@
 
 import type { ApiError, PartialResult } from "@/lib/types";
 import { toApiError } from "./errors";
+import { deriveSource, recordApiCall } from "./metrics";
 
 /**
  * next.config.ts `cacheLife` 에 정의된 커스텀 프로필명.
@@ -131,15 +132,28 @@ export async function withStaleFallback<T>(
   key: string,
   producer: () => Promise<T>,
 ): Promise<PartialResult<T>> {
+  // 요청 관찰 지연·결과 상태를 api_logs 에 계측한다(Task 035, fire-and-forget).
+  // 소스는 키 접두사에서 파생하며, 매핑되지 않는 키(계측 대상 외)면 기록을 건너뛴다.
+  const source = deriveSource(key);
+  const startedAt = Date.now();
+
   try {
     const data = await producer();
     const fetchedAt = new Date().toISOString();
     lastGood.set(key, { data, fetchedAt });
+    if (source) recordApiCall({ source, status: "success", latencyMs: Date.now() - startedAt });
     return { status: "success", data, fetchedAt };
   } catch (err) {
     const error: ApiError = toApiError(err);
     const snapshot = lastGood.get(key) as Snapshot<T> | undefined;
     if (snapshot) {
+      if (source)
+        recordApiCall({
+          source,
+          status: "stale",
+          latencyMs: Date.now() - startedAt,
+          errorKind: error.code,
+        });
       return {
         status: "stale",
         data: snapshot.data,
@@ -147,6 +161,13 @@ export async function withStaleFallback<T>(
         error,
       };
     }
+    if (source)
+      recordApiCall({
+        source,
+        status: "failure",
+        latencyMs: Date.now() - startedAt,
+        errorKind: error.code,
+      });
     return { status: "failure", error };
   }
 }

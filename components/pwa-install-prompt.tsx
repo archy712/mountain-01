@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics/client";
 
 /**
  * 홈 화면 설치 유도 배너 (Task 012 UI → Task 030 동작 연결).
@@ -39,6 +40,8 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
   // 확정되므로 상호작용 이후 등장하면 임계경로 밖으로 빠진다. 설치 유도를 콘텐츠 확인 뒤로
   // 미루는 것이 UX 상으로도 낫다.
   const [interacted, setInteracted] = useState(false);
+  // 배너 노출 계측 중복 방지(한 마운트에서 1회).
+  const promptShownTracked = useRef(false);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -48,8 +51,11 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
       e.preventDefault(); // 브라우저 기본 설치 미니바 억제
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
-    // 설치 완료되면 배너 정리
-    const onInstalled = () => setDeferredPrompt(null);
+    // 설치 완료되면 배너 정리 + 설치 전환 계측(Task 035)
+    const onInstalled = () => {
+      track("app_installed");
+      setDeferredPrompt(null);
+    };
 
     const markInteracted = () => setInteracted(true);
     const interactionEvents = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
@@ -66,10 +72,20 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
     };
   }, []);
 
+  // 배너가 실제로 노출되는 시점(설치 가능 + 상호작용)에 1회 계측(설치 전환 분모, Task 035).
+  useEffect(() => {
+    if (deferredPrompt && interacted && !promptShownTracked.current) {
+      promptShownTracked.current = true;
+      track("pwa_prompt_shown");
+    }
+  }, [deferredPrompt, interacted]);
+
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    const { outcome } = await deferredPrompt.userChoice;
+    // 설치 수락/거부 계측(설치 전환 분자, Task 035).
+    track(outcome === "accepted" ? "pwa_install_accepted" : "pwa_install_dismissed");
     setDeferredPrompt(null); // prompt 는 1회용
   };
 
@@ -103,7 +119,7 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">산길날씨를 홈 화면에 추가하세요</p>
+          <p className="text-sm font-semibold">산길정보를 홈 화면에 추가하세요</p>
           <p className="truncate text-xs text-muted-foreground">
             앱처럼 빠르게 열고 오프라인에서도 마지막 정보를 볼 수 있어요.
           </p>

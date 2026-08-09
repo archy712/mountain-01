@@ -474,12 +474,14 @@
   - **산출물**: `lib/api/kma-forecast-core.ts`·`kma-forecast.ts`, `lib/geo/sun-times.ts`, `lib/trails/summary.ts`, `lib/types/{weather,condition,mountain}.ts`, `lib/condition/service.ts`, `components/{loading-bar,weather-icons,hourly-forecast-strip,daily-forecast-list,sun-times-row,trail-summary-bar,trail-difficulty,air-uv-summary,weather-summary-card,trail-list,trail-list-interactive}.tsx`, `lib/trails/parse-knps-csv.ts`, `supabase/seed/trails.sql`, `app/(main)/mountains/[id]/page.tsx`, `tailwind.config.ts` (기존 `air-quality-badge`·`uv-index-badge` 제거)
   - **의존성**: Task 019, Task 023, Task 029
 
-- **Task 035: 계측·모니터링 및 배포 파이프라인 구축**
-  - KPI 계측 — 주간 검색 세션 수, 검색→결과 확인 완료율, 외부 API 성공률, 7일 재방문율, 즐겨찾기 등록 비율, PWA 설치 전환율
-  - 외부 API 성공률/응답시간 로깅 및 실패 알림 기준 수립 (목표: 1단계 95% → 3단계 98%)
-  - 환경변수·시크릿 관리 점검 (외부 API 키의 서버 전용 노출 재확인), `mcp__supabase__get_advisors` 보안 경고 0건
-  - 빌드/린트/타입 체크 CI 구성 (`npm run build`, `npm run lint`, `npx tsc --noEmit`) 및 프로덕션 배포
-  - **산출물**: 계측 코드, CI 설정, 운영 대시보드 기준 문서
+- **✅ Task 035: 계측·모니터링 및 배포 파이프라인 구축** - 완료
+  - ✅ **KPI 이벤트 계측(자체 이벤트 테이블)** — `analytics_events`(insert-only RLS, select 차단, PII 미수집)에 익명 `anon_id`(localStorage) 기반 이벤트 적재. `session_start`/`search_session`/`search_result_selected`/`mountain_view`/`favorite_add·remove`/`pwa_prompt_shown`/`pwa_install_accepted·dismissed`/`app_installed` 계측 → 주간 세션·완료율·재방문율·즐겨찾기 비율·PWA 설치 전환율 산출. 클라이언트 로거(`lib/analytics/client.ts`, fire-and-forget)+ 화이트리스트 검증 라우트(`app/api/analytics/route.ts`, search-logs 패턴)
+  - ✅ **외부 API 성공률/응답시간 로깅** — 중앙 `withStaleFallback`(lib/api/cache.ts) 1지점에 계측을 얹어 소스별(weather·air·uv) success/stale/failure + 요청 관찰 지연을 `api_logs`에 fire-and-forget 적재(`lib/api/metrics.ts`, 소스 모듈 무수정). 탐방로는 정적 CSV라 대상 제외
+  - ✅ **실패 알림 기준 문서화** — 소스별 가용률(success+stale)·신선 성공률(success) 정의와 임계치(주의<98%/경고<95%/위험<90%·p95>8s 15~30분 지속), 목표 1단계 95%→3단계 98%. 실제 알림 채널 연동은 후속 과제로 명시(`docs/operations/monitoring.md`)
+  - ✅ **시크릿·보안 점검** — 서버 전용 키의 `NEXT_PUBLIC_` 미노출·`typeof window` 가드 재확인, 신규 테이블 RLS 경고 0건(남은 `auth_leaked_password_protection`은 대시보드 설정, 문서에 활성화 권장 기재)
+  - ✅ **CI + 배포 가이드** — GitHub Actions(`.github/workflows/ci.yml`): `typecheck→lint→format:check→build`. `/mountains/[id]` generateStaticParams가 빌드타임에 산 목록을 읽으므로(Cache Components는 빈 결과 불가) publishable(공개) Supabase 자격증명을 저장소 Secrets로 주입. Vercel 배포 절차·환경변수·롤백·시크릿 체크리스트(`docs/operations/deployment.md`). 실제 배포 트리거는 인프라 소유자 수행
+  - ✅ **검증** — `typecheck`·`lint`·`format:check`·`build` 통과, Playwright MCP 라이브(지리산)에서 검색→상세 흐름 후 `analytics_events`(5종 이벤트)·`api_logs`(air/uv/weather success) 적재 전수 확인
+  - **산출물**: `supabase/migrations/20260809150000_analytics_and_api_logs.sql`, `lib/analytics/client.ts`, `lib/api/metrics.ts`, `app/api/analytics/route.ts`, `components/{analytics-tracker,mountain-view-tracker}.tsx`, 계측 연동(`components/{mountain-search-input,favorite-button,pwa-install-prompt}.tsx`·`app/layout.tsx`·`app/(main)/mountains/[id]/page.tsx`), `.github/workflows/ci.yml`, `docs/operations/{monitoring,deployment}.md`, `lib/supabase/database.types.ts`
   - **의존성**: Task 032, Task 033
 
 ---

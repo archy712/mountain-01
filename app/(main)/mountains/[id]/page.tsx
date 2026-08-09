@@ -7,6 +7,7 @@ import { AirUvSummary } from "@/components/air-uv-summary";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { FavoriteButton } from "@/components/favorite-button";
+import { MountainViewTracker } from "@/components/mountain-view-tracker";
 import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
@@ -83,6 +84,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6 py-6">
+      <MountainViewTracker mountainId={mountain.id} />
       <MountainDetail
         mountain={mountain}
         action={

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Mountain } from "lucide-react";
 
 import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -17,9 +18,10 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 w-full max-w-screen-sm items-center justify-between gap-2 px-5">
         <Link
           href="/"
-          className="inline-flex h-11 items-center text-base font-semibold tracking-tight"
+          className="inline-flex h-11 items-center gap-1.5 text-base font-semibold tracking-tight"
         >
-          산길날씨
+          <Mountain className="size-5 text-primary" aria-hidden="true" />
+          산길정보
         </Link>
         <div className="flex items-center gap-1">
           {/* 폴백 크기를 실제 컨트롤(즐겨찾기 + 로그인/로그아웃, 44px 행)에 맞춰 예약해

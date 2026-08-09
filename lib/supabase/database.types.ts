@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          anon_id: string | null
+          created_at: string
+          event: string
+          id: string
+          mountain_id: string | null
+          props: Json | null
+        }
+        Insert: {
+          anon_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          mountain_id?: string | null
+          props?: Json | null
+        }
+        Update: {
+          anon_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          mountain_id?: string | null
+          props?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_logs: {
+        Row: {
+          created_at: string
+          error_kind: string | null
+          id: string
+          latency_ms: number | null
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_kind?: string | null
+          id?: string
+          latency_ms?: number | null
+          source: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_kind?: string | null
+          id?: string
+          latency_ms?: number | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       condition_scores: {
         Row: {
           breakdown: Json
@@ -117,11 +179,6 @@ export type Database = {
         }
         Relationships: []
       }
-      // NOTE: profiles 는 스타터킷 인증 전용 테이블이다. 이 테이블을 생성하는
-      // 마이그레이션이 저장소에 아직 없어(트리거 마이그레이션만 존재) 원격 DB 미반영
-      // 상태이며, 타입 재생성 결과에도 빠진다. 인증 활성화(Task 025)에서 정식 정비
-      // 전까지 스타터 인증 코드(app/protected/profile, components/profile-form) 컴파일을
-      // 위해 직전 생성분을 수동 보존한다.
       profiles: {
         Row: {
           avatar_url: string | null
