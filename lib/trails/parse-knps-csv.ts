@@ -50,13 +50,48 @@ const COLUMNS = {
 } as const;
 
 /**
+ * CSV 한 줄을 필드로 분할한다. 대부분 행은 쉼표/따옴표가 없지만, 일부 경유지(상세구간)에
+ * 따옴표로 감싼 쉼표가 있어(예: 울산바위코스) 단순 split 은 필드가 밀린다. 따옴표를 인식하고
+ * `""` 이스케이프를 처리해 필드 정렬이 깨지지 않게 한다(Task 033 #4 데이터 정합성).
+ */
+export function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+/**
  * CSV 를 CP949 로 디코딩해 코스 단위 레코드 배열로 반환한다(첫 등장 점의 메타 채택).
- * 필드에 쉼표/따옴표가 없는 데이터라 단순 분할로 안전하게 파싱한다(열 수 부족 행은 스킵).
+ * 따옴표 인식 분할(`splitCsvLine`)로 경유지 내 쉼표가 있어도 필드가 밀리지 않는다(열 수 부족 행은 스킵).
  */
 export function parseKnpsCourses(filePath: string): KnpsCourse[] {
   const text = new TextDecoder("euc-kr").decode(readFileSync(filePath));
   const lines = text.split(/\r?\n/);
-  const header = lines[0].split(",");
+  const header = splitCsvLine(lines[0]);
   const idx = (name: string) => header.indexOf(name);
 
   const iMgmt = idx(COLUMNS.mgmtNo);
@@ -80,7 +115,7 @@ export function parseKnpsCourses(filePath: string): KnpsCourse[] {
   for (let li = 1; li < lines.length; li++) {
     const line = lines[li];
     if (!line) continue;
-    const f = line.split(",");
+    const f = splitCsvLine(line);
     if (f.length < header.length) continue;
 
     const key = `${f[iMgmt]}-${f[iOffice]}-${f[iCourse]}`;

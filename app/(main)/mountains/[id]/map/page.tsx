@@ -8,6 +8,7 @@ import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { TrailSelectionProvider } from "@/components/trail-selection";
+import { TrailSelectionUrlSync } from "@/components/trail-selection-url-sync";
 import { getAllMountains } from "@/lib/data/mountains";
 import { getMountainMeta, getTrailPathsForMountain } from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
@@ -56,6 +57,11 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
       {/* 풀스크린 지도 영역 (Task 028: KakaoMap, Task 029: 폴리라인, Task 032: 선택 강조).
           목록이 없는 화면이라 폴리라인 클릭 → 강조 + 이름 라벨로 코스를 식별한다. */}
       <TrailSelectionProvider>
+        {/* 상세에서 넘어온 ?trail= 선택을 복원한다. useSearchParams 사용을 이 컴포넌트에
+            국한하고 <Suspense> 로 감싸 지도 셸의 정적 프리렌더를 유지한다(Task 033 후속). */}
+        <Suspense fallback={null}>
+          <TrailSelectionUrlSync />
+        </Suspense>
         <div className="relative overflow-hidden rounded-lg border">
           <KakaoMap
             lat={mountain.lat}

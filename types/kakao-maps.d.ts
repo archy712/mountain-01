@@ -15,6 +15,15 @@ declare global {
       getLng(): number;
     }
 
+    /** 위경도 범위(선택 코스에 지도를 맞출 때 사용) */
+    class LatLngBounds {
+      constructor();
+      /** 좌표를 포함하도록 범위를 확장한다 */
+      extend(latlng: LatLng): void;
+      /** 빈 범위 여부 */
+      isEmpty(): boolean;
+    }
+
     interface MapOptions {
       /** 지도 중심 좌표 */
       center: LatLng;
@@ -26,7 +35,17 @@ declare global {
     class Map {
       constructor(container: HTMLElement, options: MapOptions);
       setCenter(latlng: LatLng): void;
+      getCenter(): LatLng;
       setLevel(level: number): void;
+      getLevel(): number;
+      /** 주어진 범위가 보이도록 중심·레벨을 조정한다(선택 코스 프레이밍). 여백은 px. */
+      setBounds(
+        bounds: LatLngBounds,
+        paddingTop?: number,
+        paddingRight?: number,
+        paddingBottom?: number,
+        paddingLeft?: number,
+      ): void;
       /** 컨테이너 크기 변경 후 재배치 */
       relayout(): void;
     }

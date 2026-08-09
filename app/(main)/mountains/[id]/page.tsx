@@ -1,12 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { Maximize2 } from "lucide-react";
 
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { FavoriteButton } from "@/components/favorite-button";
+import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { KakaoMap } from "@/components/kakao-map";
 import { MapLegend } from "@/components/map-legend";
@@ -102,19 +101,19 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           <TrailSection mountainId={mountain.id} />
         </Suspense>
 
-        {/* 지도 섹션 — 카카오맵(Task 028) + 등산로 폴리라인(Task 029) + 선택 강조(Task 032). */}
-        <section aria-labelledby="map-heading" className="space-y-3">
+        {/* 지도 섹션 — 카카오맵(Task 028) + 등산로 폴리라인(Task 029) + 선택 강조(Task 032).
+            id 는 목록에서 코스 선택 시 지도로 스크롤하는 앵커로 쓰인다(Task 033 #1). */}
+        <section
+          id="trail-map-section"
+          aria-labelledby="map-heading"
+          className="scroll-mt-4 space-y-3"
+        >
           <div className="flex items-center justify-between">
             <h2 id="map-heading" className="text-base font-semibold">
               지도
             </h2>
-            <Link
-              href={`/mountains/${id}/map`}
-              className="inline-flex h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Maximize2 className="size-4" aria-hidden="true" />
-              전체화면
-            </Link>
+            {/* 선택한 코스를 ?trail= 로 전달해 전체화면에서 복원한다(Task 033 후속). */}
+            <FullscreenMapLink mountainId={id} />
           </div>
           <div className="relative overflow-hidden rounded-lg border">
             <KakaoMap

@@ -64,7 +64,9 @@ export async function getTrailsForMountain(
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from("trails")
-    .select("id, mountain_id, name, status, closed_reason, closed_period")
+    .select(
+      "id, mountain_id, name, status, closed_reason, closed_period, distance_m, difficulty, go_minutes, come_minutes, segment",
+    )
     .eq("mountain_id", id)
     .order("name", { ascending: true });
 
@@ -92,10 +94,46 @@ export async function getTrailsForMountain(
       status: effective.status,
       closedReason: effective.closedReason,
       closedPeriod: effective.closedPeriod,
+      distanceM: r.distance_m,
+      difficulty: r.difficulty,
+      goMinutes: r.go_minutes,
+      comeMinutes: r.come_minutes,
+      waypoints: r.segment,
     };
   });
 
   return { status: "success", data: trails, fetchedAt: now.toISOString() };
+}
+
+/**
+ * 세그먼트 내부의 비정상적으로 큰 점 간격은 데이터 단절(원본 GPS 순서 뒤섞임/결측)로 본다.
+ * 이 값보다 크게 벌어진 연속 점 사이에서 선을 끊어, 지도에 긴 "직선"이 그려지는 아티팩트를
+ * 없앤다(원본에 최대 17km 점프 존재 확인). RDP 단순화로 실제 직선 구간은 2점으로 줄어들 수
+ * 있어(수백 m) 임계값을 1km 로 높게 잡아 정상 지오메트리는 보존한다(Task 033 #2).
+ */
+const MAX_SEGMENT_GAP_M = 1000;
+
+/** [경도,위도] 두 점 사이 거리(m). equirectangular 근사(국지 스케일 충분). */
+function metersBetween(a: [number, number], b: [number, number]): number {
+  const latRad = (a[1] * Math.PI) / 180;
+  const dx = (b[0] - a[0]) * 111320 * Math.cos(latRad);
+  const dy = (b[1] - a[1]) * 110540;
+  return Math.hypot(dx, dy);
+}
+
+/** 연속 점 간격이 maxGap 을 넘으면 선을 끊어 여러 하위 선으로 나눈다(≥2점만 유지). */
+function splitOnGaps(pts: [number, number][], maxGap: number): [number, number][][] {
+  const out: [number, number][][] = [];
+  let cur: [number, number][] = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (i > 0 && metersBetween(pts[i - 1], pts[i]) > maxGap) {
+      if (cur.length >= 2) out.push(cur);
+      cur = [];
+    }
+    cur.push(pts[i]);
+  }
+  if (cur.length >= 2) out.push(cur);
+  return out;
 }
 
 /** path_geojson(jsonb)이 유효한 MultiLineString 인지 확인하고 좌표를 뽑아낸다. */
@@ -118,7 +156,8 @@ function extractMultiLineString(geojson: unknown): [number, number][][] | null {
         pts.push([pt[0], pt[1]]);
       }
     }
-    if (pts.length >= 2) lines.push(pts);
+    // 큰 간격에서 끊어 직선 아티팩트를 제거한다(Task 033 #2).
+    for (const sub of splitOnGaps(pts, MAX_SEGMENT_GAP_M)) lines.push(sub);
   }
   return lines.length > 0 ? lines : null;
 }

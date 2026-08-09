@@ -57,6 +57,27 @@ export interface Trail {
   closedReason: string | null;
   /** 통제 기간 원문(계절 통제, 예: "3월 1일~4월 30일"). 없으면 null */
   closedPeriod: string | null;
+  /** 코스 총 거리(m). 미상이면 null (Task 033 #4) */
+  distanceM: number | null;
+  /** 난이도 지수(KNPS, 대략 1.0~3.2). 미상/미평가면 null */
+  difficulty: number | null;
+  /** 가는 시간(분). 미상이면 null */
+  goMinutes: number | null;
+  /** 오는 시간(분). 미상이면 null */
+  comeMinutes: number | null;
+  /** 경유지/상세구간(예: "갑사~금잔디고개~남매탑"). 없으면 null */
+  waypoints: string | null;
+}
+
+/**
+ * 난이도 지수 → 한국어 라벨(쉬움/보통/어려움). KNPS 지수는 값이 좁게 몰려 있어(대부분 2.0~2.5)
+ * 실측 삼분위(≈2.1/2.35)로 상대 구분한다. 미상/미평가(null·0 이하)는 null(표시 안 함).
+ */
+export function trailDifficultyLabel(difficulty: number | null): "쉬움" | "보통" | "어려움" | null {
+  if (difficulty == null || difficulty <= 0) return null;
+  if (difficulty < 2.1) return "쉬움";
+  if (difficulty < 2.35) return "보통";
+  return "어려움";
 }
 
 export type TrailNormalizer = Normalizer<Trail[]>;

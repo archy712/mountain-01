@@ -185,31 +185,46 @@ export type Database = {
         Row: {
           closed_period: string | null
           closed_reason: string | null
+          come_minutes: number | null
           created_at: string
+          difficulty: number | null
+          distance_m: number | null
+          go_minutes: number | null
           id: string
           mountain_id: string
           name: string
           path_geojson: Json | null
+          segment: string | null
           status: string
         }
         Insert: {
           closed_period?: string | null
           closed_reason?: string | null
+          come_minutes?: number | null
           created_at?: string
+          difficulty?: number | null
+          distance_m?: number | null
+          go_minutes?: number | null
           id?: string
           mountain_id: string
           name: string
           path_geojson?: Json | null
+          segment?: string | null
           status?: string
         }
         Update: {
           closed_period?: string | null
           closed_reason?: string | null
+          come_minutes?: number | null
           created_at?: string
+          difficulty?: number | null
+          distance_m?: number | null
+          go_minutes?: number | null
           id?: string
           mountain_id?: string
           name?: string
           path_geojson?: Json | null
+          segment?: string | null
           status?: string
         }
         Relationships: [

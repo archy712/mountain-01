@@ -45,11 +45,18 @@ export function TrailOverlay({ trails }: { trails: TrailPath[] }) {
   // 폴리라인 인스턴스를 trailId 별로 보관해, 선택 변경 시 재생성 없이 스타일만 갱신한다.
   const groupsRef = useRef<Map<string, kakao.maps.Polyline[]>>(new Map());
   const labelRef = useRef<kakao.maps.CustomOverlay | null>(null);
+  // 선택 해제 시 되돌릴 초기 중심/레벨(지도 준비 시 1회 저장).
+  const initialViewRef = useRef<{ center: kakao.maps.LatLng; level: number } | null>(null);
 
   // 폴리라인 생성/정리 — 지도·경로가 바뀔 때만 실행한다.
   useEffect(() => {
     if (!handle) return;
     const { kakao, map } = handle;
+
+    // 선택 해제 시 복원할 초기 뷰를 1회 저장한다(마커 중심·초기 레벨).
+    if (!initialViewRef.current) {
+      initialViewRef.current = { center: map.getCenter(), level: map.getLevel() };
+    }
 
     const groups = new Map<string, kakao.maps.Polyline[]>();
     for (const trail of trails) {
@@ -93,11 +100,14 @@ export function TrailOverlay({ trails }: { trails: TrailPath[] }) {
     const { kakao, map } = handle;
     const groups = groupsRef.current;
 
+    // 선택 id 가 실제 존재하는 코스일 때만 나머지를 흐리게 한다(잘못된 URL 파라미터 등으로
+    // 전부 흐려지는 것을 방지).
+    const hasValidSelection = selectedId !== null && trails.some((t) => t.id === selectedId);
     for (const trail of trails) {
       const polylines = groups.get(trail.id);
       if (!polylines) continue;
       const isSelected = trail.id === selectedId;
-      const dimmed = selectedId !== null && !isSelected;
+      const dimmed = hasValidSelection && !isSelected;
       for (const p of polylines) {
         p.setOptions({
           strokeColor: isSelected ? TRAIL_HIGHLIGHT_COLOR : TRAIL_STATUS_COLOR[trail.status],
@@ -108,12 +118,25 @@ export function TrailOverlay({ trails }: { trails: TrailPath[] }) {
       }
     }
 
+    // 선택 시 해당 코스가 화면에 꽉 차도록 지도를 맞추고, 해제 시 초기 뷰로 되돌린다.
+    // (확대 시 코스가 화면 밖으로 밀려 "안 그려지는 것처럼" 보이던 문제 대응.)
+    const selectedTrail = selectedId ? trails.find((t) => t.id === selectedId) : null;
+    if (selectedTrail) {
+      const bounds = new kakao.maps.LatLngBounds();
+      for (const seg of selectedTrail.paths) {
+        for (const [lng, lat] of seg) bounds.extend(new kakao.maps.LatLng(lat, lng));
+      }
+      if (!bounds.isEmpty()) map.setBounds(bounds, 48, 48, 48, 48);
+    } else if (initialViewRef.current) {
+      map.setLevel(initialViewRef.current.level);
+      map.setCenter(initialViewRef.current.center);
+    }
+
     // 이전 라벨 제거 후 선택된 탐방로 이름 라벨을 다시 그린다.
     if (labelRef.current) {
       labelRef.current.setMap(null);
       labelRef.current = null;
     }
-    const selectedTrail = selectedId ? trails.find((t) => t.id === selectedId) : null;
     if (selectedTrail) {
       const point = labelPointOf(selectedTrail.paths);
       if (point) {

@@ -20,6 +20,7 @@ import {
   normalizeCourseName,
   resolveMountainSlug,
 } from "@/lib/api/mountain-name-matcher";
+import { splitCsvLine } from "@/lib/trails/parse-knps-csv";
 
 /** 한 trail(= 산 slug + 코스명)의 집약 지오메트리. */
 export interface TrailGeometry {
@@ -58,7 +59,7 @@ interface RawCourse {
 function readRawCourses(filePath: string): Map<string, RawCourse> {
   const text = new TextDecoder("euc-kr").decode(readFileSync(filePath));
   const lines = text.split(/\r?\n/);
-  const header = lines[0].split(",");
+  const header = splitCsvLine(lines[0]);
   const idx = (name: string) => header.indexOf(name);
 
   const iMgmt = idx(COLUMNS.mgmtNo);
@@ -76,7 +77,7 @@ function readRawCourses(filePath: string): Map<string, RawCourse> {
   for (let li = 1; li < lines.length; li++) {
     const line = lines[li];
     if (!line) continue;
-    const f = line.split(",");
+    const f = splitCsvLine(line);
     if (f.length < header.length) continue;
 
     const lng = Number(f[iLng]);
@@ -166,6 +167,36 @@ function round6(v: number): number {
 }
 
 /**
+ * 세그먼트 내부의 비정상적으로 큰 점 간격(원본 GPS 순서 뒤섞임/결측, 최대 17km 확인)에서
+ * 선을 끊어, 지도에 긴 직선이 그려지는 아티팩트를 막는다(Task 033 #2). RDP 로 실제 직선은
+ * 2점으로 줄 수 있어 임계값을 1km 로 높게 잡아 정상 지오메트리는 보존한다. 런타임 폴백
+ * (`lib/data/mountain-detail.ts`)과 동일 임계값을 쓴다.
+ */
+const MAX_SEGMENT_GAP_M = 1000;
+
+function metersBetween(a: [number, number], b: [number, number]): number {
+  const latRad = (a[1] * Math.PI) / 180;
+  const dx = (b[0] - a[0]) * 111320 * Math.cos(latRad);
+  const dy = (b[1] - a[1]) * 110540;
+  return Math.hypot(dx, dy);
+}
+
+/** 연속 점 간격이 maxGap 을 넘으면 선을 끊어 여러 하위 선으로 나눈다(≥2점만 유지). */
+function splitOnGaps(pts: [number, number][], maxGap: number): [number, number][][] {
+  const out: [number, number][][] = [];
+  let cur: [number, number][] = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (i > 0 && metersBetween(pts[i - 1], pts[i]) > maxGap) {
+      if (cur.length >= 2) out.push(cur);
+      cur = [];
+    }
+    cur.push(pts[i]);
+  }
+  if (cur.length >= 2) out.push(cur);
+  return out;
+}
+
+/**
  * CSV 를 읽어 (산, 코스명) 단위 GeoJSON 지오메트리 목록을 만든다.
  * gen-trails 와 동일한 매핑/정규화를 적용해, 미매핑 사무소·무효 코스명은 제외한다.
  */
@@ -203,9 +234,12 @@ export function buildTrailGeometries(
       agg = { slug, name, coordinates: [], rawPoints: 0, simplifiedPoints: 0 };
       merged.set(dkey, agg);
     }
-    agg.coordinates.push(simplified);
+    // 큰 간격에서 끊어 직선 아티팩트를 제거한 하위 세그먼트들을 넣는다(Task 033 #2).
+    for (const sub of splitOnGaps(simplified, MAX_SEGMENT_GAP_M)) {
+      agg.coordinates.push(sub);
+      agg.simplifiedPoints += sub.length;
+    }
     agg.rawPoints += course.points.length;
-    agg.simplifiedPoints += simplified.length;
   }
 
   return [...merged.values()];
