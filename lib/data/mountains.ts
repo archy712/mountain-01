@@ -10,7 +10,7 @@
  */
 
 import { cacheLife, cacheTag } from "next/cache";
-import type { MountainSuggestion } from "@/lib/types";
+import type { Mountain, MountainSuggestion } from "@/lib/types";
 import { CACHE_PROFILE, sourceTag } from "@/lib/api/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 
@@ -81,33 +81,88 @@ export async function getSearchLogCounts(): Promise<Record<string, number>> {
 }
 
 /**
- * 인기 산 목록(홈 카드). 선택 로그 상위 → 부족분은 마스터 기본 순서로 백필.
- * 로그가 전혀 없어도 항상 `limit` 개를 채워 빈 그리드를 피한다.
+ * 홈 "지금 갈 만한 산" 콜드스타트 백필용 대표 산 큐레이션 순서.
+ *
+ * 검색 로그가 부족할 때 이름 가나다순(→ 가리산·가리왕산 같은 생소한 산)으로 채우면 홈이
+ * 낯설어진다. 로그가 쌓이기 전까지는 **인지도 높은 대표 산**부터 후보 풀을 채워, 홈에서
+ * 계산·정렬한 상위 컨디션이 친숙한 산으로 보이게 한다. 이름 기준이라 동명 산(지리산 등)은
+ * 둘 다 후보에 들어올 수 있으나, 상세·카드가 지역을 병기하므로 혼동은 없다.
  */
-export async function getPopularMountains(limit = 4): Promise<MountainSuggestion[]> {
+const CURATED_POPULAR_NAMES = [
+  "북한산",
+  "설악산",
+  "지리산",
+  "한라산",
+  "관악산",
+  "무등산",
+  "도봉산",
+  "계룡산",
+  "속리산",
+  "소백산",
+  "오대산",
+  "덕유산",
+  "태백산",
+  "치악산",
+  "팔공산",
+  "가야산",
+];
+
+/**
+ * 홈 "지금 갈 만한 산" 후보 풀 — 인기 랭킹(로그 상위 → **대표 산 큐레이션** → 이름순 백필)
+ * 이지만 **격자·위경도까지 포함한 full `Mountain`** 을 돌려준다. 홈에서 각 후보의 오늘
+ * 컨디션을 계산해 점수순으로 재정렬하기 위해 좌표가 필요하기 때문이다(`MountainSuggestion`
+ * 엔 없음). 컨디션 계산 비용을 감안해 풀 크기는 소수(기본 8)로 제한한다.
+ */
+export async function getPopularMountainsGeo(limit = 8): Promise<Mountain[]> {
   "use cache";
   cacheLife(CACHE_PROFILE.search);
   cacheTag(sourceTag("search"), sourceTag("mountains"));
 
-  const [mountains, counts] = await Promise.all([getAllMountains(), getSearchLogCounts()]);
-  if (mountains.length === 0) return [];
+  const supabase = createPublicClient();
+  const [{ data: rows }, counts] = await Promise.all([
+    supabase
+      .from("mountains")
+      .select("id, name, region, altitude, lat, lng, grid_nx, grid_ny")
+      .order("name", { ascending: true }),
+    getSearchLogCounts(),
+  ]);
+  if (!rows || rows.length === 0) return [];
 
+  const mountains: Mountain[] = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    region: r.region,
+    altitude: r.altitude,
+    lat: r.lat,
+    lng: r.lng,
+    gridNx: r.grid_nx,
+    gridNy: r.grid_ny,
+  }));
   const byId = new Map(mountains.map((m) => [m.id, m]));
 
-  // 1) 로그 수 상위 산부터
-  const ranked: MountainSuggestion[] = Object.entries(counts)
+  const ranked: Mountain[] = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .map(([id]) => byId.get(id))
-    .filter((m): m is MountainSuggestion => m !== undefined);
+    .filter((m): m is Mountain => m !== undefined);
 
-  // 2) 부족분은 마스터 기본 순서(이름순)로 백필, 중복 제거
   const seen = new Set(ranked.map((m) => m.id));
-  for (const m of mountains) {
+
+  // 백필 순서: (1) 대표 산 큐레이션(CURATED 순서) → (2) 나머지 이름순.
+  // `mountains` 는 이미 이름 오름차순이라, 큐레이션 밖(순위 Infinity)은 안정 정렬로 이름순이
+  // 유지된다. 동명 산은 큐레이션 순위가 같아 이름/원본 순서로 함께 앞당겨진다.
+  const curatedRank = new Map(CURATED_POPULAR_NAMES.map((name, i) => [name, i]));
+  const backfill = mountains
+    .filter((m) => !seen.has(m.id))
+    .sort(
+      (a, b) =>
+        (curatedRank.get(a.name) ?? Number.POSITIVE_INFINITY) -
+        (curatedRank.get(b.name) ?? Number.POSITIVE_INFINITY),
+    );
+
+  for (const m of backfill) {
     if (ranked.length >= limit) break;
-    if (!seen.has(m.id)) {
-      ranked.push(m);
-      seen.add(m.id);
-    }
+    ranked.push(m);
+    seen.add(m.id);
   }
 
   return ranked.slice(0, limit);

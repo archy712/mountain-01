@@ -2,20 +2,23 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronRight, Mountain as MountainIcon } from "lucide-react";
 
-import { LoadingBar } from "@/components/loading-bar";
+import { HomeConditionsSkeleton } from "@/components/home-conditions-skeleton";
+import { HomeFavoriteConditions } from "@/components/home-favorite-conditions";
 import { MountainSearchInput } from "@/components/mountain-search-input";
-import { PopularMountains } from "@/components/popular-mountains";
 import { RecentSearches } from "@/components/recent-searches";
+import { TodayConditionPicks } from "@/components/today-condition-picks";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * 홈/검색 화면 (Task 009 → Task 018 실데이터).
+ * 홈/검색 화면 (Task 009 → Task 018 실데이터 → 컨디션 중심 재구성).
  *
- * "결론 우선" 진입점: 산 이름 하나로 상세 결과로 직행한다(결정 002 #2).
- * 히어로 카피 + 자동완성 검색 + 최근 검색 칩 + 인기 산 그리드.
- * 서버 컴포넌트로 두고, 상호작용 영역(검색·최근 검색)만 클라이언트 컴포넌트로 분리한다.
- * 인기 산은 DB 집계(`'use cache'`)라 `<Suspense>` 로 스켈레톤 폴백을 준다.
+ * "결론 우선" 진입점: 산 이름 하나로 상세로 직행하되, 검색 전에도 **판단 신호(컨디션 점수)**
+ * 를 미리 보여준다. 위계는 검색 → 개인화(내 산 컨디션) → 최근 검색 → 지금 갈 만한 산 →
+ * 100대명산 순이다. 각 컨디션 블록은 외부 API(날씨·대기·자외선)에 기대므로 독립 `<Suspense>`
+ * 로 스트리밍해 히어로·검색이 먼저 그려지게 한다.
+ *
+ * - `HomeFavoriteConditions`: 로그인 + 즐겨찾기가 있을 때만 노출(없으면 유도/숨김).
+ * - `TodayConditionPicks`: 후보 풀의 오늘 컨디션을 계산해 **점수순**으로 상위 4곳(모든 사용자).
  */
 export default function HomePage() {
   return (
@@ -29,7 +32,16 @@ export default function HomePage() {
 
       <MountainSearchInput />
 
+      {/* 개인화: 로그인+즐겨찾기일 때만 내용이 있고, 아니면 스스로 null/유도로 접힌다. */}
+      <Suspense fallback={<HomeConditionsSkeleton cards={3} />}>
+        <HomeFavoriteConditions />
+      </Suspense>
+
       <RecentSearches />
+
+      <Suspense fallback={<HomeConditionsSkeleton cards={4} />}>
+        <TodayConditionPicks />
+      </Suspense>
 
       <Link href="/top100" className="block">
         <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">
@@ -48,30 +60,6 @@ export default function HomePage() {
           <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </Card>
       </Link>
-
-      <Suspense fallback={<PopularMountainsSkeleton />}>
-        <PopularMountains />
-      </Suspense>
     </div>
-  );
-}
-
-function PopularMountainsSkeleton() {
-  return (
-    <section aria-busy="true" className="space-y-3">
-      {/* 스크린리더에 로딩을 알린다(예전 aria-hidden → 침묵 문제 개선). 시각 스켈레톤은 장식. */}
-      <span role="status" className="sr-only">
-        인기 산 목록을 불러오는 중입니다…
-      </span>
-      <LoadingBar />
-      <div aria-hidden="true" className="space-y-3">
-        <Skeleton className="h-4 w-16" />
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
