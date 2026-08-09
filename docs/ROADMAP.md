@@ -506,11 +506,23 @@
   - **산출물**: ✅ `supabase/migrations/{20260809170000_visited.sql, 20260809180000_analytics_visited_events.sql}`, `app/api/visited/route.ts`, `components/{visited-button,visited-list,visited-list-skeleton}.tsx`, `app/(main)/visited/page.tsx`, 상세 페이지 액션 통합(`app/(main)/mountains/[id]/page.tsx`), 헤더 네비(`components/auth-button.tsx`), 계측(`lib/analytics/client.ts`·`app/api/analytics/route.ts`), `lib/supabase/database.types.ts`
   - **의존성**: Task 019, Task 025, Task 026
 
-- **Task 038: 마이페이지(개인화 허브)**
-  - 로그인 사용자용 **`/mypage`(가칭)** 화면: 프로필 요약 + **즐겨찾기·방문완료** 진입(개수 배지), 앞으로 추가될 개인화 화면의 확장 지점
-  - 헤더/네비게이션에 마이페이지 진입점 추가(기존 "즐겨찾기" 링크 통합 검토), 보호 라우트(인증 필요, 기존 `/favorites` 게이트 패턴 재사용), 비로그인 시 로그인 유도
-  - **산출물**: `app/(main)/mypage/page.tsx` 및 관련 컴포넌트, 헤더 네비 수정
+- **✅ Task 038: 마이페이지(개인화 허브)** - 완료
+  - ✅ 로그인 사용자용 **`/mypage`** 화면: 프로필 요약(이니셜 아바타 + 표시이름[실명→username→이메일 local 폴백] + 이메일) + **즐겨찾기·방문완료 진입 카드(개수 배지)** + 프로필 편집(`/protected/profile`) + 로그아웃. 개수는 `head+count` 병렬 조회(RLS 로 본인 행만 집계)
+  - ✅ **헤더 네비 통합**: 기존 즐겨찾기·방문완료 **직접 링크 2개를 마이페이지 단일 진입점으로 통합**(개인화 화면이 늘수록 헤더가 비좁아지는 문제 해소). 로그인 시 마이페이지+로그아웃, 비로그인 시 로그인만 노출. 즐겨찾기·방문완료는 `/mypage` 안에서 진입. SiteHeader Suspense 폴백 폭도 새 컨트롤에 맞춤(CLS)
+  - ✅ 보호 라우트: `proxy.ts` 공개 경로가 아니라 자동으로 `/auth/login?next=/mypage` 게이트 + 서버 `getClaims()` 이중 방어. 진입 카드는 `MypageNavCard` 순수 표현 컴포넌트로 향후 개인화 화면 확장 대비. 스켈레톤·`LoadingBar`·`aria-busy` 로딩 관례 재사용
+  - ✅ **테스트(Playwright MCP)**: 로그인(next=/mypage 복귀) → 헤더 마이페이지 링크 → 허브에서 즐겨찾기 2·방문완료 1 배지 정확 표시 → 로그아웃 시 헤더 로그인만 노출 → 비로그인 `/mypage` 접근 시 `?next=%2Fmypage` 로그인 유도 확인. 콘솔 에러 0, `typecheck`·`lint`·`build` 통과
+  - **산출물**: ✅ `app/(main)/mypage/page.tsx`, `components/mypage-nav-card.tsx`, 헤더 통합(`components/auth-button.tsx`·`components/site-header.tsx`)
   - **의존성**: Task 026, Task 037
+
+#### 개선(비순번)
+
+- **✅ 홈 컨디션 중심 재구성** - 완료
+  - 기존 "인기 산" 그리드가 검색 로그 부족 시 **이름 가나다순 백필**이라 사실상 임의로 배치됐고(라벨-데이터 불일치), 카드에 판단 신호(컨디션)가 없어 홈이 "결론 우선" 위계를 살리지 못하던 문제를 해소
+  - **모든 산 카드에 오늘 컨디션 점수 칩**을 얹어 검색 전에도 "지금 갈 만한지"를 판단하게 함(`ConditionChip` 공용 컴포넌트로 추출 — 즐겨찾기 화면·홈 블록 공유)
+  - **문맥 적응형 위계**: 검색 → 내 산 오늘 컨디션(로그인+즐겨찾기, 카드별 스트리밍) → 최근 검색 → 지금 갈 만한 산(모든 사용자) → 100대명산
+  - **"지금 갈 만한 산"**: 후보 풀(소수)의 오늘 컨디션을 계산해 **점수순 정렬**, 콜드스타트 백필을 이름순 대신 **대표 산 큐레이션**(북한산·설악산·지리산·한라산…)으로 채워 친숙한 산이 노출되게 함(`getPopularMountainsGeo`, 좌표 포함). 검색 로그가 쌓이면 자동으로 실인기 반영
+  - 각 컨디션 블록은 독립 `<Suspense>` 스트리밍이라 히어로·검색은 즉시 렌더(홈 PPR 유지). 로그인/로그아웃·큐레이션 풀 Playwright 검증, `typecheck`·`lint`·`build` 통과
+  - **산출물**: `components/{condition-chip,home-mountain-card,home-conditions-skeleton,home-favorite-conditions,today-condition-picks}.tsx`, `lib/data/mountains.ts`(`getPopularMountainsGeo`+큐레이션), `app/(main)/page.tsx`, `components/favorite-score.tsx`(공용 칩 재사용). 구 `components/popular-mountains.tsx`·`getPopularMountains` 제거
 
 ---
 

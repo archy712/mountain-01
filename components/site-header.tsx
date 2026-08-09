@@ -7,7 +7,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 
 /**
  * 공통 상단 헤더 (모바일 우선).
- * 로고(홈 링크) + 즐겨찾기/인증 컨트롤 + 테마 스위처. `(main)` 레이아웃에서 sticky 로 배치.
+ * 로고(홈 링크) + 마이페이지/인증 컨트롤 + 테마 스위처. `(main)` 레이아웃에서 sticky 로 배치.
  *
  * 인증 상태(`AuthButton`)는 요청별 세션에 의존하므로 `<Suspense>` 로 감싼다
  * (`cacheComponents: true` 규약). 로그인 유도·즐겨찾기 진입은 Task 025.
@@ -24,9 +24,9 @@ export function SiteHeader() {
           산길정보
         </Link>
         <div className="flex items-center gap-1">
-          {/* 폴백 크기를 실제 컨트롤(즐겨찾기 + 로그인/로그아웃, 44px 행)에 맞춰 예약해
+          {/* 폴백 크기를 실제 컨트롤(마이페이지 + 로그아웃, 44px 행)에 맞춰 예약해
               세션 확정 시 헤더가 밀리지 않게 한다(CLS, Task 032). */}
-          <Suspense fallback={<div className="h-11 w-[104px]" aria-hidden="true" />}>
+          <Suspense fallback={<div className="h-11 w-[120px]" aria-hidden="true" />}>
             <AuthButton />
           </Suspense>
           <ThemeSwitcher />

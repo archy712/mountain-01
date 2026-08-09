@@ -1,0 +1,147 @@
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { CircleCheck, Heart, UserPen } from "lucide-react";
+
+import { LogoutButton } from "@/components/logout-button";
+import { MypageNavCard } from "@/components/mypage-nav-card";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingBar } from "@/components/loading-bar";
+import { createClient } from "@/lib/supabase/server";
+
+/**
+ * 마이페이지 — 개인화 허브 (Task 038).
+ *
+ * 로그인 사용자의 프로필 요약 + 즐겨찾기·방문완료 진입(개수 배지)을 모은다. 앞으로 추가될
+ * 개인화 화면(알림 설정 등)의 확장 지점이다. 보호 라우트: `proxy.ts` 공개 경로가 아니라
+ * 자동으로 `/auth/login?next=/mypage` 로 게이트되고, 이 서버 컴포넌트가 `getClaims()` 로
+ * 이중 방어한다(즐겨찾기·방문완료와 동일 패턴). 개수는 RLS 로 본인 행만 집계된다.
+ */
+
+type ProfileSummary = {
+  email: string | null;
+  username: string | null;
+  full_name: string | null;
+};
+
+/** 표시 이름: 실명 → username → 이메일 local part 순으로 폴백. */
+function displayName(profile: ProfileSummary): string {
+  const name = profile.full_name?.trim() || profile.username?.trim();
+  if (name) return name;
+  const email = profile.email ?? "";
+  const local = email.split("@")[0];
+  return local || "등산객";
+}
+
+async function MypageContent() {
+  await connection();
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  if (!claims?.claims) {
+    // proxy 를 우회해 도달한 경우까지 막는 이중 방어(결정 002 #12).
+    redirect("/auth/login?next=/mypage");
+  }
+  const userId = claims.claims.sub;
+  const claimEmail = typeof claims.claims.email === "string" ? claims.claims.email : null;
+
+  // 프로필 + 즐겨찾기/방문완료 개수를 병렬 조회(개수는 head 요청으로 행 전송 없이).
+  const [{ data: profile }, { count: favoriteCount }, { count: visitedCount }] = await Promise.all([
+    supabase.from("profiles").select("email, username, full_name").eq("id", userId).maybeSingle(),
+    supabase.from("favorites").select("*", { count: "exact", head: true }),
+    supabase.from("visited").select("*", { count: "exact", head: true }),
+  ]);
+
+  const summary: ProfileSummary = profile ?? {
+    email: claimEmail,
+    username: null,
+    full_name: null,
+  };
+  const name = displayName(summary);
+  const email = summary.email ?? claimEmail;
+  const initial = name.charAt(0).toUpperCase();
+
+  return (
+    <div className="space-y-6">
+      {/* 프로필 요약 */}
+      <Card className="flex items-center gap-4 p-5 shadow-sm">
+        <span
+          className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary"
+          aria-hidden="true"
+        >
+          {initial}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-bold tracking-tight">{name}</p>
+          {email ? <p className="truncate text-sm text-muted-foreground">{email}</p> : null}
+        </div>
+      </Card>
+
+      {/* 개인화 진입 */}
+      <nav aria-label="개인화 메뉴" className="flex flex-col gap-3">
+        <MypageNavCard
+          href="/favorites"
+          icon={Heart}
+          label="즐겨찾기"
+          description="저장한 산의 오늘 컨디션"
+          count={favoriteCount ?? null}
+        />
+        <MypageNavCard
+          href="/visited"
+          icon={CircleCheck}
+          label="방문완료"
+          description="다녀온 산 기록"
+          count={visitedCount ?? null}
+        />
+        <MypageNavCard
+          href="/protected/profile"
+          icon={UserPen}
+          label="프로필 편집"
+          description="이름·아바타 정보 수정"
+          count={null}
+        />
+      </nav>
+
+      <div className="pt-2">
+        <LogoutButton />
+      </div>
+    </div>
+  );
+}
+
+function MypageSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="마이페이지 불러오는 중">
+      <LoadingBar />
+      <Card className="flex items-center gap-4 p-5 shadow-sm">
+        <Skeleton className="size-14 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-44" />
+        </div>
+      </Card>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="flex min-h-11 items-center gap-3 p-4 shadow-sm">
+            <Skeleton className="size-10 shrink-0 rounded-lg" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function MypagePage() {
+  return (
+    <section className="flex flex-col gap-6 py-6">
+      <h1 className="text-xl font-bold">마이페이지</h1>
+      <Suspense fallback={<MypageSkeleton />}>
+        <MypageContent />
+      </Suspense>
+    </section>
+  );
+}
