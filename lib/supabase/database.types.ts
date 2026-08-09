@@ -184,33 +184,56 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_icon: string | null
           avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string | null
+          experience_level: string | null
+          favorite_mountain_id: string | null
           full_name: string | null
+          home_region: string | null
           id: string
           updated_at: string
           username: string | null
         }
         Insert: {
+          avatar_icon?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
+          experience_level?: string | null
+          favorite_mountain_id?: string | null
           full_name?: string | null
+          home_region?: string | null
           id: string
           updated_at?: string
           username?: string | null
         }
         Update: {
+          avatar_icon?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
+          experience_level?: string | null
+          favorite_mountain_id?: string | null
           full_name?: string | null
+          home_region?: string | null
           id?: string
           updated_at?: string
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_favorite_mountain_id_fkey"
+            columns: ["favorite_mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_logs: {
         Row: {

@@ -524,6 +524,17 @@
   - 각 컨디션 블록은 독립 `<Suspense>` 스트리밍이라 히어로·검색은 즉시 렌더(홈 PPR 유지). 로그인/로그아웃·큐레이션 풀 Playwright 검증, `typecheck`·`lint`·`build` 통과
   - **산출물**: `components/{condition-chip,home-mountain-card,home-conditions-skeleton,home-favorite-conditions,today-condition-picks}.tsx`, `lib/data/mountains.ts`(`getPopularMountainsGeo`+큐레이션), `app/(main)/page.tsx`, `components/favorite-score.tsx`(공용 칩 재사용). 구 `components/popular-mountains.tsx`·`getPopularMountains` 제거
 
+- **✅ 로그인 후 착지 지점 마이페이지 통일** - 완료
+  - 인증 성공 후 기본 목적지를 `/favorites`→`/mypage`(개인 허브)로 통일. 명시적 `?next=`(보호 라우트 복귀)는 보존. 로그인 폼·로그인 페이지 `safeNext`·OAuth 콜백·비밀번호 재설정·회원가입 이메일 확인·GoogleAuthButton 기본값, 로그인 안내 문구 갱신
+
+- **✅ 프로필 편집 화면 구성** - 완료
+  - **선결 문제 발견·해소**: 스타터의 `profiles` 마이그레이션이 이 프로젝트에 **적용된 적이 없어**(원격에 테이블·트리거 부재, 커밋된 타입만 잔존) 기존 `/protected/profile` 이 사실상 동작하지 않던 상태. `profiles` 테이블·RLS·자동생성 트리거·백필을 **새로 정의**(미적용 orphan 마이그레이션 삭제·통합)
+  - **확장 속성**: 이름(full_name)·닉네임(username, unique)·**프로필 아이콘(avatar_icon, 프리셋 이모지 선택)**·자기소개(bio, 160자)·**가장 좋아하는 산(favorite_mountain_id → mountains FK)**·주 활동 지역(home_region)·등산 경력(experience_level: 입문/중급/고급). 아바타는 사용자 결정대로 **이미지 업로드/URL 없이 프리셋 아이콘 선택**, 프로필은 **본인만 조회**(공개 프로필 없음)
+  - `/mypage/profile`(보호 라우트, `(main)` 레이아웃으로 이관) + 클라이언트 폼(upsert, 닉네임 중복 23505 친절 처리, 아이콘 피커 `aria-pressed`). 마이페이지 요약 아바타를 이니셜→**선택 아이콘** 우선 표시. 구 `/protected/profile`·`profile-form.tsx` 제거
+  - **보안**: 트리거 함수 2종 `search_path` 고정 + `PUBLIC` EXECUTE 회수(린트 0011/0028/0029 해소). 남은 경고는 대시보드 설정인 유출 비밀번호 보호뿐
+  - **테스트(Playwright MCP)**: 로그인(next=/mypage/profile) → 아이콘·이름·닉네임·자기소개·좋아하는 산·지역·경력 입력 → 저장 → DB 전 필드 반영 확인 → 마이페이지 아바타 ⛰️·이름 반영 → 재진입 시 저장값 라운드트립(아이콘 pressed·select selected) 확인. 콘솔 에러 0, `typecheck`·`lint`·`build` 통과
+  - **산출물**: `supabase/migrations/20260809190000_profiles.sql`, `lib/profile/profile-options.ts`, `components/profile-edit-form.tsx`, `app/(main)/mypage/profile/page.tsx`, 마이페이지 아바타·링크(`app/(main)/mypage/page.tsx`), `lib/supabase/database.types.ts`
+
 ---
 
 ## Task 의존성 요약

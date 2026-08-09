@@ -8,6 +8,7 @@ import { MypageNavCard } from "@/components/mypage-nav-card";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingBar } from "@/components/loading-bar";
+import { normalizeAvatarIcon } from "@/lib/profile/profile-options";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -23,6 +24,7 @@ type ProfileSummary = {
   email: string | null;
   username: string | null;
   full_name: string | null;
+  avatar_icon: string | null;
 };
 
 /** 표시 이름: 실명 → username → 이메일 local part 순으로 폴백. */
@@ -47,7 +49,11 @@ async function MypageContent() {
 
   // 프로필 + 즐겨찾기/방문완료 개수를 병렬 조회(개수는 head 요청으로 행 전송 없이).
   const [{ data: profile }, { count: favoriteCount }, { count: visitedCount }] = await Promise.all([
-    supabase.from("profiles").select("email, username, full_name").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("email, username, full_name, avatar_icon")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase.from("favorites").select("*", { count: "exact", head: true }),
     supabase.from("visited").select("*", { count: "exact", head: true }),
   ]);
@@ -56,9 +62,11 @@ async function MypageContent() {
     email: claimEmail,
     username: null,
     full_name: null,
+    avatar_icon: null,
   };
   const name = displayName(summary);
   const email = summary.email ?? claimEmail;
+  const avatarIcon = normalizeAvatarIcon(summary.avatar_icon);
   const initial = name.charAt(0).toUpperCase();
 
   return (
@@ -66,10 +74,10 @@ async function MypageContent() {
       {/* 프로필 요약 */}
       <Card className="flex items-center gap-4 p-5 shadow-sm">
         <span
-          className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary"
+          className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary"
           aria-hidden="true"
         >
-          {initial}
+          {avatarIcon ?? initial}
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold tracking-tight">{name}</p>
@@ -94,10 +102,10 @@ async function MypageContent() {
           count={visitedCount ?? null}
         />
         <MypageNavCard
-          href="/protected/profile"
+          href="/mypage/profile"
           icon={UserPen}
           label="프로필 편집"
-          description="이름·아바타 정보 수정"
+          description="아이콘·이름·자기소개·좋아하는 산"
           count={null}
         />
       </nav>
