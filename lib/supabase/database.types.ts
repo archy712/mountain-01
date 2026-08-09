@@ -297,6 +297,41 @@ export type Database = {
           },
         ]
       }
+      visited: {
+        Row: {
+          created_at: string
+          id: string
+          mountain_id: string
+          note: string | null
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mountain_id: string
+          note?: string | null
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mountain_id?: string
+          note?: string | null
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visited_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

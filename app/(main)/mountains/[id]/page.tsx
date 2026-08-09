@@ -8,6 +8,7 @@ import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { BackToListButton } from "@/components/back-to-list-button";
 import { FavoriteButton } from "@/components/favorite-button";
+import { VisitedButton } from "@/components/visited-button";
 import { MountainViewTracker } from "@/components/mountain-view-tracker";
 import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
@@ -90,8 +91,15 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       <MountainDetail
         mountain={mountain}
         action={
-          <Suspense fallback={<Skeleton className="size-11 rounded-full" />}>
-            <FavoriteAction mountainId={mountain.id} />
+          <Suspense
+            fallback={
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="size-11 rounded-full" />
+                <Skeleton className="size-11 rounded-full" />
+              </div>
+            }
+          >
+            <DetailActions mountainId={mountain.id} />
           </Suspense>
         }
       />
@@ -149,34 +157,51 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 }
 
 /**
- * 즐겨찾기 버튼 스트리밍 서브트리. 로그인 여부(요청별 세션)에 따라 저장/로그인 유도 UX 가
- * 갈리므로 정적 셸에 끌려 들어가지 않도록 별도 <Suspense> 홀로 분리한다. 실제 저장(토글)
- * 연동은 Task 026이며, 지금은 로그인 여부만 전달해 비로그인 클릭 시 로그인 유도를 연결한다.
+ * 우측 상단 액션 스트리밍 서브트리(즐겨찾기 + 방문완료). 로그인 여부(요청별 세션)에 따라
+ * 저장/로그인 유도 UX 가 갈리므로 정적 셸에 끌려 들어가지 않도록 별도 <Suspense> 홀로
+ * 분리한다. 세션 확인 1회 뒤 두 상태(즐겨찾기·방문완료)를 병렬 조회한다(Task 026·037).
  */
-async function FavoriteAction({ mountainId }: { mountainId: string }) {
+async function DetailActions({ mountainId }: { mountainId: string }) {
   await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
 
   let initialFavorite = false;
+  let initialVisited = false;
   if (userId) {
-    // RLS 로 본인 행만 조회되므로 user_id 필터는 이중 안전용.
-    const { data: fav } = await supabase
-      .from("favorites")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("mountain_id", mountainId)
-      .maybeSingle();
+    // RLS 로 본인 행만 조회되므로 user_id 필터는 이중 안전용. 두 조회를 병렬 실행한다.
+    const [{ data: fav }, { data: vis }] = await Promise.all([
+      supabase
+        .from("favorites")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("mountain_id", mountainId)
+        .maybeSingle(),
+      supabase
+        .from("visited")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("mountain_id", mountainId)
+        .maybeSingle(),
+    ]);
     initialFavorite = Boolean(fav);
+    initialVisited = Boolean(vis);
   }
 
   return (
-    <FavoriteButton
-      mountainId={mountainId}
-      initialFavorite={initialFavorite}
-      isAuthenticated={Boolean(userId)}
-    />
+    <div className="flex items-center gap-1.5">
+      <VisitedButton
+        mountainId={mountainId}
+        initialVisited={initialVisited}
+        isAuthenticated={Boolean(userId)}
+      />
+      <FavoriteButton
+        mountainId={mountainId}
+        initialFavorite={initialFavorite}
+        isAuthenticated={Boolean(userId)}
+      />
+    </div>
   );
 }
 

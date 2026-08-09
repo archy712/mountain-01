@@ -497,12 +497,13 @@
   - **산출물**: ✅ `supabase/migrations/20260809160000_mountains_top100_flag.sql`, `supabase/seed/{gen-mountains.mjs,mountains.sql}`, `lib/data/mountains.ts`(`getTop100Mountains`), `components/top100-list.tsx`, `app/(main)/top100/page.tsx`, `app/(main)/page.tsx`(배너), `lib/supabase/proxy.ts`(공개 경로), `lib/supabase/database.types.ts`, `docs/decisions/001-data-sources.md`, `docs/tasks/task-036-top100-list.md`
   - **의존성**: Task 014, Task 018
 
-- **Task 037: 방문완료 기록 및 방문 목록 화면** - 우선순위
-  - DB: **`visited` 테이블**(`user_id`, `mountain_id`, `visited_at`, 메모 optional) + 본인만 접근 RLS(즐겨찾기와 동일 패턴). 스키마 변경 후 타입 재생성
-  - 산 상세 화면에 **"방문완료" 토글**(하트 옆): 낙관적 업데이트 + 실패 롤백(`favorite-button` 패턴 재사용), best-effort 계측 이벤트(선택)
-  - **방문완료 목록 화면**(`/visited` 또는 마이페이지 탭): 방문한 산 + 방문일 정렬, 상세로 직결
-  - **테스트(Playwright MCP)**: 상세에서 방문완료 토글 → DB 반영 → 목록 노출 → 해제 시 롤백/제거 확인
-  - **산출물**: 마이그레이션(`visited` + RLS), `app/api/visited/route.ts`, `components/visited-button.tsx`, 방문 목록 컴포넌트/라우트, 타입 재생성
+- **✅ Task 037: 방문완료 기록 및 방문 목록 화면** - 완료
+  - ✅ DB: **`visited` 테이블**(`user_id`, `mountain_id`, `visited_at`, `note` optional, `(user_id, mountain_id)` 유니크) + 본인만 접근 RLS(select/insert/delete, 즐겨찾기와 동일 패턴). 타입 재생성 완료
+  - ✅ 산 상세 화면에 **"방문완료" 토글**(하트 옆, `CircleCheck`·status-open 색): 낙관적 업데이트 + 실패 롤백(`favorite-button` 패턴 재사용). 세션 확인 1회 뒤 즐겨찾기·방문완료 초기 상태를 병렬 조회(`DetailActions`, 두 버튼을 한 액션 슬롯에 배치). 비로그인 클릭 시 로그인 유도 팝오버
+  - ✅ **방문완료 목록 화면 `/visited`**: 산 메타 + 방문일(KST `YYYY.MM.DD`)을 즉시 렌더(외부 API 미사용 — 방문 "기록"이라 점수 스트리밍 불필요), `visited_at` 내림차순. 보호 라우트(`proxy.ts` 공개 경로 아님 → 자동 게이트 + 서버 `getClaims()` 이중 방어). 인라인 삭제 낙관적 제거·롤백, 빈 상태 안내. 헤더 네비에 "방문완료" 진입점 추가(Task 038에서 마이페이지로 통합 검토)
+  - ✅ **계측**(best-effort): `visited_add`/`visited_remove` 이벤트를 클라이언트 타입·API 화이트리스트·**DB CHECK 제약** 3곳에 함께 추가(CHECK 누락 시 fire-and-forget insert 가 조용히 거부됨을 테스트로 확인 후 마이그레이션으로 해소)
+  - ✅ **테스트(Playwright MCP, 지리산)**: 로그인 → 상세 방문완료 토글(버튼 pressed) → `visited` 행 insert 확인 → `/visited` 목록에 방문일과 함께 노출 → 인라인 해제 시 낙관적 제거·빈 상태·DB 행 삭제(0건) 확인, 상세에서 재토글로 `visited_add`·`visited_remove` 계측 적재 각 1건 확인. 콘솔 에러 0. `typecheck`·`lint`·`format:check`·`build` 통과
+  - **산출물**: ✅ `supabase/migrations/{20260809170000_visited.sql, 20260809180000_analytics_visited_events.sql}`, `app/api/visited/route.ts`, `components/{visited-button,visited-list,visited-list-skeleton}.tsx`, `app/(main)/visited/page.tsx`, 상세 페이지 액션 통합(`app/(main)/mountains/[id]/page.tsx`), 헤더 네비(`components/auth-button.tsx`), 계측(`lib/analytics/client.ts`·`app/api/analytics/route.ts`), `lib/supabase/database.types.ts`
   - **의존성**: Task 019, Task 025, Task 026
 
 - **Task 038: 마이페이지(개인화 허브)**

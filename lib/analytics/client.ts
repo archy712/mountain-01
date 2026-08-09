@@ -17,6 +17,8 @@ export type AnalyticsEvent =
   | "mountain_view"
   | "favorite_add"
   | "favorite_remove"
+  | "visited_add"
+  | "visited_remove"
   | "pwa_prompt_shown"
   | "pwa_install_accepted"
   | "pwa_install_dismissed"
