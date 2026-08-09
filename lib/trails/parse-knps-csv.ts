@@ -2,8 +2,12 @@
  * 국립공원공단 탐방로 CSV(`mountain.csv`) 파서 (Task 017, Task 029 재사용).
  *
  * - 원본은 CP949(euc-kr) 인코딩, 91만 GPS 포인트 / 936 코스 / 22 사무소의 로컬 스냅샷(gitignore).
- * - 각 행은 코스 메타가 반복되는 **한 점**이다. Task 017 은 코스 단위 통제정보만 필요하므로
- *   코스 식별키(관리번호+사무소코드+코스ID)로 중복 제거해 첫 점의 메타를 대표로 취한다.
+ * - 각 행은 세그먼트 메타(거리·시간)가 반복되는 **한 점**이다. 하나의 탐방로는 여러
+ *   **세그먼트**로 쪼개져 있는데, 같은 코스ID 안에서 `일련번호`로 나뉘기도 하고(예: 한라산
+ *   성판악) 이름은 같은데 코스ID 가 다르기도 하다(예: 수통골 2코스). 거리·시간 컬럼은
+ *   **세그먼트별 값**이라, 코스ID 만으로 중복 제거하면 첫 세그먼트만 남아 코스 전체 거리가
+ *   누락된다. 따라서 세그먼트 식별키(관리번호+사무소코드+코스ID+일련번호)로 중복 제거해
+ *   세그먼트마다 첫 점의 메타를 대표로 취한다(코스 단위 합산은 gen-trails 가 이름 기준으로 수행).
  * - 좌표(경도·위도) 스트리밍은 Task 029(GeoJSON) 에서 별도 함수로 다룬다.
  *
  * Node 전용(파일시스템·대용량). Next 런타임 번들에 포함되지 않는다(시드 생성기·오프라인 가공용).
@@ -13,7 +17,7 @@ import { readFileSync } from "node:fs";
 
 /** 코스 단위(중복 제거) 레코드. */
 export interface KnpsCourse {
-  /** 코스 식별키: `{국립공원관리번호}-{사무소코드}-{코스ID}` */
+  /** 세그먼트 식별키: `{국립공원관리번호}-{사무소코드}-{코스ID}-{일련번호}` */
   key: string;
   /** 공원사무소코드(산 매핑 기준) */
   office: string;
@@ -39,6 +43,7 @@ const COLUMNS = {
   mgmtNo: "국립공원관리번호",
   office: "공원사무소코드",
   courseId: "코스ID",
+  seq: "일련번호",
   name: "탐방코스(한글)",
   segment: "상세구간",
   goMin: "가는시간(분)",
@@ -97,6 +102,7 @@ export function parseKnpsCourses(filePath: string): KnpsCourse[] {
   const iMgmt = idx(COLUMNS.mgmtNo);
   const iOffice = idx(COLUMNS.office);
   const iCourse = idx(COLUMNS.courseId);
+  const iSeq = idx(COLUMNS.seq);
   const iName = idx(COLUMNS.name);
   const iSeg = idx(COLUMNS.segment);
   const iGo = idx(COLUMNS.goMin);
@@ -118,8 +124,12 @@ export function parseKnpsCourses(filePath: string): KnpsCourse[] {
     const f = splitCsvLine(line);
     if (f.length < header.length) continue;
 
-    const key = `${f[iMgmt]}-${f[iOffice]}-${f[iCourse]}`;
-    if (byKey.has(key)) continue; // 첫 점의 메타만 채택
+    // 세그먼트(일련번호)까지 포함해 중복 제거한다. 같은 코스ID 안에서 세그먼트가 나뉘는
+    // 경우(성판악)에도 각 세그먼트가 별도 레코드로 남아 거리·시간이 누락되지 않는다.
+    // 일련번호 열이 없으면(포맷 변동) 코스ID 단위로 폴백한다.
+    const seq = iSeq >= 0 ? f[iSeq] : "";
+    const key = `${f[iMgmt]}-${f[iOffice]}-${f[iCourse]}-${seq}`;
+    if (byKey.has(key)) continue; // 세그먼트별 첫 점의 메타만 채택
 
     byKey.set(key, {
       key,
