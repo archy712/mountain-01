@@ -455,7 +455,19 @@
   - **산출물**: `docs/test-reports/a11y-fallback-audit.md`
   - **의존성**: Task 031
 
-- **Task 034: 계측·모니터링 및 배포 파이프라인 구축**
+- **✅ Task 034: 산 상세 정보 확장 및 로딩 UX 개선** - 완료
+  - ✅ **탐방로 거리·소요시간 버그 수정** — KNPS CSV 파서가 코스ID 단위로만 중복 제거해 여러 세그먼트(일련번호)로 쪼개진 코스(예: 한라산 성판악)에서 첫 세그먼트만 남던 문제 해결. 중복 제거 키에 `일련번호`를 포함해 세그먼트를 보존, `gen-trails`의 (산,코스명) 합산이 정상 동작하도록 수정 후 시드 재생성·DB 반영(성판악 2.3km/1시간30분 → **9.6km/4시간30분**)
+  - ✅ **스트리밍 로딩 인디케이터 바** — 컨디션 히어로·날씨·탐방로 스켈레톤 상단에 순수 CSS 무한(indeterminate) 진행바를 얹어 로딩 진행감 전달(의존성·클라이언트 JS 0, `aria-hidden`+컨테이너 `aria-busy`, `prefers-reduced-motion` 대응). 스켈레톤은 유지해 CLS 회피
+  - ✅ **미세먼지·자외선 실수치 노출** — 서버가 이미 조회하던 값을 `ConditionBundle`에 실어 감점 근거를 실제 수치로 뒷받침(기존 `AirQualityBadge`·`UvIndexBadge` 재사용): PM10/PM2.5·측정소·거리, UV 지수·등급
+  - ✅ **확장 예보** — 동일 단기예보 응답 하나를 재파싱(추가 네트워크 0)해 체감온도(호주 기상청 apparent temperature)·오늘 최저/최고(TMN·TMX)·시간대별·3일 예보 제공. `getWeatherForecast`(스냅샷과 캐시 공유, stale 키 분리), `HourlyForecastStrip`·`DailyForecastList`
+  - ✅ **일출·일몰** — 위경도로 USNO 알고리즘 계산(외부 API 불필요, `lib/geo/sun-times.ts`), 실측 대비 1~2분 오차 검증. `SunTimesRow`
+  - ✅ **코스 요약 통계** — 개방/통제 현황·거리 범위 집계 바를 탐방로 목록 상단에 추가(`lib/trails/summary.ts`, `TrailSummaryBar`)
+  - ✅ **문서 반영** — 신규 데이터 소스가 필요한 상세 확장(4순위: 실시간 통제·산불위험·주차/교통·편의시설·사진·후기·계절/야생동물)을 `README.md`·`docs/PRD.md`(10.1)에 향후 개발 계획으로 기재
+  - ✅ **검증** — `typecheck`·`lint` 통과, Playwright MCP 라이브(한라산)에서 신규 섹션 전수 렌더 확인
+  - **산출물**: `lib/api/kma-forecast-core.ts`·`kma-forecast.ts`, `lib/geo/sun-times.ts`, `lib/trails/summary.ts`, `lib/types/{weather,condition}.ts`, `lib/condition/service.ts`, `components/{loading-bar,weather-icons,hourly-forecast-strip,daily-forecast-list,sun-times-row,trail-summary-bar,weather-summary-card,trail-list}.tsx`, `lib/trails/parse-knps-csv.ts`, `supabase/seed/trails.sql`, `app/(main)/mountains/[id]/page.tsx`, `tailwind.config.ts`
+  - **의존성**: Task 019, Task 023, Task 029
+
+- **Task 035: 계측·모니터링 및 배포 파이프라인 구축**
   - KPI 계측 — 주간 검색 세션 수, 검색→결과 확인 완료율, 외부 API 성공률, 7일 재방문율, 즐겨찾기 등록 비율, PWA 설치 전환율
   - 외부 API 성공률/응답시간 로깅 및 실패 알림 기준 수립 (목표: 1단계 95% → 3단계 98%)
   - 환경변수·시크릿 관리 점검 (외부 API 키의 서버 전용 노출 재확인), `mcp__supabase__get_advisors` 보안 경고 0건
@@ -502,7 +514,8 @@
 | 031  | 029, 030      | —             |
 | 032  | 031           | 033           |
 | 033  | 031           | 032           |
-| 034  | 032, 033      | —             |
+| 034  | 019, 023, 029 | —             |
+| 035  | 032, 033      | —             |
 
 **병렬 개발 라인**
 
@@ -518,7 +531,7 @@
 | ------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
 | 🔶#4 탐방로 데이터: 정적 스냅샷·국립공원 한정 | 돌발 통제 미반영, 국립공원 외 산 공백 | (소스 확보) 계절 통제는 기간 계산으로 반영, 데이터 기준일 표기, 국립공원 외는 "정보 없음" 폴백(정식 스펙), 필요 시 라이브 개방정보 보완 |
 | 🔶#15 등산로 GeoJSON                              | (해소) 국립공원공단 CSV로 좌표 확보·PoC 통과 | Task 029 폴리라인 오버레이 정식 구현; 코스 조립 키 정의 필요; 광역 확장 시 산림청 전국등산로표준데이터(15029184) 추가 검토 |
-| 공공 API 호출 쿼터/장애 (기상·대기·자외선)        | 서비스 신뢰성 목표(95～98%) 미달 | Task 015의 서버 캐싱 일원화 + stale 응답 폴백("N분 전 기준"), Task 034에서 성공률 상시 모니터링 (탐방로는 정적 CSV라 쿼터 무관) |
+| 공공 API 호출 쿼터/장애 (기상·대기·자외선)        | 서비스 신뢰성 목표(95～98%) 미달 | Task 015의 서버 캐싱 일원화 + stale 응답 폴백("N분 전 기준"), Task 035에서 성공률 상시 모니터링 (탐방로는 정적 CSV라 쿼터 무관) |
 | 기상청 격자 변환 정확도                           | 잘못된 지역 날씨 표출           | Task 014에서 변환 유틸 단위 검증 + 시드 데이터 샘플 교차 확인                                   |
 | 컨디션 점수 가중치 부정확                         | 사용자 신뢰 하락                | `calc_version` 태깅으로 버전별 비교, 베타 피드백 기반 튜닝(🔶#11)                               |
 | 카카오맵 SDK가 LCP 저해                           | 성능 KPI 미달                   | Task 028 지연 로딩 + Task 032 성능 회귀 검증                                                    |
