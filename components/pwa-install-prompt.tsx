@@ -34,6 +34,11 @@ function isStandalone(): boolean {
 
 export function PwaInstallPrompt({ className }: { className?: string }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // 최초 사용자 상호작용 이후에만 배너를 노출한다. 배너 텍스트 블록이 커서(하단 고정)
+  // 로딩 창에 등장하면 LCP 요소로 잡혀 LCP 가 악화되는데(Task 032), LCP 는 첫 입력 시점에
+  // 확정되므로 상호작용 이후 등장하면 임계경로 밖으로 빠진다. 설치 유도를 콘텐츠 확인 뒤로
+  // 미루는 것이 UX 상으로도 낫다.
+  const [interacted, setInteracted] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -46,11 +51,18 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
     // 설치 완료되면 배너 정리
     const onInstalled = () => setDeferredPrompt(null);
 
+    const markInteracted = () => setInteracted(true);
+    const interactionEvents = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
+    for (const ev of interactionEvents) {
+      window.addEventListener(ev, markInteracted, { once: true, passive: true });
+    }
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
+      for (const ev of interactionEvents) window.removeEventListener(ev, markInteracted);
     };
   }, []);
 
@@ -70,8 +82,8 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
     setDeferredPrompt(null);
   };
 
-  // 설치 가능 이벤트를 받았을 때만 노출
-  if (!deferredPrompt) return null;
+  // 설치 가능 이벤트를 받았고, 사용자가 한 번 상호작용한 뒤에만 노출(LCP 임계경로 회피)
+  if (!deferredPrompt || !interacted) return null;
 
   return (
     <div

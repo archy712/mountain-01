@@ -27,8 +27,11 @@ const ThemeSwitcher = () => {
   const isClient = useIsClient();
   const { theme, setTheme } = useTheme();
 
+  // 하이드레이션 전에는 테마 값을 알 수 없어 아이콘을 확정할 수 없다. 다만 `null` 을
+  // 반환하면 클라이언트에서 44px 버튼이 뒤늦게 나타나 헤더가 밀린다(CLS, Task 032).
+  // 동일 크기(size-11)의 자리를 예약해 레이아웃 시프트를 없앤다.
   if (!isClient) {
-    return null;
+    return <div className="size-11" aria-hidden="true" />;
   }
 
   const ICON_SIZE = 16;

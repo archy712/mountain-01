@@ -272,7 +272,13 @@ async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
   return <TrailOverlay trails={paths} />;
 }
 
-/** 컨디션 점수 섹션 스트리밍 대기용 스켈레톤(게이지 원형 + 근거 카드). */
+/**
+ * 컨디션 점수 섹션 스트리밍 대기용 스켈레톤.
+ *
+ * 콜드 캐시(스태거드 스트리밍)에서 스켈레톤보다 실제 콘텐츠가 크면 아래 섹션을 밀어내
+ * 큰 CLS 가 발생한다(Task 032). 이를 막기 위해 실제 구조(게이지 → 등급/메시지 →
+ * 감점 근거 → 대기·자외선 3타일 → 장비 목록)를 그대로 반영해 높이(~760px)를 예약한다.
+ */
 function ConditionSectionSkeleton() {
   return (
     <div className="space-y-4 rounded-lg border p-5" aria-busy="true">
@@ -282,41 +288,87 @@ function ConditionSectionSkeleton() {
         <Skeleton className="h-6 w-24" />
         <Skeleton className="h-4 w-48" />
       </div>
-      <Skeleton className="h-24 w-full rounded-lg" />
-    </div>
-  );
-}
-
-/** 날씨 카드 스트리밍 대기용 스켈레톤(CLS 최소화). */
-function WeatherCardSkeleton() {
-  return (
-    <div className="rounded-lg border p-5" aria-busy="true">
-      <LoadingBar className="mb-4" />
-      <div className="mb-4 flex items-center gap-3">
-        <Skeleton className="size-12 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-4 w-28" />
-        </div>
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-lg" />
+      {/* 감점 근거 리스트 */}
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-full rounded-md" />
         ))}
       </div>
+      {/* 대기질·자외선 3타일 패널 */}
+      <div className="grid grid-cols-3 gap-2 border-t pt-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-[76px] w-full rounded-lg" />
+        ))}
+      </div>
+      {/* 장비 추천 목록 */}
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-[116px] w-full rounded-lg" />
+      </div>
     </div>
   );
 }
 
-/** 탐방로 목록 스트리밍 대기용 스켈레톤. */
+/**
+ * 날씨 섹션 스트리밍 대기용 스켈레톤.
+ *
+ * 실제 날씨 섹션은 요약 카드 + 일출·일몰 + 시간대별 스트립 + 3일 예보로 구성돼 ~600px 다.
+ * 스켈레톤이 요약 카드만 덮으면 콜드 스트리밍에서 나머지가 아래를 밀어내 CLS 를 유발하므로
+ * (Task 032) 전체 구조의 높이를 예약한다.
+ */
+function WeatherCardSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true">
+      <div className="rounded-lg border p-5">
+        <LoadingBar className="mb-4" />
+        <div className="mb-4 flex items-center gap-3">
+          <Skeleton className="size-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+      {/* 일출·일몰 행 */}
+      <Skeleton className="h-14 w-full rounded-lg" />
+      {/* 시간대별 스트립(가로 스크롤) */}
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-16" />
+        <Skeleton className="h-[116px] w-full rounded-lg" />
+      </div>
+      {/* 3일 예보 */}
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-16" />
+        <Skeleton className="h-[120px] w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 탐방로 목록 스트리밍 대기용 스켈레톤.
+ *
+ * 실제 목록은 코스 요약 바 + 코스 행(가변)으로 구성된다. 하단(지도 위)이라 CLS 가중치는
+ * 상단 섹션보다 낮지만, 요약 바 + 대표적인 행 수를 예약해 지도가 밀리지 않게 한다(Task 032).
+ */
 function TrailListSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true">
       <LoadingBar />
       <Skeleton className="h-5 w-20" />
-      {Array.from({ length: 3 }).map((_, i) => (
+      {/* 코스 요약 바 */}
+      <Skeleton className="h-16 w-full rounded-lg" />
+      {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-center justify-between rounded-lg border p-3">
-          <Skeleton className="h-4 w-32" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
           <Skeleton className="h-6 w-16 rounded-full" />
         </div>
       ))}

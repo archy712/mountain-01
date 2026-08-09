@@ -22,7 +22,9 @@ export function SiteHeader() {
           산길날씨
         </Link>
         <div className="flex items-center gap-1">
-          <Suspense fallback={<div className="h-8 w-28" aria-hidden="true" />}>
+          {/* 폴백 크기를 실제 컨트롤(즐겨찾기 + 로그인/로그아웃, 44px 행)에 맞춰 예약해
+              세션 확정 시 헤더가 밀리지 않게 한다(CLS, Task 032). */}
+          <Suspense fallback={<div className="h-11 w-[104px]" aria-hidden="true" />}>
             <AuthButton />
           </Suspense>
           <ThemeSwitcher />
