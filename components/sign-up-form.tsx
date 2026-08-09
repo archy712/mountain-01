@@ -32,7 +32,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -40,7 +40,15 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         },
       });
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      // 이메일 확인(Confirm email)이 꺼져 있으면 signUp 이 즉시 세션을 반환해 자동 로그인된다.
+      // → 이메일 안내 페이지를 건너뛰고 메인으로 보낸다(refresh 로 헤더 등 로그인 상태 반영).
+      // 확인이 켜져 있으면 세션이 없으므로(인증 대기) 기존 안내 페이지를 유지한다.
+      if (data.session) {
+        router.push("/");
+        router.refresh();
+      } else {
+        router.push("/auth/sign-up-success");
+      }
     } catch (error: unknown) {
       setError(
         error instanceof Error ? error.message : "회원가입에 실패했어요. 다시 시도해 주세요.",
