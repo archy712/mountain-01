@@ -19,9 +19,10 @@ export function GearRecommendationList({
 }) {
   return (
     <section aria-labelledby="gear-heading" className={cn("space-y-3", className)}>
-      <h2 id="gear-heading" className="text-base font-semibold">
+      {/* 컨디션 히어로 카드 내부에 위치하므로 h3(상위 컨디션 점수 h2 아래 중첩) */}
+      <h3 id="gear-heading" className="text-base font-semibold">
         추천 장비
-      </h2>
+      </h3>
 
       {gear.length === 0 ? (
         <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">

@@ -95,8 +95,12 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="h-11 w-full" disabled={isLoading}>
                 {isLoading ? "계정 생성 중..." : "회원가입"}
               </Button>
               {/* 구분선은 GoogleAuthButton 이 자체 포함(미구성 시 통째로 숨김) */}

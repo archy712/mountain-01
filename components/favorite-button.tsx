@@ -102,7 +102,7 @@ export function FavoriteButton({
           <p className="text-popover-foreground">로그인하면 즐겨찾기에 저장할 수 있어요.</p>
           <Link
             href="/auth/login"
-            className="mt-2 inline-flex h-9 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
+            className="mt-2 inline-flex h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
           >
             로그인하기
           </Link>

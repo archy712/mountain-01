@@ -16,7 +16,7 @@ export function LogoutButton() {
   };
 
   return (
-    <Button onClick={logout} size="sm" variant="outline">
+    <Button onClick={logout} size="sm" variant="outline" className="h-11">
       로그아웃
     </Button>
   );

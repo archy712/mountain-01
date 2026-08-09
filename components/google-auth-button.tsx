@@ -58,7 +58,7 @@ export function GoogleAuthButton({
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="h-11 w-full"
         onClick={handleGoogleLogin}
         disabled={isLoading}
       >
@@ -82,7 +82,11 @@ export function GoogleAuthButton({
         </svg>
         {isLoading ? "이동 중..." : label}
       </Button>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

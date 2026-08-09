@@ -95,9 +95,17 @@ export function ProfileForm({
                   onChange={(e) => setAvatarUrl(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              {success && <p className="text-sm text-green-600">프로필이 저장되었습니다.</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              {success && (
+                <p role="status" className="text-sm text-status-open">
+                  프로필이 저장되었습니다.
+                </p>
+              )}
+              <Button type="submit" className="h-11 w-full" disabled={isLoading}>
                 {isLoading ? "저장 중..." : "저장"}
               </Button>
             </div>

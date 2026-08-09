@@ -235,8 +235,14 @@ async function WeatherSection({ mountain }: { mountain: Mountain }) {
   // 일출·일몰은 위경도+오늘(KST)로 계산한다(외부 API 불필요, connection() 로 동적 홀 명시됨).
   const sun = getSunTimesToday(mountain.lat, mountain.lng);
 
+  // 날씨 섹션에 접근성용 제목을 부여해 스크린리더 제목 위계를 정돈한다(Task 033):
+  // 히어로(큰 기온)가 시각적 제목 역할을 하므로 sr-only 로 두고, 하위 시간대별/3일예보(h3)가
+  // 이 h2 아래로 올바르게 중첩되게 한다.
   return (
-    <div className="space-y-4">
+    <section aria-labelledby="weather-heading" className="space-y-4">
+      <h2 id="weather-heading" className="sr-only">
+        오늘 날씨
+      </h2>
       <WeatherSummaryCard result={currentResult} />
       <SunTimesRow sun={sun} />
       {hasData(result) ? (
@@ -245,7 +251,7 @@ async function WeatherSection({ mountain }: { mountain: Mountain }) {
           <DailyForecastList items={result.data.daily} />
         </>
       ) : null}
-    </div>
+    </section>
   );
 }
 

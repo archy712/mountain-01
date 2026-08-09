@@ -19,7 +19,8 @@ export async function AuthButton() {
 
   return (
     <div className="flex items-center gap-1">
-      <Button asChild size="sm" variant="ghost" className="gap-1.5">
+      {/* 터치 타깃 44px 보장(Task 033): 모바일 아이콘 전용일 때도 min-w-11 로 44×44 확보 */}
+      <Button asChild size="sm" variant="ghost" className="h-11 min-w-11 gap-1.5">
         <Link href="/favorites" aria-label="즐겨찾기">
           <Heart className="size-4" aria-hidden="true" />
           <span className="hidden sm:inline">즐겨찾기</span>
@@ -28,7 +29,7 @@ export async function AuthButton() {
       {user ? (
         <LogoutButton />
       ) : (
-        <Button asChild size="sm" variant="outline">
+        <Button asChild size="sm" variant="outline" className="h-11">
           <Link href="/auth/login">로그인</Link>
         </Button>
       )}

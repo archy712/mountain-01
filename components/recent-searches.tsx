@@ -30,7 +30,7 @@ export function RecentSearches() {
         <button
           type="button"
           onClick={clear}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex min-h-11 items-center px-2 text-xs text-muted-foreground hover:text-foreground"
         >
           전체 삭제
         </button>

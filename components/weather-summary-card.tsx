@@ -54,6 +54,7 @@ export function WeatherSummaryCard({
       <ErrorFallback
         error={result.error}
         title="날씨 정보를 불러오지 못했어요"
+        refreshOnRetry
         className={className}
       />
     );

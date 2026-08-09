@@ -29,7 +29,11 @@ export function TrailList({ result }: { result: PartialResult<Trail[]> }) {
       </div>
 
       {!hasData(result) ? (
-        <ErrorFallback error={result.error} title="탐방로 정보를 불러오지 못했어요" />
+        <ErrorFallback
+          error={result.error}
+          title="탐방로 정보를 불러오지 못했어요"
+          refreshOnRetry
+        />
       ) : result.data.length === 0 ? (
         <div className="flex items-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
           <CircleHelp className="size-4 shrink-0" aria-hidden="true" />

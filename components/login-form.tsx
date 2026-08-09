@@ -70,7 +70,7 @@ export function LoginForm({
                   <Label htmlFor="password">비밀번호</Label>
                   <Link
                     href="/auth/forgot-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="ml-auto inline-flex min-h-11 items-center text-sm underline-offset-4 hover:underline"
                   >
                     비밀번호를 잊으셨나요?
                   </Link>
@@ -83,8 +83,12 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="h-11 w-full" disabled={isLoading}>
                 {isLoading ? "로그인 중..." : "로그인"}
               </Button>
               {/* 구분선은 GoogleAuthButton 이 자체 포함(미구성 시 통째로 숨김) */}

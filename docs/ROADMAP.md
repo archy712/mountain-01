@@ -449,13 +449,16 @@
   - **산출물**: ✅ `docs/test-reports/phase6-performance.md`, 수정 커밋(`app/(main)/mountains/[id]/page.tsx`·`components/{pwa-install-prompt,theme-switcher,site-header}.tsx`)
   - **의존성**: Task 031
 
-- **Task 033: 접근성·에러/로딩 폴백 전면 감사**
-  - PRD 7장 기준 전수 감사 — 색상 단독 구분 금지, 터치 타깃 44x44px, 폼 라벨/`aria` 속성, 점수 게이지 텍스트 병기
-  - **모든 데이터 페칭 구간**에 스켈레톤/로딩 표시 존재 확인
-  - 모든 에러 경로에 사용자 친화 메시지 + 재시도 버튼 존재 확인
-  - 폴백 매트릭스 검증 — 날씨/탐방로/대기질·자외선/지도 각 실패 시나리오별 PRD 명시 동작 일치 여부
-  - 스크린리더 기본 흐름 점검
-  - **산출물**: `docs/test-reports/a11y-fallback-audit.md`
+- **✅ Task 033: 접근성·에러/로딩 폴백 전면 감사** - 완료
+  - ✅ **터치 타깃 44px 전수(라이브 실측)** — 클래스가 아닌 실제 렌더 크기를 Playwright로 스윕. Task 013이 이연한 auth 폼·헤더 인증 등 다수 36/32px 위반을 교정: Input 프리미티브 `h-11`, 폼 제출·Google 버튼 `h-11`, 헤더 즐겨찾기(`min-w-11`)·로그인·로그아웃 `h-11`, 에러 재시도 `h-11`, 즐겨찾기 로그인 CTA·최근검색 "전체 삭제"·로그인 "비밀번호를 잊으셨나요?" 링크 보정. **재스윕 결과 홈·상세·로그인 위반 0건**(문장 내 인라인 링크는 WCAG 2.5.8 예외로 유지)
+  - ✅ **폼 라벨/aria** — 라벨 완비 확인. 폼 에러 6곳(`text-red-500`·`role` 없음 → 스크린리더 미고지)을 **`role="alert"` + `text-destructive`** 로 교정(profile 성공은 `role="status"`)
+  - ✅ **색상 단독 구분 금지 / 게이지 텍스트 병기** — 탐방로 배지·등급·점수칩·범례·난이도 별점·대기자외선 타일 모두 아이콘/텍스트 병기, 게이지 `role="img"` + 점수·등급 aria 라벨 확인
+  - ✅ **로딩 스켈레톤** — 전 데이터 페칭 구간(검색·인기산·컨디션·날씨·탐방로·지도 오버레이·즐겨찾기) 스켈레톤/`<Suspense>` 존재 확인(높이 정렬로 CLS 0, Task 032)
+  - ✅ **에러 경로 재시도 버튼** — 소스별 부분 실패(날씨/탐방로) 폴백에 재시도가 없던 문제를 `ErrorFallback` 의 **`refreshOnRetry`**(서버 컴포넌트용 `router.refresh()`) 추가로 해소(라우트 `error.tsx` 는 기존 `reset`)
+  - ✅ **폴백 매트릭스 5종 검증** — 탐방로 "정보 없음"(관악산)·지도 실패(카카오 도메인 차단→정적 좌표+외부 링크)는 **라이브**, 대기·자외선 제외 배지·stale "N분 전 기준"·날씨 실패+독립 렌더는 코드 경로 + Task 019/020/024 라이브 실증으로 확인
+  - ✅ **스크린리더 흐름** — 단일 h1·랜드마크 완비 확인, 날씨 섹션 제목 누락으로 인한 제목 위계 오중첩을 **sr-only h2 "오늘 날씨"** 추가 + 장비 h2→h3 조정으로 교정(스킵 0). 포커스 가시성(Task 013) 유지
+  - ✅ 기준선 — `typecheck`·`lint`·`build` 통과, 앱 콘솔 JS 에러 0건
+  - **산출물**: ✅ `docs/test-reports/a11y-fallback-audit.md`, 수정 커밋(`components/ui/input.tsx`·`components/*-form.tsx`·`components/{google-auth-button,logout-button,auth-button,favorite-button,recent-searches,error-fallback,weather-summary-card,trail-list,gear-recommendation-list}.tsx`·`app/(main)/mountains/[id]/page.tsx`)
   - **의존성**: Task 031
 
 - **✅ Task 034: 산 상세 정보 확장 및 로딩 UX 개선** - 완료
