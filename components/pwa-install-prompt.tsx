@@ -119,7 +119,7 @@ export function PwaInstallPrompt({ className }: { className?: string }) {
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">산길날씨를 홈 화면에 추가하세요</p>
+          <p className="text-sm font-semibold">산길정보를 홈 화면에 추가하세요</p>
           <p className="truncate text-xs text-muted-foreground">
             앱처럼 빠르게 열고 오프라인에서도 마지막 정보를 볼 수 있어요.
           </p>

@@ -12,8 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: {
-    default: "산길날씨 — 지금 이 산에 가도 될까?",
-    template: "%s | 산길날씨",
+    default: "산길정보 — 지금 이 산에 가도 될까?",
+    template: "%s | 산길정보",
   },
   description:
     "산 이름 하나로 오늘 날씨·탐방로 개방 여부·등산 컨디션을 3초 안에 확인하는 등산 날씨 앱.",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "산길날씨",
+    title: "산길정보",
   },
   icons: {
     icon: [
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
-    title: "산길날씨 — 지금 이 산에 가도 될까?",
+    title: "산길정보 — 지금 이 산에 가도 될까?",
     description: "산 이름 하나로 오늘 날씨·탐방로 개방 여부·등산 컨디션을 3초 안에 확인하세요.",
-    siteName: "산길날씨",
+    siteName: "산길정보",
     locale: "ko_KR",
     type: "website",
   },
