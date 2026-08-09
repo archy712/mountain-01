@@ -533,7 +533,8 @@
   - `/mypage/profile`(보호 라우트, `(main)` 레이아웃으로 이관) + 클라이언트 폼(upsert, 닉네임 중복 23505 친절 처리, 아이콘 피커 `aria-pressed`). 마이페이지 요약 아바타를 이니셜→**선택 아이콘** 우선 표시. 구 `/protected/profile`·`profile-form.tsx` 제거
   - **보안**: 트리거 함수 2종 `search_path` 고정 + `PUBLIC` EXECUTE 회수(린트 0011/0028/0029 해소). 남은 경고는 대시보드 설정인 유출 비밀번호 보호뿐
   - **테스트(Playwright MCP)**: 로그인(next=/mypage/profile) → 아이콘·이름·닉네임·자기소개·좋아하는 산·지역·경력 입력 → 저장 → DB 전 필드 반영 확인 → 마이페이지 아바타 ⛰️·이름 반영 → 재진입 시 저장값 라운드트립(아이콘 pressed·select selected) 확인. 콘솔 에러 0, `typecheck`·`lint`·`build` 통과
-  - **산출물**: `supabase/migrations/20260809190000_profiles.sql`, `lib/profile/profile-options.ts`, `components/profile-edit-form.tsx`, `app/(main)/mypage/profile/page.tsx`, 마이페이지 아바타·링크(`app/(main)/mypage/page.tsx`), `lib/supabase/database.types.ts`
+  - **마이페이지 요약 확장(후속)**: 요약 카드에 **자기소개(전문)·가장 좋아하는 산(상세 링크 칩)·등산 경력(칩)**을 추가 노출. 좋아하는 산 이름은 `favorite_mountain_id` **FK 임베드**로 프로필과 함께 한 번에 조회(별도 쿼리 없음), to-one 임베드의 배열/객체 형태를 정규화 처리. 값 없는 항목은 미렌더, 스켈레톤도 늘어난 카드 높이에 맞춤(CLS). Playwright 로 3항목 렌더·최애 산 상세 링크 확인
+  - **산출물**: `supabase/migrations/20260809190000_profiles.sql`, `lib/profile/profile-options.ts`, `components/profile-edit-form.tsx`, `app/(main)/mypage/profile/page.tsx`, 마이페이지 아바타·요약·링크(`app/(main)/mypage/page.tsx`), `lib/supabase/database.types.ts`
 
 ---
 
