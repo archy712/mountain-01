@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { LoadingBar } from "@/components/loading-bar";
 import { MountainSearchInput } from "@/components/mountain-search-input";
 import { PopularMountains } from "@/components/popular-mountains";
 import { RecentSearches } from "@/components/recent-searches";
@@ -36,12 +37,19 @@ export default function HomePage() {
 
 function PopularMountainsSkeleton() {
   return (
-    <section aria-hidden="true" className="space-y-3">
-      <Skeleton className="h-4 w-16" />
-      <div className="grid grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
+    <section aria-busy="true" className="space-y-3">
+      {/* 스크린리더에 로딩을 알린다(예전 aria-hidden → 침묵 문제 개선). 시각 스켈레톤은 장식. */}
+      <span role="status" className="sr-only">
+        인기 산 목록을 불러오는 중입니다…
+      </span>
+      <LoadingBar />
+      <div aria-hidden="true" className="space-y-3">
+        <Skeleton className="h-4 w-16" />
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
       </div>
     </section>
   );

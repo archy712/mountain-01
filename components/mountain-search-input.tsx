@@ -176,17 +176,23 @@ export function MountainSearchInput({ className }: { className?: string }) {
         <div className="absolute top-[calc(100%+0.5rem)] z-50 w-full overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg">
           <CommandList className="max-h-[min(60dvh,20rem)]">
             {loading ? (
-              <ul className="space-y-1 p-2" aria-hidden="true">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <li key={i} className="flex items-center gap-3 px-2 py-2.5">
-                    <Skeleton className="size-5 rounded-full" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-3 w-16" />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* 스크린리더에 검색 진행을 알린다(시각 스켈레톤은 aria-hidden 장식). */}
+                <span role="status" className="sr-only">
+                  산을 검색하는 중입니다…
+                </span>
+                <ul className="space-y-1 p-2" aria-hidden="true">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <li key={i} className="flex items-center gap-3 px-2 py-2.5">
+                      <Skeleton className="size-5 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : showEmpty ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                 &lsquo;{query.trim()}&rsquo; 검색 결과가 없어요.
