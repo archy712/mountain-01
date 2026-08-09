@@ -1,28 +1,15 @@
-import {
-  Cloud,
-  CloudDrizzle,
-  CloudRain,
-  CloudSnow,
-  CloudSun,
-  Droplet,
-  Droplets,
-  Snowflake,
-  Sun,
-  Wind,
-  type LucideIcon,
-} from "lucide-react";
+import { Droplet, Droplets, Wind, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { ErrorFallback } from "@/components/error-fallback";
 import { StaleDataNotice } from "@/components/stale-data-notice";
+import { PTY_ICON, SKY_ICON } from "@/components/weather-icons";
 import { cn } from "@/lib/utils";
 import {
   hasData,
   PTY_LABEL,
   SKY_LABEL,
   type PartialResult,
-  type PrecipitationType,
-  type SkyCondition,
   type WeatherSnapshot,
 } from "@/lib/types";
 
@@ -36,23 +23,6 @@ import {
  * - failure → 날씨만 실패한 에러 폴백(다른 섹션은 정상 렌더)
  * - stale   → 마지막 성공 데이터 + "N분 전 기준" 라벨
  */
-
-const SKY_ICON: Record<SkyCondition, LucideIcon> = {
-  clear: Sun,
-  "partly-cloudy": CloudSun,
-  cloudy: Cloud,
-};
-
-const PTY_ICON: Record<PrecipitationType, LucideIcon> = {
-  none: Sun,
-  rain: CloudRain,
-  shower: CloudRain,
-  "rain-snow": CloudSnow,
-  "drizzle-snow": CloudSnow,
-  drizzle: CloudDrizzle,
-  snow: Snowflake,
-  "snow-flurry": Snowflake,
-};
 
 function MetricTile({
   icon: Icon,
@@ -101,10 +71,21 @@ export function WeatherSummaryCard({
         <div className="flex items-center gap-3">
           <SkyIcon className="size-12 shrink-0 text-foreground" aria-hidden="true" />
           <div>
-            <div className="text-3xl font-bold tabular-nums">{Math.round(w.tempC)}℃</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold tabular-nums">{Math.round(w.tempC)}℃</span>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                체감 {Math.round(w.feelsLikeC)}℃
+              </span>
+            </div>
             <div className="text-sm text-muted-foreground">
               {SKY_LABEL[w.sky]}
               {showPty ? ` · ${PTY_LABEL[w.pty]}` : ""}
+              {w.tempMinC !== null || w.tempMaxC !== null ? (
+                <span className="tabular-nums">
+                  {" · "}최저 {w.tempMinC !== null ? Math.round(w.tempMinC) : "—"}° / 최고{" "}
+                  {w.tempMaxC !== null ? Math.round(w.tempMaxC) : "—"}°
+                </span>
+              ) : null}
             </div>
           </div>
         </div>

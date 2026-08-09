@@ -3,10 +3,13 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
+import { AirQualityBadge } from "@/components/air-quality-badge";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
+import { DailyForecastList } from "@/components/daily-forecast-list";
 import { FavoriteButton } from "@/components/favorite-button";
 import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
+import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { KakaoMap } from "@/components/kakao-map";
 import { LoadingBar } from "@/components/loading-bar";
 import { MapLegend } from "@/components/map-legend";
@@ -14,11 +17,14 @@ import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SunTimesRow } from "@/components/sun-times-row";
 import { TrailList } from "@/components/trail-list";
 import { TrailSelectionProvider } from "@/components/trail-selection";
+import { UvIndexBadge } from "@/components/uv-index-badge";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
-import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
+import { getWeatherForecast } from "@/lib/api/kma-forecast";
 import { getConditionForMountain } from "@/lib/condition";
+import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { getAllMountains } from "@/lib/data/mountains";
 import {
   getMountainMeta,
@@ -27,7 +33,7 @@ import {
 } from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { hasData, type Mountain } from "@/lib/types";
+import { hasData, type Mountain, type PartialResult, type WeatherSnapshot } from "@/lib/types";
 
 /**
  * 산 마스터(고정 30종 시드)를 정적 파라미터로 프리렌더한다.
@@ -188,14 +194,21 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
   });
 
   if (!hasData(result)) return null;
-  const { score, gear } = result.data;
+  const { score, gear, air, uv } = result.data;
 
   // 게이지 자체가 `aria-labelledby` 로 라벨된 섹션이라, 래퍼는 랜드마크·제목을 중복하지
-  // 않도록 순수 스타일 컨테이너(div)로 둔다. 장비 추천은 점수 근거 아래에 이어 붙인다.
+  // 않도록 순수 스타일 컨테이너(div)로 둔다. 감점 근거 아래에 대기질·자외선 실수치를
+  // 노출해 "왜 이 점수인지"를 뒷받침하고(Task 034), 장비 추천을 이어 붙인다.
   return (
     <div className="space-y-4 rounded-lg border p-5">
       <ConditionScoreGauge condition={score} />
       <ScoreBreakdown condition={score} />
+      {air || uv ? (
+        <div className="space-y-2 border-t pt-4">
+          {air ? <AirQualityBadge air={air} /> : null}
+          {uv ? <UvIndexBadge uv={uv} /> : null}
+        </div>
+      ) : null}
       <GearRecommendationList gear={gear} />
     </div>
   );
@@ -208,11 +221,38 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
  */
 async function WeatherSection({ mountain }: { mountain: Mountain }) {
   await connection();
-  const result = await getWeatherSnapshot(mountain.id, {
+  const result = await getWeatherForecast(mountain.id, {
     nx: mountain.gridNx,
     ny: mountain.gridNy,
   });
-  return <WeatherSummaryCard result={result} />;
+
+  // 카드는 현재 스냅샷 + stale/에러 UX 를 그대로 재사용한다(예보→스냅샷 결과 매핑).
+  const currentResult: PartialResult<WeatherSnapshot> = !hasData(result)
+    ? result
+    : result.status === "stale"
+      ? {
+          status: "stale",
+          data: result.data.current,
+          fetchedAt: result.fetchedAt,
+          error: result.error,
+        }
+      : { status: "success", data: result.data.current, fetchedAt: result.fetchedAt };
+
+  // 일출·일몰은 위경도+오늘(KST)로 계산한다(외부 API 불필요, connection() 로 동적 홀 명시됨).
+  const sun = getSunTimesToday(mountain.lat, mountain.lng);
+
+  return (
+    <div className="space-y-4">
+      <WeatherSummaryCard result={currentResult} />
+      <SunTimesRow sun={sun} />
+      {hasData(result) ? (
+        <>
+          <HourlyForecastStrip items={result.data.hourly} />
+          <DailyForecastList items={result.data.daily} />
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 /**

@@ -56,6 +56,12 @@ export const PTY_CODE_MAP: Record<string, PrecipitationType> = {
 export interface WeatherSnapshot {
   /** TMP 기온(℃) */
   tempC: number;
+  /** 체감온도(℃) — 기온·습도·풍속으로 산출(호주 기상청 apparent temperature, Task 034) */
+  feelsLikeC: number;
+  /** 오늘 최저기온(℃, TMN). 발표 시각이 지나 값이 없으면 null */
+  tempMinC: number | null;
+  /** 오늘 최고기온(℃, TMX). 발표 시각이 지나 값이 없으면 null */
+  tempMaxC: number | null;
   /** POP 강수확률(%) */
   pop: number;
   /** SKY 하늘상태 */
@@ -73,3 +79,48 @@ export interface WeatherSnapshot {
 }
 
 export type WeatherNormalizer = Normalizer<WeatherSnapshot>;
+
+/** 시간대별 예보 1건 (Task 034). 단기예보 응답의 시각별 슬롯을 뽑아 만든다. */
+export interface HourlyForecast {
+  /** 예보 일자(YYYYMMDD) */
+  date: string;
+  /** 예보 시각(HHmm, 정시) */
+  time: string;
+  /** TMP 기온(℃) */
+  tempC: number;
+  /** POP 강수확률(%) */
+  pop: number;
+  /** SKY 하늘상태 */
+  sky: SkyCondition;
+  /** PTY 강수형태 */
+  pty: PrecipitationType;
+}
+
+/** 일자별 예보 1건 (Task 034). 단기예보 범위(오늘~약 3일)의 하루 요약. */
+export interface DailyForecast {
+  /** 예보 일자(YYYYMMDD) */
+  date: string;
+  /** 최저기온(℃, TMN 우선·없으면 시간별 최소). 결측 시 null */
+  tempMinC: number | null;
+  /** 최고기온(℃, TMX 우선·없으면 시간별 최대). 결측 시 null */
+  tempMaxC: number | null;
+  /** 대표(최대) 강수확률(%) */
+  pop: number;
+  /** 대표 하늘상태(정오 근처 슬롯) */
+  sky: SkyCondition;
+  /** 대표 강수형태(정오 근처 슬롯) */
+  pty: PrecipitationType;
+}
+
+/**
+ * 확장 날씨 예보 묶음 (Task 034). 동일한 단기예보 원시 응답 한 번으로
+ * 현재 스냅샷 + 시간대별 + 일자별을 함께 만들어 추가 네트워크 없이 제공한다.
+ */
+export interface WeatherForecast {
+  /** 현재(대상 시각 최근접) 스냅샷 */
+  current: WeatherSnapshot;
+  /** 앞으로의 시간대별 예보(가까운 순) */
+  hourly: HourlyForecast[];
+  /** 오늘부터의 일자별 예보(오늘 포함 최대 3일) */
+  daily: DailyForecast[];
+}

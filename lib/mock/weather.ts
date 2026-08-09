@@ -17,6 +17,9 @@ function todayBaseDate(): string {
 export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   bukhansan: {
     tempC: 18,
+    feelsLikeC: 17.5,
+    tempMinC: 12,
+    tempMaxC: 21,
     pop: 20,
     sky: "clear",
     pty: "none",
@@ -27,6 +30,9 @@ export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   },
   seoraksan: {
     tempC: 9,
+    feelsLikeC: 6.2,
+    tempMinC: 5,
+    tempMaxC: 13,
     pop: 70,
     sky: "cloudy",
     pty: "rain",
@@ -37,6 +43,9 @@ export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   },
   jirisan: {
     tempC: 12,
+    feelsLikeC: 11.3,
+    tempMinC: 7,
+    tempMaxC: 16,
     pop: 40,
     sky: "partly-cloudy",
     pty: "none",
@@ -47,6 +56,9 @@ export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   },
   hallasan: {
     tempC: 15,
+    feelsLikeC: 13.0,
+    tempMinC: 10,
+    tempMaxC: 18,
     pop: 60,
     sky: "cloudy",
     pty: "shower",
@@ -57,6 +69,9 @@ export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   },
   gwanaksan: {
     tempC: 20,
+    feelsLikeC: 20.1,
+    tempMinC: 14,
+    tempMaxC: 23,
     pop: 10,
     sky: "clear",
     pty: "none",
@@ -67,6 +82,9 @@ export const MOCK_WEATHER: Record<string, WeatherSnapshot> = {
   },
   taebaeksan: {
     tempC: 2,
+    feelsLikeC: -2.4,
+    tempMinC: -4,
+    tempMaxC: 5,
     pop: 80,
     sky: "cloudy",
     pty: "snow",

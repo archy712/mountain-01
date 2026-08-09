@@ -6,7 +6,13 @@
  * 캐싱·네트워크 오케스트레이션은 `kma-forecast.ts` 가 담당한다.
  */
 
-import type { PartialResult, WeatherSnapshot } from "@/lib/types";
+import type {
+  DailyForecast,
+  HourlyForecast,
+  PartialResult,
+  WeatherForecast,
+  WeatherSnapshot,
+} from "@/lib/types";
 import { PTY_CODE_MAP, SKY_CODE_MAP } from "@/lib/types";
 import { apiError } from "./errors";
 
@@ -171,8 +177,15 @@ export function normalizeVilageForecast(
     };
   }
 
+  // 오늘 최저/최고기온(TMN 0600·TMX 1500). 발표 시각이 지나 값이 없으면 null.
+  const tempMinC = parseOptionalNumber(get("TMN"));
+  const tempMaxC = parseOptionalNumber(get("TMX"));
+
   const snapshot: WeatherSnapshot = {
     tempC: tmp,
+    feelsLikeC: computeFeelsLike(tmp, wsd, reh),
+    tempMinC,
+    tempMaxC,
     pop,
     sky: skyRaw ? (SKY_CODE_MAP[skyRaw] ?? "cloudy") : "cloudy",
     pty: ptyRaw ? (PTY_CODE_MAP[ptyRaw] ?? "none") : "none",
@@ -183,4 +196,158 @@ export function normalizeVilageForecast(
   };
 
   return { status: "success", data: snapshot, fetchedAt: new Date().toISOString() };
+}
+
+/** 문자열 → 숫자(빈값/NaN 이면 null). TMN/TMX 등 결측 가능 필드용. */
+function parseOptionalNumber(v: string | undefined): number | null {
+  if (v === undefined || v.trim() === "") return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+}
+
+/**
+ * 체감온도(℃) — 호주 기상청 apparent temperature 공식 (Task 034).
+ * AT = Ta + 0.33e − 0.70ws − 4.00, e(수증기압) = (RH/100)·6.105·exp(17.27·Ta/(237.7+Ta)).
+ * 기온·습도·풍속만으로 전 계절 단일 공식으로 산출된다(우리가 이미 가진 3값). 소수 1자리 반올림.
+ */
+export function computeFeelsLike(tempC: number, windMs: number, humidity: number): number {
+  const e = (humidity / 100) * 6.105 * Math.exp((17.27 * tempC) / (237.7 + tempC));
+  const at = tempC + 0.33 * e - 0.7 * windMs - 4.0;
+  return Math.round(at * 10) / 10;
+}
+
+/** date+time 을 비교 가능한 숫자(YYYYMMDDHHmm)로. */
+function dateTimeKey(date: string, time: string): number {
+  return Number(`${date}${time}`);
+}
+
+/**
+ * 원시 응답 → 일자별(date) → 카테고리(category) → 시각(time) → 값 3중 인덱스.
+ * 시간대별/일자별 예보 조립의 공통 전처리. resultCode 검증은 호출부가 이미 수행한다.
+ */
+function indexItems(items: VilageItem[]): Map<string, Map<string, Map<string, string>>> {
+  const byDate = new Map<string, Map<string, Map<string, string>>>();
+  for (const it of items) {
+    let byCat = byDate.get(it.fcstDate);
+    if (!byCat) {
+      byCat = new Map();
+      byDate.set(it.fcstDate, byCat);
+    }
+    let byTime = byCat.get(it.category);
+    if (!byTime) {
+      byTime = new Map();
+      byCat.set(it.category, byTime);
+    }
+    byTime.set(it.fcstTime, it.fcstValue);
+  }
+  return byDate;
+}
+
+/**
+ * 시간대별 예보 목록. 대상 시각(fromDate/fromTime) 이후의 TMP 슬롯을 앵커로 삼아
+ * 같은 시각의 POP·SKY·PTY 를 묶는다. 가까운 순으로 최대 `limit` 개 반환.
+ */
+export function buildHourlyForecast(
+  items: VilageItem[],
+  fromDate: string,
+  fromTime: string,
+  limit = 12,
+): HourlyForecast[] {
+  const byDate = indexItems(items);
+  const from = dateTimeKey(fromDate, fromTime);
+  const out: HourlyForecast[] = [];
+
+  const dates = [...byDate.keys()].sort();
+  for (const date of dates) {
+    const byCat = byDate.get(date)!;
+    const tmpMap = byCat.get("TMP");
+    if (!tmpMap) continue;
+    const times = [...tmpMap.keys()].sort();
+    for (const time of times) {
+      if (dateTimeKey(date, time) < from) continue;
+      const tempC = Number(tmpMap.get(time));
+      if (Number.isNaN(tempC)) continue;
+      const popRaw = byCat.get("POP")?.get(time);
+      const skyRaw = byCat.get("SKY")?.get(time);
+      const ptyRaw = byCat.get("PTY")?.get(time);
+      out.push({
+        date,
+        time,
+        tempC,
+        pop: Number.isNaN(Number(popRaw)) ? 0 : Number(popRaw),
+        sky: skyRaw ? (SKY_CODE_MAP[skyRaw] ?? "cloudy") : "cloudy",
+        pty: ptyRaw ? (PTY_CODE_MAP[ptyRaw] ?? "none") : "none",
+      });
+    }
+  }
+  return out.slice(0, limit);
+}
+
+/**
+ * 일자별 예보 목록. 오늘(fromDate)부터 최대 `maxDays` 일. 최저/최고는 TMN/TMX 를
+ * 우선 쓰고 없으면 그날 TMP 의 최소/최대로 보정, 강수확률은 그날 최대, 하늘/강수형태는
+ * 정오(1200) 근처 슬롯을 대표로 채택한다.
+ */
+export function buildDailyForecast(
+  items: VilageItem[],
+  fromDate: string,
+  maxDays = 3,
+): DailyForecast[] {
+  const byDate = indexItems(items);
+  const dates = [...byDate.keys()].sort().filter((d) => d >= fromDate);
+  const out: DailyForecast[] = [];
+
+  for (const date of dates.slice(0, maxDays)) {
+    const byCat = byDate.get(date)!;
+    const tmpVals = [...(byCat.get("TMP")?.values() ?? [])]
+      .map(Number)
+      .filter((n) => !Number.isNaN(n));
+    const popVals = [...(byCat.get("POP")?.values() ?? [])]
+      .map(Number)
+      .filter((n) => !Number.isNaN(n));
+
+    const tmn = parseOptionalNumber(byCat.get("TMN")?.values().next().value);
+    const tmx = parseOptionalNumber(byCat.get("TMX")?.values().next().value);
+    const tempMinC = tmn ?? (tmpVals.length ? Math.min(...tmpVals) : null);
+    const tempMaxC = tmx ?? (tmpVals.length ? Math.max(...tmpVals) : null);
+
+    const skyMap = byCat.get("SKY");
+    const ptyMap = byCat.get("PTY");
+    const skyRep = skyMap ? pickNearest(skyMap, "1200") : undefined;
+    const ptyRep = ptyMap ? pickNearest(ptyMap, "1200") : undefined;
+
+    out.push({
+      date,
+      tempMinC,
+      tempMaxC,
+      pop: popVals.length ? Math.max(...popVals) : 0,
+      sky: skyRep ? (SKY_CODE_MAP[skyRep] ?? "cloudy") : "cloudy",
+      pty: ptyRep ? (PTY_CODE_MAP[ptyRep] ?? "none") : "none",
+    });
+  }
+  return out;
+}
+
+/**
+ * 단기예보 원시 응답 → 확장 예보(현재 + 시간대별 + 일자별) 정규화.
+ * 현재 스냅샷 계산이 실패하면 그 실패를 그대로 전파한다(핵심값 결측 = 표시 불가).
+ * 같은 원시 응답 하나로 세 뷰를 만들어 추가 네트워크가 없다.
+ */
+export function normalizeVilageForecastFull(
+  raw: unknown,
+  targetDate: string,
+  targetTime: string,
+): PartialResult<WeatherForecast> {
+  const current = normalizeVilageForecast(raw, targetDate, targetTime);
+  if (current.status === "failure") return current;
+
+  const items = (raw as VilageResponse)?.response?.body?.items?.item ?? [];
+  const hourly = buildHourlyForecast(items, targetDate, targetTime);
+  const daily = buildDailyForecast(items, targetDate);
+
+  return {
+    status: "success",
+    data: { current: current.data, hourly, daily },
+    fetchedAt: current.fetchedAt,
+  };
 }

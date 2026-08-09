@@ -54,7 +54,8 @@ export async function getConditionForMountain(
 
   const score = computeConditionScore({ weather: weatherResult.data, air, uv, now });
   const gear = recommendGear({ weather: weatherResult.data, air, uv });
-  const bundle: ConditionBundle = { score, gear };
+  // air/uv 원값도 함께 반환해 상세 화면이 감점 근거를 실제 수치로 노출하게 한다(Task 034).
+  const bundle: ConditionBundle = { score, gear, air, uv };
 
   // 신선한 캐시 행이 없을 때만 저장(행 폭증 방지 + "조회" 경로 겸용).
   const existing = await readCachedScore(mountain.id);

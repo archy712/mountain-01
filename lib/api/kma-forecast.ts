@@ -17,7 +17,7 @@
  */
 
 import { cacheLife, cacheTag } from "next/cache";
-import type { PartialResult, WeatherSnapshot } from "@/lib/types";
+import type { PartialResult, WeatherForecast, WeatherSnapshot } from "@/lib/types";
 import { serverEnv } from "@/lib/env";
 import type { KmaGrid } from "@/lib/geo/kma-grid";
 import { fetchJson } from "./fetcher";
@@ -28,12 +28,14 @@ import {
   getTargetDateTime,
   getVilageBaseDateTime,
   normalizeVilageForecast,
+  normalizeVilageForecastFull,
 } from "./kma-forecast-core";
 
 export {
   getTargetDateTime,
   getVilageBaseDateTime,
   normalizeVilageForecast,
+  normalizeVilageForecastFull,
 } from "./kma-forecast-core";
 
 const VILAGE_FCST_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
@@ -95,6 +97,30 @@ export async function getWeatherSnapshot(
     if (normalized.status === "failure") {
       // producer 계약: 실패는 throw 로 신호(withStaleFallback 가 stale/failure 판정).
       // errors.toApiError 가 실린 apiError 를 보존한다.
+      throw Object.assign(new Error(normalized.error.message), { apiError: normalized.error });
+    }
+    return normalized.data;
+  });
+}
+
+/**
+ * 산의 격자 좌표로 확장 예보(현재 + 시간대별 + 3일)를 조회한다(Task 034).
+ * `getWeatherSnapshot` 과 **동일한 캐시된 원시 응답**을 재사용하므로 추가 네트워크가 없다.
+ * 스냅샷과 stale 폴백 슬롯이 섞이지 않도록 캐시 키에 `:forecast` 접미사를 붙인다.
+ */
+export async function getWeatherForecast(
+  mountainId: string,
+  grid: KmaGrid,
+  now: Date = new Date(),
+): Promise<PartialResult<WeatherForecast>> {
+  const { baseDate, baseTime } = getVilageBaseDateTime(now);
+  const target = getTargetDateTime(now);
+  const key = `${weatherKey(mountainId, baseDate, baseTime)}:forecast`;
+
+  return withStaleFallback(key, async () => {
+    const raw = await fetchVilageForecast(mountainId, grid.nx, grid.ny, baseDate, baseTime);
+    const normalized = normalizeVilageForecastFull(raw, target.date, target.time);
+    if (normalized.status === "failure") {
       throw Object.assign(new Error(normalized.error.message), { apiError: normalized.error });
     }
     return normalized.data;

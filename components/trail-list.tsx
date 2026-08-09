@@ -3,6 +3,8 @@ import { CircleHelp } from "lucide-react";
 import { ErrorFallback } from "@/components/error-fallback";
 import { StaleDataNotice } from "@/components/stale-data-notice";
 import { TrailListInteractive } from "@/components/trail-list-interactive";
+import { TrailSummaryBar } from "@/components/trail-summary-bar";
+import { summarizeTrails } from "@/lib/trails/summary";
 import { hasData, type PartialResult, type Trail } from "@/lib/types";
 
 /**
@@ -34,7 +36,13 @@ export function TrailList({ result }: { result: PartialResult<Trail[]> }) {
           탐방로 개방 정보가 없어요. (국립공원 외 지역)
         </div>
       ) : (
-        <TrailListInteractive trails={result.data} />
+        <div className="space-y-3">
+          {(() => {
+            const summary = summarizeTrails(result.data);
+            return summary ? <TrailSummaryBar summary={summary} /> : null;
+          })()}
+          <TrailListInteractive trails={result.data} />
+        </div>
       )}
     </section>
   );

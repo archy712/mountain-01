@@ -3,6 +3,8 @@
  * 점수 계산은 서버 유틸에서만 수행하고 `calcVersion` 으로 태깅한다(Task 023).
  */
 
+import type { AirQuality, UvIndex } from "./air";
+
 /** 점수 감점/추천에 관여하는 입력 변수 */
 export type ScoreFactor = "pop" | "pty" | "temp" | "wind" | "air" | "uv";
 
@@ -77,8 +79,14 @@ export interface GearItem {
 /**
  * 컨디션 점수 + 장비 추천 묶음 (Task 024).
  * 동일 날씨·대기·자외선 입력으로 함께 산출되므로 한 번의 소스 조회로 반환한다.
+ * 점수 계산에 쓰인 대기질·자외선 원값도 함께 실어, 상세 화면이 감점 근거를 실제
+ * 수치(PM10·PM2.5·UV 지수)로 보여줄 수 있게 한다. 해당 소스가 실패/미매핑이면 null.
  */
 export interface ConditionBundle {
   score: ConditionScore;
   gear: GearItem[];
+  /** 점수 산출에 쓰인 대기질 원값(측정소 미매핑·조회 실패 시 null) */
+  air: AirQuality | null;
+  /** 점수 산출에 쓰인 자외선 원값(조회 실패 시 null) */
+  uv: UvIndex | null;
 }
