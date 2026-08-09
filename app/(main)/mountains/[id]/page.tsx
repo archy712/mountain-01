@@ -8,6 +8,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
 import { KakaoMap } from "@/components/kakao-map";
+import { LoadingBar } from "@/components/loading-bar";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
@@ -241,6 +242,7 @@ async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
 function ConditionSectionSkeleton() {
   return (
     <div className="space-y-4 rounded-lg border p-5" aria-busy="true">
+      <LoadingBar />
       <div className="flex flex-col items-center gap-3">
         <Skeleton className="size-[168px] rounded-full" />
         <Skeleton className="h-6 w-24" />
@@ -255,6 +257,7 @@ function ConditionSectionSkeleton() {
 function WeatherCardSkeleton() {
   return (
     <div className="rounded-lg border p-5" aria-busy="true">
+      <LoadingBar className="mb-4" />
       <div className="mb-4 flex items-center gap-3">
         <Skeleton className="size-12 rounded-full" />
         <div className="space-y-2">
@@ -275,6 +278,7 @@ function WeatherCardSkeleton() {
 function TrailListSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true">
+      <LoadingBar />
       <Skeleton className="h-5 w-20" />
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="flex items-center justify-between rounded-lg border p-3">

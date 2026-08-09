@@ -72,6 +72,17 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // 섹션 스트리밍 대기용 무한 진행바 (Task 034) — 실제 진행률을 알 수 없는
+      // 서버 스트리밍이라 가짜 퍼센트 대신 스윕만 반복해 "불러오는 중"을 전달한다.
+      keyframes: {
+        "indeterminate-progress": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(250%)" },
+        },
+      },
+      animation: {
+        "indeterminate-progress": "indeterminate-progress 1.15s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
