@@ -53,11 +53,11 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 1. 루트의 `proxy.ts`가 모든 요청(정적 파일 제외)에서 `updateSession()`을 호출합니다.
 2. `updateSession()`(`lib/supabase/proxy.ts`)은 `/`, `/login*`, `/auth/*`를 제외한 경로에서 세션이 없으면 `/auth/login`으로 리다이렉트합니다.
 3. `app/auth/*`에 로그인/회원가입/비밀번호 재설정/이메일 확인(`confirm/route.ts`) 페이지가 있고, `app/protected/*`가 인증이 필요한 영역입니다. 개별 서버 컴포넌트(`app/protected/page.tsx` 등)도 `getClaims()`로 재확인 후 `redirect("/auth/login")` 하는 이중 방어 패턴을 씁니다.
-4. 로그인/회원가입 폼(`components/*-form.tsx`)은 Server Action이 아니라 **Client Component에서 `supabase.auth.*`를 직접 호출**하는 패턴입니다(`login-form.tsx`, `profile-form.tsx` 참고).
+4. 로그인/회원가입 폼(`components/*-form.tsx`)은 Server Action이 아니라 **Client Component에서 `supabase.auth.*`를 직접 호출**하는 패턴입니다(`login-form.tsx`, `profile-edit-form.tsx` 참고).
 
 ### DB 타입
 
-`lib/supabase/database.types.ts`는 Supabase에서 생성된 타입입니다(`mcp__supabase__generate_typescript_types`로 재생성). 컴포넌트에서는 `Tables<"테이블명">` 헬퍼로 필요한 컬럼만 `Pick`해서 씁니다(`components/profile-form.tsx` 참고). 스키마를 변경했다면 이 파일을 재생성해야 합니다.
+`lib/supabase/database.types.ts`는 Supabase에서 생성된 타입입니다(`mcp__supabase__generate_typescript_types`로 재생성). 컴포넌트에서는 `Tables<"테이블명">` 헬퍼로 필요한 컬럼만 `Pick`해서 씁니다(`components/profile-edit-form.tsx` 참고). 스키마를 변경했다면 이 파일을 재생성해야 합니다.
 
 ### 상세 화면 데이터·외부 API
 
@@ -75,6 +75,15 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 - **KPI 이벤트**는 `analytics_events` 테이블에 적재합니다(insert-only RLS, select 차단, 개인정보 미수집). 클라이언트는 `lib/analytics/client.ts`의 `track()`(fire-and-forget, `anon_id`는 localStorage 익명 UUID)로 보내고, `app/api/analytics/route.ts`가 이벤트명 화이트리스트 검증 후 `createPublicClient()`로 insert 합니다(`search_logs` 패턴 동일). 계측은 사용자 흐름을 막지 않는 best-effort 이며, `components/analytics-tracker.tsx`(세션)·`mountain-view-tracker.tsx`(상세)와 검색/즐겨찾기/PWA 컴포넌트에서 호출됩니다.
 - **외부 API 성공률·응답시간**은 `lib/api/cache.ts`의 `withStaleFallback` 한 곳에서 계측해 `api_logs`에 적재합니다(`lib/api/metrics.ts`, 소스는 캐시 키 접두사에서 파생, fire-and-forget). 소스 모듈은 수정하지 않습니다. `latency_ms`는 "요청 관찰 지연"이라 `'use cache'` 히트 시 near-zero 입니다(성공률 분포는 캐시와 무관하게 정확). 집계 SQL·임계치는 `docs/operations/monitoring.md` 참조.
 - **CI**: `.github/workflows/ci.yml`가 `master` push/PR에서 `typecheck→lint→format:check→build`를 강제합니다. `build`는 `/mountains/[id]` generateStaticParams가 빌드타임에 산 목록을 읽으므로 **publishable(공개) Supabase 자격증명**(`NEXT_PUBLIC_SUPABASE_URL`·`_PUBLISHABLE_KEY`)을 저장소 Secrets로 주입해야 통과합니다(서버 전용 키는 지연 평가라 불필요). 배포 절차는 `docs/operations/deployment.md`.
+
+### 개인화·콘텐츠 영역 (Phase 7)
+
+- 로그인 사용자용 개인화는 **마이페이지(`app/(main)/mypage/page.tsx`)를 단일 허브**로 삼습니다. 헤더에는 마이페이지·로그아웃만 노출하고, 즐겨찾기(`/favorites`)·방문완료(`/visited`)·프로필 편집(`/mypage/profile`)은 마이페이지 안에서 진입합니다(`components/auth-button.tsx`, `mypage-nav-card.tsx`).
+- 이 라우트들(`/mypage*`·`/favorites`·`/visited`)은 `proxy.ts` 공개 경로가 아니므로 미인증 시 `/auth/login?next=…`로 자동 게이트되고, 서버 컴포넌트도 `getClaims()`로 이중 방어합니다. 로그인 성공 후 기본 착지 지점은 `/mypage`입니다(명시적 `?next=`는 보존).
+- **방문완료**는 `visited` 테이블(본인만 접근 RLS)에 적재하며, 상세 화면의 방문완료 토글·즐겨찾기 토글은 낙관적 업데이트+실패 롤백 패턴을 공유합니다(`components/{visited-button,favorite-button}.tsx`).
+- **프로필**은 `profiles` 테이블(본인만 조회, 자동생성 트리거)에 이름·닉네임·프리셋 아이콘(`avatar_icon`)·자기소개·가장 좋아하는 산(`favorite_mountain_id` FK)·활동 지역·등산 경력을 저장합니다. 프리셋 값은 `lib/profile/profile-options.ts`, 폼은 `components/profile-edit-form.tsx`(upsert, 닉네임 unique 충돌 친절 처리).
+- **100대명산**은 별도 테이블 없이 `mountains.is_top100` 플래그로 관리하고, 전용 `/top100` 라우트(`components/top100-list.tsx`)에서 이름·지역·고도만 노출합니다(100종 외부 API 호출 폭증 방지로 컨디션 점수 미표시).
+- **홈**은 컨디션 신호 중심으로 재구성되어 있습니다: 검색 → 내 산 오늘 컨디션(로그인+즐겨찾기) → 최근 검색 → "지금 갈 만한 산"(대표 산 큐레이션, 카드별 컨디션 칩 스트리밍) → 100대명산 배너. 컨디션 칩 공용 컴포넌트는 `components/condition-chip.tsx`(즐겨찾기·홈 공유).
 
 ### Next.js 16 관련 특이사항
 
