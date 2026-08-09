@@ -15,7 +15,7 @@ import { useState } from "react";
  * 렌더**한다. 구분선까지 함께 담아, 꺼져 있으면 흔적 없이 사라진다.
  */
 export function GoogleAuthButton({
-  next = "/favorites",
+  next = "/mypage",
   label = "Google로 계속하기",
 }: {
   next?: string;

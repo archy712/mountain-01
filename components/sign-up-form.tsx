@@ -36,7 +36,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/favorites`,
+          emailRedirectTo: `${window.location.origin}/mypage`,
         },
       });
       if (error) throw error;
@@ -112,7 +112,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                 {isLoading ? "계정 생성 중..." : "회원가입"}
               </Button>
               {/* 구분선은 GoogleAuthButton 이 자체 포함(미구성 시 통째로 숨김) */}
-              <GoogleAuthButton next="/favorites" label="Google로 시작하기" />
+              <GoogleAuthButton next="/mypage" label="Google로 시작하기" />
             </div>
             <div className="mt-4 text-center text-sm">
               이미 계정이 있으신가요?{" "}

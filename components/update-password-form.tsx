@@ -24,8 +24,8 @@ export function UpdatePasswordForm({ className, ...props }: React.ComponentProps
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      // 세션이 이미 활성 상태이므로 인증 영역(즐겨찾기)으로 이동한다.
-      router.push("/favorites");
+      // 세션이 이미 활성 상태이므로 개인 허브(마이페이지)로 이동한다.
+      router.push("/mypage");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "저장에 실패했어요. 다시 시도해 주세요.");
     } finally {

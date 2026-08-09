@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 function safeNext(raw: string | undefined): string {
   if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
-  return "/favorites";
+  return "/mypage";
 }
 
 /**

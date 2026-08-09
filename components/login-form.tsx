@@ -13,11 +13,11 @@ import { useState } from "react";
 
 /**
  * 로그인 폼 (산길정보). 스타터 패턴 유지 — Client Component 에서 `supabase.auth` 직접 호출.
- * `next` 는 로그인 성공 후 복귀 경로(기본 `/favorites`). 보호 라우트 접근 시 proxy 가
- * `?next=` 로 실어 주며, 여기서 그대로 이어받아 이동한다(Task 025).
+ * `next` 는 로그인 성공 후 복귀 경로(기본 `/mypage` — 개인 허브, Task 038). 보호 라우트
+ * 접근 시 proxy 가 `?next=` 로 실어 주며, 여기서 그대로 이어받아 이동한다(Task 025).
  */
 export function LoginForm({
-  next = "/favorites",
+  next = "/mypage",
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div"> & { next?: string }) {
@@ -49,7 +49,7 @@ export function LoginForm({
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">로그인</CardTitle>
-          <CardDescription>이메일로 로그인하고 즐겨찾기를 이용하세요</CardDescription>
+          <CardDescription>로그인하고 즐겨찾기·방문완료를 관리하세요</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin}>
