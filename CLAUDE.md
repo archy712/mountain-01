@@ -59,6 +59,12 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 
 `lib/supabase/database.types.ts`는 Supabase에서 생성된 타입입니다(`mcp__supabase__generate_typescript_types`로 재생성). 컴포넌트에서는 `Tables<"테이블명">` 헬퍼로 필요한 컬럼만 `Pick`해서 씁니다(`components/profile-form.tsx` 참고). 스키마를 변경했다면 이 파일을 재생성해야 합니다.
 
+### 상세 화면 데이터·외부 API
+
+- 산 상세 서버 데이터 접근은 `lib/data/mountain-detail.ts`(산 메타·탐방로·등산로 GeoJSON)에 모여 있습니다. 외부 API는 `lib/api/*`에서 **서버 전용으로 프록시·정규화**하고, 소스별 결과를 **`PartialResult`(success/stale/failure)** 로 감싸 부분 실패를 격리합니다(상세 페이지의 각 섹션은 독립 `<Suspense>` + `connection()` 로 스트리밍). 각 소스는 프레임워크 무의존 순수 로직(`*-core.ts`)과 캐싱/네트워크 래퍼로 분리됩니다.
+- 날씨는 `lib/api/kma-forecast.ts`에 `getWeatherSnapshot`(현재값)과 `getWeatherForecast`(현재+시간별+3일+체감온도+오늘 최저/최고) 두 진입점이 있고, **동일한 `'use cache'` 원시 응답을 재사용**하므로 확장 예보를 써도 추가 네트워크가 없습니다(단, `withStaleFallback` 키는 `:forecast` 접미사로 분리).
+- 외부 API 없이 파생하는 정보: 일출·일몰은 `lib/geo/sun-times.ts`(위경도 기반 계산), 탐방로 코스 요약은 `lib/trails/summary.ts`(순수 집계), 체감온도는 `kma-forecast-core.ts`(기온·습도·풍속 산출).
+
 ### Next.js 16 관련 특이사항
 
 - `middleware.ts`가 아니라 **`proxy.ts`**를 사용합니다(Next 16에서 이름이 바뀜, `export function proxy`).
@@ -68,6 +74,7 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 ### 스타일링
 
 - Tailwind CSS v4 + shadcn/ui(`new-york` 스타일, `components.json` 참고)이지만, 색상 테마는 v4의 `@theme`/oklch 방식이 아니라 **`tailwind.config.ts` + `@config` 지시어(`app/globals.css`)로 v3 방식 HSL CSS 변수**(`--background`, `--primary` 등)를 계속 사용하는 하이브리드 구성입니다. 새 색상 토큰을 추가할 때는 `app/globals.css`의 `:root`/`.dark`와 `tailwind.config.ts`의 `theme.extend.colors`를 함께 수정해야 합니다.
+- 커스텀 애니메이션(키프레임)도 `@theme` 가 아니라 **`tailwind.config.ts`의 `theme.extend.keyframes`/`animation`**에 정의합니다(예: 로딩 인디케이터 `indeterminate-progress`, `components/loading-bar.tsx`). 접근성상 `motion-reduce:` 변형으로 모션 축소도 함께 처리합니다.
 - 다크모드는 `next-themes`의 `ThemeProvider`를 `app/layout.tsx`에서 직접 사용합니다(별도 provider 래퍼 컴포넌트 없음).
 - 클래스 조합은 `lib/utils.ts`의 `cn()`(clsx + tailwind-merge)을 사용합니다.
 
