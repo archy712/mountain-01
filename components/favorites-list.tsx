@@ -1,45 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight, Heart, Mountain as MountainIcon, Search, X } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { SCORE_GRADE_LABEL, type ScoreGrade } from "@/lib/types";
 
-/** 목록 카드 1건 — 서버에서 점수까지 산출해 직렬화해 넘긴다. */
+/** 목록 카드 1건. 산 메타는 즉시 렌더하고, 점수 칩은 서버가 카드별로 스트리밍한 노드다. */
 export interface FavoriteItem {
   mountainId: string;
   name: string;
   region: string;
   altitude: number | null;
-  /** 컨디션 점수(0~100). 계산 불가(날씨 실패 등)면 null */
-  score: number | null;
-  grade: ScoreGrade | null;
-}
-
-const GRADE_CHIP: Record<ScoreGrade, string> = {
-  excellent: "border-grade-excellent/30 bg-grade-excellent/10 text-grade-excellent",
-  good: "border-grade-good/30 bg-grade-good/10 text-grade-good",
-  fair: "border-grade-fair/30 bg-grade-fair/10 text-grade-fair",
-  poor: "border-grade-poor/30 bg-grade-poor/10 text-grade-poor",
-  dangerous: "border-grade-dangerous/30 bg-grade-dangerous/10 text-grade-dangerous",
-};
-
-/** 색상 단독 구분 금지: 점수 + 등급 텍스트 병기 */
-function ScoreChip({ score, grade }: { score: number; grade: ScoreGrade }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
-        GRADE_CHIP[grade],
-      )}
-    >
-      <span className="tabular-nums">{score}</span>
-      <span>{SCORE_GRADE_LABEL[grade]}</span>
-    </span>
-  );
+  /** 컨디션 점수 칩(서버 `<Suspense>` 스트리밍 노드). 계산 불가면 빈 노드로 채워진다. */
+  scoreSlot: ReactNode;
 }
 
 function EmptyState() {
@@ -123,9 +97,7 @@ export function FavoritesList({ initial }: { initial: FavoriteItem[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-semibold tracking-tight">{item.name}</span>
-                    {item.score !== null && item.grade !== null ? (
-                      <ScoreChip score={item.score} grade={item.grade} />
-                    ) : null}
+                    {item.scoreSlot}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
                     {item.region}

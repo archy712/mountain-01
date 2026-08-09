@@ -3,64 +3,49 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { FavoritesList, type FavoriteItem } from "@/components/favorites-list";
-import { getConditionForMountain } from "@/lib/condition";
+import { FavoriteScore, FavoriteScoreSkeleton } from "@/components/favorite-score";
+import { FavoritesListSkeleton } from "@/components/favorites-list-skeleton";
 import { createClient } from "@/lib/supabase/server";
-import { hasData } from "@/lib/types";
 
 /**
- * 즐겨찾기 화면 (Task 026 실데이터 · Task 025 인증 게이트).
+ * 즐겨찾기 화면 (Task 026 실데이터 · Task 025 인증 게이트 · 즐겨찾기 로딩 UX 개선).
  *
  * 보호 라우트다. proxy.ts 가 비로그인 요청을 `/auth/login?next=/favorites` 로 보내고,
- * 이 서버 컴포넌트가 `getClaims()` 로 **이중 방어**한다. 목록은 RLS 로 본인 행만 조회되며,
- * 각 산의 컨디션 점수 요약을 함께 산출한다(원천 데이터는 `'use cache'` 로 캐시됨).
+ * 이 서버 컴포넌트가 `getClaims()` 로 **이중 방어**한다. 목록은 RLS 로 본인 행만 조회된다.
+ *
+ * 로딩 UX: 산 목록(이름·지역)은 DB 한 번으로 **즉시** 렌더하고, 각 산의 컨디션 점수(외부 API)
+ * 는 카드별 `<Suspense>` 로 **독립 스트리밍**한다(`FavoriteScore`). 예전엔 모든 산의 점수를
+ * 한꺼번에 await 해 가장 느린 산이 전체 화면을 막았다(로그인 직후 "멈춤"처럼 보임).
  * 삭제(인라인)·낙관적 업데이트는 클라이언트 `FavoritesList` 가 담당한다.
  */
 
-type FavoriteRow = {
-  mountain_id: string;
-  mountains: {
-    id: string;
-    name: string;
-    region: string;
-    altitude: number | null;
-    grid_nx: number;
-    grid_ny: number;
-    lat: number;
-    lng: number;
-  } | null;
+type FavoriteMountain = {
+  id: string;
+  name: string;
+  region: string;
+  altitude: number | null;
+  grid_nx: number;
+  grid_ny: number;
+  lat: number;
+  lng: number;
 };
 
-/** 저장한 산 + 각 산의 컨디션 점수 요약을 만든다(점수 계산 불가 시 null). */
-async function loadFavorites(): Promise<FavoriteItem[]> {
+type FavoriteRow = {
+  mountain_id: string;
+  mountains: FavoriteMountain | null;
+};
+
+/** 저장한 산 메타만 조회한다(DB 전용, 빠름). 점수는 카드별로 별도 스트리밍한다. */
+async function loadFavoriteMountains(): Promise<FavoriteMountain[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("favorites")
     .select("mountain_id, mountains(id, name, region, altitude, grid_nx, grid_ny, lat, lng)")
     .order("created_at", { ascending: false });
 
-  const rows = ((data ?? []) as FavoriteRow[]).filter((r) => r.mountains !== null);
-
-  return Promise.all(
-    rows.map(async (row): Promise<FavoriteItem> => {
-      const m = row.mountains!;
-      const condition = await getConditionForMountain({
-        id: m.id,
-        gridNx: m.grid_nx,
-        gridNy: m.grid_ny,
-        lat: m.lat,
-        lng: m.lng,
-      });
-      const score = hasData(condition) ? condition.data.score : null;
-      return {
-        mountainId: m.id,
-        name: m.name,
-        region: m.region,
-        altitude: m.altitude,
-        score: score ? score.score : null,
-        grade: score ? score.grade : null,
-      };
-    }),
-  );
+  return ((data ?? []) as FavoriteRow[])
+    .map((r) => r.mountains)
+    .filter((m): m is FavoriteMountain => m !== null);
 }
 
 /**
@@ -76,7 +61,22 @@ async function FavoritesContent() {
     redirect("/auth/login?next=/favorites");
   }
 
-  const items = await loadFavorites();
+  const mountains = await loadFavoriteMountains();
+  const items: FavoriteItem[] = mountains.map((m) => ({
+    mountainId: m.id,
+    name: m.name,
+    region: m.region,
+    altitude: m.altitude,
+    // 점수 칩은 카드별로 독립 스트리밍(느린 산이 리스트를 막지 않음).
+    scoreSlot: (
+      <Suspense fallback={<FavoriteScoreSkeleton />}>
+        <FavoriteScore
+          mountain={{ id: m.id, gridNx: m.grid_nx, gridNy: m.grid_ny, lat: m.lat, lng: m.lng }}
+        />
+      </Suspense>
+    ),
+  }));
+
   return <FavoritesList initial={items} />;
 }
 
@@ -84,7 +84,7 @@ export default function FavoritesPage() {
   return (
     <section className="flex flex-col gap-6 py-6">
       <h1 className="text-xl font-bold">즐겨찾기</h1>
-      <Suspense fallback={<div className="h-24 animate-pulse rounded-lg border border-dashed" />}>
+      <Suspense fallback={<FavoritesListSkeleton />}>
         <FavoritesContent />
       </Suspense>
     </section>
