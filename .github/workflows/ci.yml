@@ -1,0 +1,52 @@
+name: CI
+
+# 품질 게이트 (Task 035): 타입·린트·포맷·빌드를 PR/푸시마다 강제한다.
+# husky pre-commit 은 스테이징 파일만 검사하므로, CI 는 전체 트리를 재검증한다.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# 같은 브랜치의 이전 실행은 취소해 러너를 아낀다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · format · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+        env:
+          # 서버 전용 키(KMA_*/AIRKOREA_*/SERVICE_ROLE)는 지연 평가라 빌드에 불필요(lib/env.ts).
+          # 단, `/mountains/[id]` 의 generateStaticParams 가 빌드타임에 Supabase 에서 산 목록을
+          # 읽으므로(Cache Components 는 빈 결과를 허용하지 않음), 아래 두 값은 **실제 프로젝트의
+          # publishable(anon) 자격증명**이어야 한다. 둘 다 클라이언트에 노출되는 공개 값이므로
+          # 저장소 Secrets 로 두어도 안전하다(리포지토리 → Settings → Secrets and variables).
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics/client";
 
 /**
  * 즐겨찾기 버튼 (Task 011 UI · Task 026 실연동).
@@ -51,6 +52,8 @@ export function FavoriteButton({
             method: "DELETE",
           });
       if (!res.ok) throw new Error(String(res.status));
+      // 즐겨찾기 등록/해제 계측(즐겨찾기 비율, Task 035).
+      track(next ? "favorite_add" : "favorite_remove", { mountainId });
       // 서버 렌더 목록(/favorites 등)에 반영.
       startTransition(() => router.refresh());
     } catch {
