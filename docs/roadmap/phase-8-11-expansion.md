@@ -168,8 +168,9 @@
 
 > 신규 소스가 필요하지만 대부분 정적 데이터라 **검증된 국립공원공단 CSV 시드 파이프라인**(`parse-knps-csv.ts`·`gen-trails.ts` 패턴)을 재사용한다.
 
-- **Task 045: 편의시설 (화장실·대피소·식수대·매점)**
-  - **개요**: 국립공원 편의시설 공공데이터를 `trails`처럼 정적 시드로 적재하고 상세/지도에 노출한다.
+- **✅ Task 045: 편의시설 (화장실 범위)** — 완료(목록·상세 노출). 지도 마커·대피소/식수대/매점 확장은 후속(2026-08-10)
+  - **개요**: 국립공원 편의시설 공공데이터를 `trails`처럼 정적 시드로 적재하고 상세/지도에 노출한다. **1차 범위는 화장실**(`GSTN_TOILET_PT.csv`), 대피소·식수대·매점은 형제 데이터셋 확보 시 확장.
+  - **소스·매핑 확정(결정 001 "편의시설 데이터(Task 045)" 절)**: `GSTN_TOILET_PT.csv`(KNPS 화장실 포인트, data.go.kr, CP949, 600행, 좌표 결측 0). 사무소코드가 탐방로 CSV와 동일 → `OFFICE_TO_MOUNTAIN_SLUG` 재사용(약 497/600 매핑). 북한산 사무소(1501)는 주소(도봉구·의정부·양주→도봉산) 분리. 해상·경주 등 미매핑 사무소·USE_YN=0 제외.
   - **관련 파일**: 신규 `supabase/migrations/*_facilities.sql`, 신규 `supabase/seed/{gen-facilities.ts,facilities.sql}`, 신규 `lib/data/facilities.ts`, 신규 `components/facility-list.tsx`, `app/(main)/mountains/[id]/page.tsx`, (지도 POI 시) `components/*map*`, `lib/supabase/database.types.ts` 재생성
   - **수락 기준**:
     - [ ] 상세 화면에 산별 편의시설 목록(유형 아이콘+명칭)이 노출된다.
@@ -177,10 +178,10 @@
     - [ ] (선택) 지도에 편의시설 마커가 표시되고 범례에 유형이 병기된다.
     - [ ] RLS 공개 select·쓰기 차단(mountains/trails와 동일).
   - **구현 단계**:
-    - [ ] 편의시설 공공데이터 확보·라이선스 확인, 산 매핑 규칙 정의(결정 문서화).
-    - [ ] 마이그레이션 + 시드 생성기(CSV 파싱 재사용) + 멱등 적재.
-    - [ ] 데이터 계층 + 표현 컴포넌트, (선택) 지도 마커.
-    - [ ] 타입 재생성.
+    - [x] 편의시설 공공데이터 확보·라이선스 확인, 산 매핑 규칙 정의(결정 문서화). — `GSTN_TOILET_PT.csv` 확보·필드/커버리지 분석, 1501 주소 분리 규칙 실데이터 검증, 결정 001 기록.
+    - [x] 마이그레이션 + 시드 생성기(CSV 파싱 재사용) + 멱등 적재. — `supabase/migrations/20260810120000_facilities.sql`(공개 select RLS) + `supabase/seed/gen-facilities.ts`(OBJECTID 키·1501 주소분리) → **492건 적재**(도봉 35·북한 60, 고아 FK 0, 보안경고 0).
+    - [x] 데이터 계층 + 표현 컴포넌트. — `lib/data/facilities.ts`(`'use cache'` mountains-1d) + `components/facility-list.tsx`(유형별 그룹·장애인 배지·스크롤·출처 표기) + 상세 페이지 `<FacilitySection>` Suspense. **build 통과**(105개 상세 프리렌더). **(선택) 지도 마커는 후속**.
+    - [x] 타입 재생성. — `lib/supabase/database.types.ts`(facilities 포함), typecheck 통과.
   - **테스트 체크리스트 (Playwright MCP)**:
     - [ ] 시설 보유 산에서 목록/마커 렌더, 미보유 산 폴백 확인.
     - [ ] `get_advisors` 보안·RLS 경고 0, 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
@@ -195,9 +196,9 @@
     - [ ] 야생동물 주의 정보가 있으면 경고 배너(아이콘+텍스트)로 노출된다.
     - [ ] 시즌 밖/데이터 없음이면 섹션 미노출.
   - **구현 단계**:
-    - [ ] 시즌·주의 콘텐츠 큐레이션 데이터 정의(산×시즌×기간).
-    - [ ] 기간 판정 순수 함수(KST 자정 경계·연말 wrap 처리) + 단위 검증.
-    - [ ] 표현 컴포넌트 삽입, 색상 단독 금지·접근성 준수.
+    - [x] 시즌·주의 콘텐츠 큐레이션 데이터 정의(산×시즌×기간). — `lib/data/seasonal.ts`(산 id(uuid) 키, 22개 산 단풍·설경·철쭉·억새 + 반달곰 지리산·덕유산). 기간은 `seasonal-closure.ts` `SeasonalPeriod`(연말 wrap) 재사용. typecheck 통과.
+    - [x] 기간 판정 순수 함수(KST 자정 경계·연말 wrap 처리) + 단위 검증. — `lib/seasonal/period.ts`(`isSeasonActive`·`getActiveSeasonalContent`, `seasonal-closure` 프리미티브 재사용). 단위 검증 `scratchpad/test-seasonal.ts` **30/30 pass**, typecheck 통과.
+    - [ ] 표현 컴포넌트 삽입, 색상 단독 금지·접근성 준수. — `components/seasonal-notice.tsx` + 상세 페이지
   - **테스트 체크리스트 (Playwright MCP)**:
     - [ ] 시즌 내/외 날짜에서 안내 노출·미노출 경계 확인, 야생동물 경고 렌더.
     - [ ] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.

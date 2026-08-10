@@ -105,10 +105,10 @@
 | Phase 7 | 개인화·콘텐츠 확장                 | 036~038 | ✅ 완료                   | [Phase 5~7](roadmap/phase-5-7-quality-personalization.md) |
 | Phase 8 | 판단·개인화 고도화 (신규 소스 X)   | 039~042, 051 | ✅ 완료 (039~042·051)     | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 9 | 핵심 판단 데이터 강화 (신규 소스)  | 043~044, 052 | ✅ 완료 (043·052 완료 · 044 ⏸보류) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
-| Phase 10 | 콘텐츠 확장 (정적 시드)           | 045~046 | ⬜ 예정                   | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
+| Phase 10 | 콘텐츠 확장 (정적 시드)           | 045~046 | 🚧 진행 중 (045 화장실 완료 · 046 Step 3 대기) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 11 | 고비용·후순위                     | 047~050 | ⬜ 예정                   | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 
-- **다음 착수 대상:** Task 045(편의시설 정적 시드) — Task 044(실시간 탐방로 통제)는 **개인 접근 가능 실시간 소스 부재로 ⏸보류**(공공기관 전용 API + robots 차단, 결정 001 "실시간 탐방로 통제(Task 044)" 절). [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조.
+- **진행 중:** Task 045(편의시설·**화장실 범위** — 목록·상세 노출 **완료**, 지도 마커·타 유형은 후속)와 Task 046(계절 명소·야생동물, Step 1·2 완료·**Step 3(UI) 대기**)가 병렬 진행 중. Task 044는 ⏸보류(개인 접근 실시간 소스 부재). [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조.
 
 ---
 ## Task 의존성 요약
