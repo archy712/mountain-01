@@ -10,6 +10,7 @@ import type {
   DailyForecast,
   HourlyForecast,
   PartialResult,
+  PrecipitationType,
   WeatherForecast,
   WeatherSnapshot,
 } from "@/lib/types";
@@ -84,6 +85,119 @@ export function getVilageBaseDateTime(now: Date = new Date()): VilageBase {
 export function getTargetDateTime(now: Date = new Date()): { date: string; time: string } {
   const kst = toKst(now);
   return { date: toYmd(kst), time: `${pad2(kst.getUTCHours())}00` };
+}
+
+// ── 초단기실황(getUltraSrtNcst) — "지금" 현재값 보정 (Task 051) ──────────
+
+/** 초단기실황 제공 지연(분). 매시 정시 관측이 API 로 올라오기까지의 안전 여유. */
+const NCST_AVAILABILITY_MARGIN_MIN = 40;
+
+/**
+ * 초단기실황 발표(base_date/base_time)를 구한다. 매시 정시 관측이며 제공은 매시 40분경이라,
+ * 현재 분이 40분 미만이면 직전 시각으로 롤백한다(자정 경계 시 전날로).
+ */
+export function getUltraSrtNcstBaseDateTime(now: Date = new Date()): VilageBase {
+  const kst = toKst(now);
+  const useThisHour = kst.getUTCMinutes() >= NCST_AVAILABILITY_MARGIN_MIN;
+  const anchor = useThisHour ? kst : new Date(kst.getTime() - 60 * 60 * 1000);
+  return { baseDate: toYmd(anchor), baseTime: `${pad2(anchor.getUTCHours())}00` };
+}
+
+/** 초단기실황에서 뽑아내는 현재 관측값(결측은 null → 병합 시 무시). */
+export interface CurrentObservation {
+  /** T1H 기온(℃) */
+  tempC: number | null;
+  /** REH 상대습도(%) */
+  humidity: number | null;
+  /** WSD 풍속(m/s) */
+  windSpeedMs: number | null;
+  /** PTY 강수형태(실측). 미상이면 null */
+  pty: PrecipitationType | null;
+}
+
+/** 초단기실황 원시 응답(필요한 필드만). 값 필드는 `obsrValue`(예보의 fcstValue 와 다름). */
+interface NcstItem {
+  category: string;
+  obsrValue: string;
+}
+
+export interface NcstResponse {
+  response?: {
+    header?: { resultCode?: string; resultMsg?: string };
+    body?: { items?: { item?: NcstItem[] } };
+  };
+}
+
+/**
+ * 초단기실황 원시 응답 → 현재 관측값(`CurrentObservation`) 정규화.
+ * resultCode≠00·빈 items 는 failure. 개별 항목 결측은 null 로 두어 부분 병합을 허용한다.
+ * T1H·REH·WSD·PTY 중 하나도 못 읽으면 보정 의미가 없어 failure.
+ */
+export function normalizeUltraSrtNcst(raw: unknown): PartialResult<CurrentObservation> {
+  const res = raw as NcstResponse;
+  const code = res?.response?.header?.resultCode;
+  if (code !== "00") {
+    const msg = res?.response?.header?.resultMsg;
+    return {
+      status: "failure",
+      error: apiError("upstream_error", msg ? `기상청 실황 오류: ${msg}` : undefined),
+    };
+  }
+
+  const items = res?.response?.body?.items?.item;
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      status: "failure",
+      error: apiError("parse_error", "초단기실황 데이터가 비어 있습니다."),
+    };
+  }
+
+  const byCat = new Map<string, string>();
+  for (const it of items) byCat.set(it.category, it.obsrValue);
+
+  const tempC = parseOptionalNumber(byCat.get("T1H"));
+  const humidity = parseOptionalNumber(byCat.get("REH"));
+  const windSpeedMs = parseOptionalNumber(byCat.get("WSD"));
+  const ptyRaw = byCat.get("PTY");
+  const pty = ptyRaw !== undefined ? (PTY_CODE_MAP[ptyRaw] ?? null) : null;
+
+  if (tempC === null && humidity === null && windSpeedMs === null && pty === null) {
+    return {
+      status: "failure",
+      error: apiError("parse_error", "초단기실황에서 유효한 관측값을 찾지 못했습니다."),
+    };
+  }
+
+  return {
+    status: "success",
+    data: { tempC, humidity, windSpeedMs, pty },
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * 단기예보 스냅샷에 초단기실황(실측)을 덧씌워 "지금" 값을 보정한다.
+ * - 기온·습도·풍속·강수형태는 실측이 있으면 실측으로 교체(없으면 예보 유지).
+ * - 강수확률(POP)·하늘상태(SKY)·최저/최고는 실황에 없어 예보 값을 그대로 둔다.
+ * - 체감온도는 보정된 기온·풍속·습도로 재계산한다.
+ * 순수 함수(부수효과 없음)라 병합 규칙을 단위 검증할 수 있다.
+ */
+export function mergeSnapshotWithNcst(
+  snapshot: WeatherSnapshot,
+  obs: CurrentObservation,
+): WeatherSnapshot {
+  const tempC = obs.tempC ?? snapshot.tempC;
+  const humidity = obs.humidity ?? snapshot.humidity;
+  const windSpeedMs = obs.windSpeedMs ?? snapshot.windSpeedMs;
+  const pty = obs.pty ?? snapshot.pty;
+  return {
+    ...snapshot,
+    tempC,
+    humidity,
+    windSpeedMs,
+    pty,
+    feelsLikeC: computeFeelsLike(tempC, windSpeedMs, humidity),
+  };
 }
 
 // ── 원시 응답 타입(필요한 필드만) ────────────────────────────────────

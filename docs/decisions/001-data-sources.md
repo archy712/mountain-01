@@ -57,7 +57,8 @@
 - **당일(D-0) 현재값:** 초단기실황 / 향후 수시간: 초단기예보
 - **익일 이후:** 단기예보(3시간 단위)
 - 가장 정확하며 "지금 날씨"와 "내일 갈 만한가"를 모두 커버한다. `base_date`/`base_time` 발표 시각 규칙 구현 필요.
-- **영향 Task:** Task 016(기상청 연동 — base_time 산출 로직 포함)
+- **구현 현황:** Task 016 은 단기예보(`getVilageFcst`, `VilageFcstInfoService_2.0`)로 6종(TMP·POP·SKY·PTY·WSD·REH)을 채웠고, **Task 051 에서 초단기실황(`getUltraSrtNcst`)으로 "지금" 값(기온·습도·풍속·강수형태)을 보정**해 혼용 원안을 실현했다(POP·SKY·최저/최고는 단기예보 유지). 초단기예보(`getUltraSrtFcst`)로 직후 1~6시간 정밀화는 선택 후속.
+- **영향 Task:** Task 016(단기예보 연동 — base_time 산출), Task 051(초단기실황 현재값 보정)
 
 ## 🔶#5 — 미세먼지 측정소 매핑
 

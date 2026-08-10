@@ -18,15 +18,19 @@
 
 import { cacheLife, cacheTag } from "next/cache";
 import type { PartialResult, WeatherForecast, WeatherSnapshot } from "@/lib/types";
+import { hasData } from "@/lib/types";
 import { serverEnv } from "@/lib/env";
 import type { KmaGrid } from "@/lib/geo/kma-grid";
 import { fetchJson } from "./fetcher";
 import { withStaleFallback } from "./cache";
 import { CACHE_PROFILE, mountainTag, sourceTag, weatherKey } from "./cache";
-import type { VilageResponse } from "./kma-forecast-core";
+import type { CurrentObservation, NcstResponse, VilageResponse } from "./kma-forecast-core";
 import {
   getTargetDateTime,
+  getUltraSrtNcstBaseDateTime,
   getVilageBaseDateTime,
+  mergeSnapshotWithNcst,
+  normalizeUltraSrtNcst,
   normalizeVilageForecast,
   normalizeVilageForecastFull,
 } from "./kma-forecast-core";
@@ -39,6 +43,7 @@ export {
 } from "./kma-forecast-core";
 
 const VILAGE_FCST_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
+const ULTRA_NCST_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
 
 /**
  * 단기예보 원시 응답을 캐싱 조회한다(`'use cache'`, weather-30m).
@@ -79,8 +84,68 @@ async function fetchVilageForecast(
 }
 
 /**
+ * 초단기실황 원시 응답을 캐싱 조회한다(`'use cache'`, weather-30m).
+ * 캐시 키는 단기예보와 섞이지 않도록 `:ncst` 접미사를 붙인다(접두사는 "weather" 유지 →
+ * api_logs 계측에서 weather 소스로 집계). 매시각 발표라 baseTime 이 바뀌면 캐시가 갱신된다.
+ */
+async function fetchUltraSrtNcst(
+  mountainId: string,
+  nx: number,
+  ny: number,
+  baseDate: string,
+  baseTime: string,
+): Promise<NcstResponse> {
+  "use cache";
+  cacheLife(CACHE_PROFILE.weather);
+  cacheTag(
+    `${weatherKey(mountainId, baseDate, baseTime)}:ncst`,
+    mountainTag(mountainId),
+    sourceTag("weather"),
+  );
+
+  return fetchJson<NcstResponse>(ULTRA_NCST_URL, {
+    searchParams: {
+      serviceKey: decodeURIComponent(serverEnv.kmaServiceKey),
+      pageNo: 1,
+      numOfRows: 100,
+      dataType: "JSON",
+      base_date: baseDate,
+      base_time: baseTime,
+      nx,
+      ny,
+    },
+  });
+}
+
+/**
+ * 초단기실황(실측) 현재 관측값을 조회한다(best-effort). 실패는 격리해 null 을 반환하므로,
+ * 호출부는 단기예보 스냅샷을 그대로 유지(보정 생략)할 수 있다. 자체 stale 폴백·계측을 가진다.
+ */
+async function fetchNcstObservation(
+  mountainId: string,
+  grid: KmaGrid,
+  now: Date,
+): Promise<CurrentObservation | null> {
+  const { baseDate, baseTime } = getUltraSrtNcstBaseDateTime(now);
+  const key = `${weatherKey(mountainId, baseDate, baseTime)}:ncst`;
+
+  const result = await withStaleFallback(key, async () => {
+    const raw = await fetchUltraSrtNcst(mountainId, grid.nx, grid.ny, baseDate, baseTime);
+    const obs = normalizeUltraSrtNcst(raw);
+    if (obs.status === "failure") {
+      throw Object.assign(new Error(obs.error.message), { apiError: obs.error });
+    }
+    return obs.data;
+  });
+
+  return hasData(result) ? result.data : null;
+}
+
+/**
  * 산의 격자 좌표로 오늘 날씨 스냅샷을 조회한다.
- * 실패 시 마지막 성공 스냅샷으로 폴백("N분 전 기준"), 없으면 failure.
+ * 단기예보로 6종을 채운 뒤, **초단기실황(실측)으로 "지금" 값(기온·습도·풍속·강수형태)을
+ * 보정**한다(Task 051). 초단기실황 실패는 격리(단기예보 단독 유지). 단기예보 실패 시
+ * 마지막 성공 스냅샷으로 폴백("N분 전 기준"), 없으면 failure.
  */
 export async function getWeatherSnapshot(
   mountainId: string,
@@ -91,7 +156,7 @@ export async function getWeatherSnapshot(
   const target = getTargetDateTime(now);
   const key = weatherKey(mountainId, baseDate, baseTime);
 
-  return withStaleFallback(key, async () => {
+  const forecast = await withStaleFallback(key, async () => {
     const raw = await fetchVilageForecast(mountainId, grid.nx, grid.ny, baseDate, baseTime);
     const normalized = normalizeVilageForecast(raw, target.date, target.time);
     if (normalized.status === "failure") {
@@ -101,6 +166,13 @@ export async function getWeatherSnapshot(
     }
     return normalized.data;
   });
+
+  if (!hasData(forecast)) return forecast;
+
+  // 초단기실황으로 현재값 보정(실패 시 단기예보 스냅샷 유지). 신선도 상태는 단기예보 기준 유지.
+  const obs = await fetchNcstObservation(mountainId, grid, now);
+  const data = obs ? mergeSnapshotWithNcst(forecast.data, obs) : forecast.data;
+  return { ...forecast, data };
 }
 
 /**
@@ -117,7 +189,7 @@ export async function getWeatherForecast(
   const target = getTargetDateTime(now);
   const key = `${weatherKey(mountainId, baseDate, baseTime)}:forecast`;
 
-  return withStaleFallback(key, async () => {
+  const forecast = await withStaleFallback(key, async () => {
     const raw = await fetchVilageForecast(mountainId, grid.nx, grid.ny, baseDate, baseTime);
     const normalized = normalizeVilageForecastFull(raw, target.date, target.time);
     if (normalized.status === "failure") {
@@ -125,4 +197,14 @@ export async function getWeatherForecast(
     }
     return normalized.data;
   });
+
+  if (!hasData(forecast)) return forecast;
+
+  // 현재 스냅샷만 초단기실황으로 보정한다(시간대별/3일 예보는 단기예보 유지).
+  // getWeatherSnapshot 과 동일한 ncst 캐시 키라 추가 네트워크 없이 캐시 히트로 재사용된다.
+  const obs = await fetchNcstObservation(mountainId, grid, now);
+  const data = obs
+    ? { ...forecast.data, current: mergeSnapshotWithNcst(forecast.data.current, obs) }
+    : forecast.data;
+  return { ...forecast, data };
 }
