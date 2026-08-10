@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronRight, Mountain as MountainIcon } from "lucide-react";
+import { ChevronRight, Compass, Mountain as MountainIcon } from "lucide-react";
 
 import { HomeConditionsSkeleton } from "@/components/home-conditions-skeleton";
 import { HomeFavoriteConditions } from "@/components/home-favorite-conditions";
@@ -43,23 +43,43 @@ export default function HomePage() {
           카드 내부 <Suspense> 로 스트리밍된다 — 별도 바깥 Suspense 불필요. */}
       <TodayConditionPicks />
 
-      <Link href="/top100" className="block">
-        <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">
-          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-            aria-hidden="true"
-          >
-            <MountainIcon className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold tracking-tight">100대명산 둘러보기</span>
-            <span className="block text-xs text-muted-foreground">
-              산림청 선정 100대명산을 지역·고도로 탐색
+      <div className="space-y-3">
+        <Link href="/discover" className="block">
+          <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              aria-hidden="true"
+            >
+              <Compass className="size-5" />
             </span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        </Card>
-      </Link>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold tracking-tight">산 추천 받기</span>
+              <span className="block text-xs text-muted-foreground">
+                지역·고도·난이도로 오늘 갈 산 골라보기
+              </span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          </Card>
+        </Link>
+
+        <Link href="/top100" className="block">
+          <Card className="flex min-h-11 items-center gap-3 p-4 shadow-sm transition-colors hover:bg-accent">
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              aria-hidden="true"
+            >
+              <MountainIcon className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold tracking-tight">100대명산 둘러보기</span>
+              <span className="block text-xs text-muted-foreground">
+                산림청 선정 100대명산을 지역·고도로 탐색
+              </span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 }

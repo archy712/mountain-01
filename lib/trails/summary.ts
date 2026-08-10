@@ -3,7 +3,8 @@
  * 보여주기 위한 순수 집계. 프레임워크 무의존이라 단위 검증 가능하다.
  */
 
-import type { Trail } from "@/lib/types";
+import type { DifficultyLevel, Trail } from "@/lib/types";
+import { trailDifficultyLevel } from "@/lib/types";
 
 export interface TrailSummary {
   /** 전체 코스 수 */
@@ -58,4 +59,22 @@ export function summarizeTrails(trails: Trail[]): TrailSummary | null {
     shortestKm: distances.length ? Math.min(...distances) / 1000 : null,
     longestKm: distances.length ? Math.max(...distances) / 1000 : null,
   };
+}
+
+/**
+ * 산 단위 대표 난이도 (Task 042 산 추천 필터용). 코스별 오름 소요시간(`goMinutes`)을
+ * `trailDifficultyLevel`로 별 1~5단계 환산한 뒤 **중앙값(하위 중위값)**을 대표값으로 삼는다.
+ *
+ * 최댓값(가장 힘든 코스)이나 최솟값(가장 쉬운 코스)은 한쪽 극단 코스 하나에 좌우돼 산의
+ * 전형적 난이도를 왜곡한다(예: 쉬운 둘레길 1개가 있는 험산이 "쉬움"으로 뜸). 중앙값은
+ * 코스 분포의 중심을 잡아 "이 산에 가면 대체로 이 정도"를 나타낸다. 시간 정보가 있는 코스가
+ * 하나도 없으면(국립공원 외 등) null → 화면에서 "정보 없음" 처리.
+ */
+export function representativeDifficulty(goMinutesList: (number | null)[]): DifficultyLevel | null {
+  const levels = goMinutesList
+    .map((m) => trailDifficultyLevel(m))
+    .filter((l): l is DifficultyLevel => l !== null)
+    .sort((a, b) => a - b);
+  if (levels.length === 0) return null;
+  return levels[Math.floor((levels.length - 1) / 2)];
 }
