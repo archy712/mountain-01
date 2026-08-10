@@ -11,13 +11,15 @@
  * 쓰기를 생략해 행 폭증을 막는다(결정 003 #9). 저장은 서비스 롤 키가 있을 때만 수행된다.
  */
 
-import type { ConditionBundle, HourlyConditionTrend, PartialResult } from "@/lib/types";
+import type { ConditionBundle, HourlyConditionTrend, PartialResult, Trail } from "@/lib/types";
 import { hasData } from "@/lib/types";
 import { getWeatherForecast, getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getAirQuality } from "@/lib/api/airkorea";
 import { getUvIndex } from "@/lib/api/kma-uv";
+import { getTrailsForMountain } from "@/lib/data/mountain-detail";
+import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { assessConditionFactors, computeConditionScore } from "./score";
-import { computeHourlyConditionTrend } from "./hourly";
+import { computeHourlyConditionTrend, type DaylightInput } from "./hourly";
 import { recommendGear } from "./gear-rules";
 import { readCachedScore, writeScore } from "./cache";
 
@@ -93,10 +95,11 @@ export async function getConditionTrendForMountain(
   mountain: ConditionMountainInput,
   now: Date = new Date(),
 ): Promise<PartialResult<HourlyConditionTrend>> {
-  const [forecastResult, airResult, uvResult] = await Promise.all([
+  const [forecastResult, airResult, uvResult, trailsResult] = await Promise.all([
     getWeatherForecast(mountain.id, { nx: mountain.gridNx, ny: mountain.gridNy }, now),
     getAirQuality(mountain.id, mountain.lat, mountain.lng, now),
     getUvIndex(mountain.id, now),
+    getTrailsForMountain(mountain.id, now),
   ]);
 
   // 예보는 추이의 핵심 입력 — 사용 가능한 데이터가 없으면 추이를 낼 수 없다.
@@ -106,7 +109,9 @@ export async function getConditionTrendForMountain(
 
   const air = hasData(airResult) ? airResult.data : null;
   const uv = hasData(uvResult) ? uvResult.data : null;
-  const trend = computeHourlyConditionTrend({ forecast: forecastResult.data, air, uv });
+  // 안전 출발(일몰) 입력: 긴 코스 왕복 + 오늘 일몰. 코스 소요시간이 없으면 undefined(제약 없음).
+  const daylight = buildDaylightInput(mountain, trailsResult, now);
+  const trend = computeHourlyConditionTrend({ forecast: forecastResult.data, air, uv, daylight });
 
   // 예보가 stale 이면 추이 신선도도 stale 로 승계.
   if (forecastResult.status === "stale") {
@@ -119,4 +124,49 @@ export async function getConditionTrendForMountain(
   }
 
   return { status: "success", data: trend, fetchedAt: forecastResult.fetchedAt };
+}
+
+/** 개방 코스 1건의 왕복 소요(분). 오는시간 결측 시 오름의 0.8배로 근사. 소요 미상이면 null. */
+function trailRoundTripMin(t: Trail): number | null {
+  if (t.goMinutes == null || t.goMinutes <= 0) return null;
+  const come =
+    t.comeMinutes != null && t.comeMinutes > 0 ? t.comeMinutes : Math.round(t.goMinutes * 0.8);
+  return t.goMinutes + come;
+}
+
+/** 오름차순 배열의 p분위(nearest-rank). 빈 배열이면 0. */
+function percentile(sortedAsc: number[], p: number): number {
+  if (sortedAsc.length === 0) return 0;
+  const rank = Math.ceil(p * sortedAsc.length);
+  return sortedAsc[Math.min(sortedAsc.length - 1, Math.max(0, rank - 1))];
+}
+
+/**
+ * 안전 출발(일몰) 입력을 만든다. 참조 왕복시간은 **개방 코스 왕복시간의 상위 80퍼센타일**로
+ * 잡아, 초장거리 종주 1개(예: 북한산 13km 종주)가 오후 전체를 "너무 늦음"으로 만드는 왜곡을
+ * 피한다(전 코스가 장거리인 한라산은 사실상 최장에 수렴). 코스 소요시간이 전무하면 undefined
+ * (일몰 제약 없이 컨디션만으로 추천).
+ */
+function buildDaylightInput(
+  mountain: ConditionMountainInput,
+  trailsResult: PartialResult<Trail[]>,
+  now: Date,
+): DaylightInput | undefined {
+  if (!hasData(trailsResult)) return undefined;
+
+  const roundTrips = trailsResult.data
+    .filter((t) => t.status !== "closed" && t.status !== "unknown")
+    .map(trailRoundTripMin)
+    .filter((v): v is number => v !== null)
+    .sort((a, b) => a - b);
+
+  const roundTripMin = percentile(roundTrips, 0.8);
+  if (roundTripMin <= 0) return undefined;
+
+  const sunset = getSunTimesToday(mountain.lat, mountain.lng, now).sunset;
+  if (!sunset) return undefined;
+  const [h, m] = sunset.split(":").map(Number);
+  const sunsetMinutes = h * 60 + m;
+
+  return { roundTripMin, sunsetMinutes };
 }

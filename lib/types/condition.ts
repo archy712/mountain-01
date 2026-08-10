@@ -103,6 +103,26 @@ export interface HourlyConditionPoint {
   /** 0~100 컨디션 점수 */
   score: number;
   grade: ScoreGrade;
+  /**
+   * 이 시각에 출발하면 일몰 전 하산이 가능한지(긴 코스 왕복시간+버퍼 기준, Task 039 후속).
+   * 안전 출발 데이터(소요시간·일몰)가 없으면 제약 없음으로 true.
+   */
+  daylightSafe: boolean;
+}
+
+/**
+ * 안전 출발 안내 (Task 039 후속). 긴 코스 왕복시간과 일몰로 "언제까지 출발해야 일몰 전
+ * 하산하는지"를 계산한다. 공식 입산통제 시각 데이터는 없어 일몰 기준으로 파생한다.
+ */
+export interface DaylightGuidance {
+  /** 참조 왕복 소요(분) — 개방 코스 왕복시간의 상위 80퍼센타일("긴 코스") */
+  roundTripMin: number;
+  /** 오늘 일몰 KST "HH:MM" */
+  sunsetLabel: string;
+  /** 일몰 전 하산하려면 늦어도 출발해야 하는 시각 "HH:MM" */
+  latestStartLabel: string;
+  /** 표시된 오늘 시간대 중 안전한 출발 슬롯이 하나도 없으면 true(이미 늦음) */
+  allTooLate: boolean;
 }
 
 /**
@@ -114,6 +134,8 @@ export interface HourlyConditionTrend {
   points: HourlyConditionPoint[];
   /** 가장 점수가 높은 지점의 index(동점이면 이른 시각). points 가 비면 -1 */
   bestIndex: number;
+  /** 안전 출발 안내(왕복시간·일몰 기반). 계산 불가(코스 소요시간 부족 등) 시 null */
+  daylight: DaylightGuidance | null;
 }
 
 /** 조건별 장비 추천 1건 (PRD 4.2 규칙 엔진 산출, Task 024) */
