@@ -11,12 +11,13 @@
  * 쓰기를 생략해 행 폭증을 막는다(결정 003 #9). 저장은 서비스 롤 키가 있을 때만 수행된다.
  */
 
-import type { ConditionBundle, PartialResult } from "@/lib/types";
+import type { ConditionBundle, HourlyConditionTrend, PartialResult } from "@/lib/types";
 import { hasData } from "@/lib/types";
-import { getWeatherSnapshot } from "@/lib/api/kma-forecast";
+import { getWeatherForecast, getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getAirQuality } from "@/lib/api/airkorea";
 import { getUvIndex } from "@/lib/api/kma-uv";
 import { computeConditionScore } from "./score";
+import { computeHourlyConditionTrend } from "./hourly";
 import { recommendGear } from "./gear-rules";
 import { readCachedScore, writeScore } from "./cache";
 
@@ -74,4 +75,46 @@ export async function getConditionForMountain(
   }
 
   return { status: "success", data: bundle, fetchedAt: weatherResult.fetchedAt };
+}
+
+/**
+ * 산의 오늘 시간대별 컨디션 추이("언제 가면 좋은지")를 산출한다(Task 039).
+ *
+ * 확장 예보(시간별)와 대기질·자외선 스냅샷을 병렬 조회한다. 세 소스 모두
+ * `getConditionForMountain` 과 **동일한 캐시 키**를 쓰므로(같은 요청에서 이미 채워짐)
+ * 추가 네트워크 없이 캐시 히트로 재사용된다. 예보가 없으면 추이를 낼 수 없어 failure,
+ * 대기질/자외선 결측은 감점 후보에서 제외될 뿐 추이 자체는 유지된다. 점수 저장(DB)은
+ * 하지 않는다(파생 뷰라 `getConditionForMountain` 의 캐시 행으로 충분).
+ * @param now 계산 시각 주입(테스트 결정성). 기본 now.
+ */
+export async function getConditionTrendForMountain(
+  mountain: ConditionMountainInput,
+  now: Date = new Date(),
+): Promise<PartialResult<HourlyConditionTrend>> {
+  const [forecastResult, airResult, uvResult] = await Promise.all([
+    getWeatherForecast(mountain.id, { nx: mountain.gridNx, ny: mountain.gridNy }, now),
+    getAirQuality(mountain.id, mountain.lat, mountain.lng, now),
+    getUvIndex(mountain.id, now),
+  ]);
+
+  // 예보는 추이의 핵심 입력 — 사용 가능한 데이터가 없으면 추이를 낼 수 없다.
+  if (!hasData(forecastResult)) {
+    return { status: "failure", error: forecastResult.error };
+  }
+
+  const air = hasData(airResult) ? airResult.data : null;
+  const uv = hasData(uvResult) ? uvResult.data : null;
+  const trend = computeHourlyConditionTrend({ forecast: forecastResult.data, air, uv });
+
+  // 예보가 stale 이면 추이 신선도도 stale 로 승계.
+  if (forecastResult.status === "stale") {
+    return {
+      status: "stale",
+      data: trend,
+      fetchedAt: forecastResult.fetchedAt,
+      error: forecastResult.error,
+    };
+  }
+
+  return { status: "success", data: trend, fetchedAt: forecastResult.fetchedAt };
 }

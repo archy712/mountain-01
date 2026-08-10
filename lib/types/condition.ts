@@ -65,6 +65,31 @@ export interface ConditionScore {
   computedAt: string;
 }
 
+/**
+ * 시간대별 컨디션 1건 (Task 039). 단기예보의 각 시각 슬롯을 컨디션 점수로 환산한 값.
+ * "오늘 언제 가면 좋은지"를 판단시키기 위한 추이의 한 점이다.
+ */
+export interface HourlyConditionPoint {
+  /** 예보 일자(YYYYMMDD) */
+  date: string;
+  /** 예보 시각(HHmm, 정시) */
+  time: string;
+  /** 0~100 컨디션 점수 */
+  score: number;
+  grade: ScoreGrade;
+}
+
+/**
+ * 시간대별 컨디션 추이 (Task 039). 앞으로의 슬롯별 점수 목록과 가장 좋은 지점을 담는다.
+ * 동일 단기예보 응답 하나(추가 네트워크 없음)에서 파생한다.
+ */
+export interface HourlyConditionTrend {
+  /** 시각 순 정렬된 슬롯별 컨디션 점수 */
+  points: HourlyConditionPoint[];
+  /** 가장 점수가 높은 지점의 index(동점이면 이른 시각). points 가 비면 -1 */
+  bestIndex: number;
+}
+
 /** 조건별 장비 추천 1건 (PRD 4.2 규칙 엔진 산출, Task 024) */
 export interface GearItem {
   id: string;

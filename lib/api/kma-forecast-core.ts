@@ -270,6 +270,7 @@ export function buildHourlyForecast(
       const popRaw = byCat.get("POP")?.get(time);
       const skyRaw = byCat.get("SKY")?.get(time);
       const ptyRaw = byCat.get("PTY")?.get(time);
+      const wsdRaw = byCat.get("WSD")?.get(time);
       out.push({
         date,
         time,
@@ -277,6 +278,8 @@ export function buildHourlyForecast(
         pop: Number.isNaN(Number(popRaw)) ? 0 : Number(popRaw),
         sky: skyRaw ? (SKY_CODE_MAP[skyRaw] ?? "cloudy") : "cloudy",
         pty: ptyRaw ? (PTY_CODE_MAP[ptyRaw] ?? "none") : "none",
+        // WSD 결측 시 0 으로 폴백(풍속 감점 0 → 과대평가 대신 중립).
+        windSpeedMs: Number.isNaN(Number(wsdRaw)) ? 0 : Number(wsdRaw),
       });
     }
   }

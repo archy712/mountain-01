@@ -12,6 +12,7 @@ import { VisitedButton } from "@/components/visited-button";
 import { MountainViewTracker } from "@/components/mountain-view-tracker";
 import { FullscreenMapLink } from "@/components/fullscreen-map-link";
 import { GearRecommendationList } from "@/components/gear-recommendation-list";
+import { HourlyConditionTrend } from "@/components/hourly-condition-trend";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { KakaoMap } from "@/components/kakao-map";
 import { LoadingBar } from "@/components/loading-bar";
@@ -25,7 +26,7 @@ import { TrailList } from "@/components/trail-list";
 import { TrailSelectionProvider } from "@/components/trail-selection";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherForecast } from "@/lib/api/kma-forecast";
-import { getConditionForMountain } from "@/lib/condition";
+import { getConditionForMountain, getConditionTrendForMountain } from "@/lib/condition";
 import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { getAllMountains } from "@/lib/data/mountains";
 import {
@@ -106,6 +107,12 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
       <Suspense fallback={<ConditionSectionSkeleton />}>
         <ConditionSection mountain={mountain} />
+      </Suspense>
+
+      {/* "지금 갈 만한가"(위 히어로)를 "오늘 언제 가면 좋은가"로 확장(Task 039).
+          시간대별 컨디션 추이를 독립 스트리밍한다. */}
+      <Suspense fallback={<ConditionTrendSkeleton />}>
+        <ConditionTrendSection mountain={mountain} />
       </Suspense>
 
       <Suspense fallback={<WeatherCardSkeleton />}>
@@ -238,6 +245,30 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
 }
 
 /**
+ * 시간대별 컨디션 추이 스트리밍 서브트리 (Task 039). 확장 예보(시간별) + 대기질·자외선을
+ * 병렬 조회해 슬롯별 점수를 낸다. 세 소스 모두 `ConditionSection`·`WeatherSection` 과 동일한
+ * 캐시 키를 재사용하므로 추가 네트워크가 없다. 예보 자체가 없으면(추이 불가) 섹션을 숨긴다
+ * (날씨 카드가 별도로 실패를 안내). 매 요청 달라지는 동적 데이터라 connection() 명시.
+ */
+async function ConditionTrendSection({ mountain }: { mountain: Mountain }) {
+  await connection();
+  const result = await getConditionTrendForMountain({
+    id: mountain.id,
+    gridNx: mountain.gridNx,
+    gridNy: mountain.gridNy,
+    lat: mountain.lat,
+    lng: mountain.lng,
+  });
+
+  if (!hasData(result) || result.data.points.length === 0) return null;
+  return (
+    <div className="rounded-lg border p-5">
+      <HourlyConditionTrend trend={result.data} />
+    </div>
+  );
+}
+
+/**
  * 날씨 스트리밍 서브트리. 격자 좌표로 오늘 스냅샷을 조회한다(실패는 카드가 폴백).
  * 날씨는 발표시각·외부 API 로 **매 요청 달라지는 동적 데이터**라, 정적 셸 프리렌더에
  * 끌려 들어가지 않도록 `connection()` 으로 동적 홀임을 명시한다(현재 시각 사용 허용).
@@ -339,6 +370,29 @@ function ConditionSectionSkeleton() {
       <div className="space-y-2">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-[116px] w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 시간대별 컨디션 추이 스트리밍 대기용 스켈레톤 (Task 039).
+ *
+ * 실제 섹션은 제목 행 + 막대 8개(점수·막대·라벨·마커)로 구성된다. 콜드 스트리밍에서
+ * 아래 섹션을 밀어내지 않도록 실제 구조·높이를 예약한다(CLS 회피, Task 032).
+ */
+function ConditionTrendSkeleton() {
+  return (
+    <div className="rounded-lg border p-5" aria-busy="true">
+      <LoadingBar className="mb-4" />
+      <div className="mb-2 flex items-center justify-between">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      <div className="flex items-end gap-1">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-[92px] w-11 rounded-md" />
+        ))}
       </div>
     </div>
   );

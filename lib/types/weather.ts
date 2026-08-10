@@ -94,6 +94,8 @@ export interface HourlyForecast {
   sky: SkyCondition;
   /** PTY 강수형태 */
   pty: PrecipitationType;
+  /** WSD 풍속(m/s) — 슬롯별 컨디션 점수의 풍속 감점 산출용(Task 039) */
+  windSpeedMs: number;
 }
 
 /** 일자별 예보 1건 (Task 034). 단기예보 범위(오늘~약 3일)의 하루 요약. */

@@ -6,5 +6,6 @@
 export * from "./score";
 export * from "./grade";
 export * from "./gear-rules";
+export * from "./hourly";
 export * from "./service";
 export * from "./cache";

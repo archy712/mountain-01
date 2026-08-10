@@ -547,26 +547,26 @@
 
 > 이미 앱이 보유한 데이터(시간별 예보 `getWeatherForecast`·`visited`·`is_top100`·산 메타·탐방로 난이도)만으로 구현한다. **신규 외부 API·시드가 필요 없어 난이도가 낮고**, 핵심 가치("갈까 말까")를 "언제/어디로"까지 확장하는 고효율 확장 라인. Task 039～042는 상호 독립이라 병렬 진행 가능하다.
 
-- **Task 039: 오늘 시간대별 컨디션 추이 ("언제 가면 좋은지")** - 우선순위
-  - **개요**: 상세 화면에 오늘 남은 시간대별 컨디션 점수 추이를 미니 그래프(막대/스파크라인)로 노출해 "가라/말라"를 "**언제 가라**"로 확장한다. Task 034 `getWeatherForecast`의 시간별 예보를 슬롯별 점수로 환산하므로 **추가 외부 네트워크 0**.
-  - **관련 파일**: `lib/api/kma-forecast.ts`(시간별 예보 재사용), `lib/condition/{score,service}.ts`(슬롯별 점수 산출 순수 함수), 신규 `components/hourly-condition-trend.tsx`, `app/(main)/mountains/[id]/page.tsx`(섹션 삽입), `tailwind.config.ts`(필요 시 키프레임)
+- **✅ Task 039: 오늘 시간대별 컨디션 추이 ("언제 가면 좋은지")** - 완료
+  - **개요**: 상세 화면에 앞으로의 시간대별 컨디션 점수 추이를 막대 그래프로 노출해 "가라/말라"를 "**언제 가라**"로 확장한다. Task 034 `getWeatherForecast`의 시간별 예보를 슬롯별 점수로 환산하며, 컨디션 히어로·날씨 섹션과 **동일 캐시 키를 재사용**해 추가 외부 네트워크가 없다.
   - **수락 기준**:
-    - [ ] 오늘 남은 시간대(예: 3시간 간격)별 컨디션 점수/등급이 시각화된다(색상 단독 금지, 수치·등급 텍스트 병기).
-    - [ ] 가장 좋은 시간대가 강조되고 안내 문구가 노출된다("오전 9시경 가장 좋아요").
-    - [ ] 추가 외부 API 호출이 발생하지 않는다(기존 예보 응답 재사용, 네트워크 로그로 확인).
-    - [ ] 예보 부분 실패 시 추이 섹션만 격리 폴백되고 다른 섹션은 정상 렌더된다.
-    - [ ] 360px 레이아웃 깨짐 0, `motion-reduce:` 모션 축소 대응.
+    - [x] 앞으로의 시간대별 컨디션 점수/등급을 막대로 시각화(각 막대에 점수 숫자 병기 + sr-only "N시 등급 N점" 텍스트 대안 → 색상 단독 금지 준수).
+    - [x] 가장 좋은 시각을 "추천" 마커 + "오전 9시경이 가장 좋아요" 문장으로 강조.
+    - [x] 추가 외부 API 호출 0 — `getWeatherForecast`·`getAirQuality`·`getUvIndex`가 히어로/날씨 섹션과 같은 `'use cache'`/`withStaleFallback` 키를 히트(라이브 콘솔 에러 0).
+    - [x] 예보 실패 시 추이 섹션만 숨김(`hasData` 가드) — 날씨 카드가 별도 실패 안내, 타 섹션 독립 렌더.
+    - [x] 360px 레이아웃 깨짐 0(막대는 `overflow-x-auto` 컨테이너 내 스크롤). 모션 애니메이션 미사용이라 motion-reduce 이슈 없음.
   - **구현 단계**:
-    - [ ] 시간별 예보 슬롯 → 컨디션 점수 환산 순수 함수 추가(기존 감점 로직 재사용, 프레임워크 무의존으로 분리해 단위 검증 가능).
-    - [ ] 시간 해상도가 낮은 대기질·자외선은 스냅샷 값을 각 슬롯에 공통 적용하고 근거를 주석에 명시.
-    - [ ] `HourlyConditionTrend` 표현 컴포넌트(막대/스파크라인·최적 시간대 강조·`role="img"` aria 라벨).
-    - [ ] 상세 페이지 독립 `<Suspense>` + 실제 높이 스켈레톤으로 스트리밍 삽입(CLS 0).
-    - [ ] 단위 테스트(하루 끝 슬롯 부족·전 슬롯 우천·데이터 결측 경계).
+    - [x] 슬롯별 점수 환산 순수 함수 `computeHourlyConditionTrend`(`lib/condition/hourly.ts`) — 기존 `computeConditionScore` 재사용, 프레임워크 무의존.
+    - [x] 시간 해상도 낮은 대기질·자외선은 스냅샷 값을 전 슬롯 공통 적용(근거 주석). 시간별 풍속 감점을 위해 `HourlyForecast`에 `windSpeedMs` 추가(`buildHourlyForecast`가 WSD 캡처).
+    - [x] 오케스트레이터 `getConditionTrendForMountain`(`lib/condition/service.ts`) — 예보+대기+자외선 병렬 조회, stale 승계, 점수 DB 미저장(파생 뷰).
+    - [x] 표현 컴포넌트 `components/hourly-condition-trend.tsx`(막대·최적 시각 강조·sr-only 대안). 상세 페이지 독립 `<Suspense>` + 실제 높이 스켈레톤(`ConditionTrendSkeleton`, CLS 회피)으로 스트리밍 삽입.
+    - [x] 단위 검증 11/11 통과(쾌적 vs 우천 점수·동점 이른 시각 best·빈 예보·limit·풍속 슬롯값·WSD 캡처/결측 폴백).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 라이브 산 1곳에서 시간대별 막대·최적 시간대 강조 렌더 확인.
-    - [ ] 우천 예보 산에서 전 시간대 낮은 점수·"가급적 자제" 표현 확인.
-    - [ ] 네트워크 탭에서 상세 진입 시 예보 호출이 1회(기존)만 발생함을 확인.
-    - [ ] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+    - [x] 라이브(북한산 360px): 컨디션 히어로(95) ↔ 날씨 섹션 사이에 추이 렌더, 9시 95(추천)→16시 88 하강(오후 고온), "오전 9시경이 가장 좋아요" 확인. 엔진과 수치 일치(31℃→−12→88).
+    - [x] 우천 케이스는 단위 테스트로 검증(라이브는 당일 전국 맑음). "전 슬롯 낮음" 경로 확인.
+    - [x] 서버가 히어로/날씨와 캐시 공유(동일 키)로 추가 외부 호출 없음 — 구조적 보장 + 라이브 콘솔 에러 0.
+    - [x] 콘솔 에러/경고 0, `typecheck`·`lint`·`build` 통과.
+  - **산출물**: ✅ `lib/condition/hourly.ts`, `lib/condition/{service,index}.ts`, `components/hourly-condition-trend.tsx`, `app/(main)/mountains/[id]/page.tsx`(섹션·스켈레톤), `lib/types/{weather,condition}.ts`, `lib/api/kma-forecast-core.ts`(WSD 캡처)
   - **의존성**: Task 034(확장 예보), Task 023(점수 엔진)
 
 - **Task 040: 산행 기록 통계 & 100대명산 진척**
