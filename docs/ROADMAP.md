@@ -569,23 +569,24 @@
   - **산출물**: ✅ `lib/condition/hourly.ts`, `lib/condition/{service,index}.ts`, `components/hourly-condition-trend.tsx`, `app/(main)/mountains/[id]/page.tsx`(섹션·스켈레톤), `lib/types/{weather,condition}.ts`, `lib/api/kma-forecast-core.ts`(WSD 캡처)
   - **의존성**: Task 034(확장 예보), Task 023(점수 엔진)
 
-- **Task 040: 산행 기록 통계 & 100대명산 진척**
-  - **개요**: `visited` + `is_top100`을 집계해 마이페이지에 "올해 다녀온 산 수·**100대명산 진척률**·지역별 분포·최근 방문"을 노출한다. 순수 SQL 집계라 신규 소스 없음. 재방문율 KPI(7일 재방문·PRD 2장)에 직결.
-  - **관련 파일**: 신규 `lib/data/visited-stats.ts`(집계 쿼리, `'use cache'` 또는 요청 시 집계), 신규 `components/visited-stats.tsx`, `app/(main)/mypage/page.tsx` 또는 `app/(main)/visited/page.tsx`(요약 카드 삽입)
+- **✅ Task 040: 산행 기록 통계 & 100대명산 진척** - 완료
+  - **개요**: `visited` + `is_top100`을 집계해 **방문완료 화면 상단**에 "다녀온 산 수·올해 방문 수·**100대명산 진척(N/100)**·지역 분포"를 노출한다. 외부 API 없이 방문 기록만으로 즉시 렌더돼 재방문율 KPI(7일 재방문·PRD 2장)를 뒷받침한다. **배치는 `/visited`**(기록 화면이라 가장 문맥적, 마이페이지는 이미 개수 배지 보유).
   - **수락 기준**:
-    - [ ] 마이페이지/방문 목록에 총 방문 산 수·올해 방문 수·100대명산 진척(N/100)·지역별 분포가 표시된다.
-    - [ ] 100대명산 진척률은 `visited`와 `is_top100` 교집합으로 정확히 계산된다(RLS로 본인 데이터만).
-    - [ ] 방문 기록 0건일 때 빈 상태 안내가 노출된다.
-    - [ ] 외부 API 미사용(방문 "기록"이라 점수 스트리밍 불필요) — 즉시 렌더.
+    - [x] 방문 목록 상단에 총 방문 수·올해 방문 수·100대명산 진척(N/100)·지역 분포가 표시된다(라이브: 3곳·3곳·2/100·강원1·서울1·서울·경기1).
+    - [x] 100대명산 진척은 `visited`↔`is_top100` 교집합으로 계산(RLS 본인 행만). `is_top100` FK 임베드로 별도 쿼리 없이 산출.
+    - [x] 방문 0건일 때 통계 패널을 숨기고 목록의 빈 상태 안내가 렌더된다(라이브 확인).
+    - [x] 외부 API 미사용 — DB 한 번 조회로 목록·통계를 함께 산출, 즉시 렌더.
+    - [x] 색상 단독 금지: 진척은 막대 + "2 / 100 (2%)" 숫자 + `role="progressbar"` aria, 지역은 칩에 개수 병기.
   - **구현 단계**:
-    - [ ] 집계 쿼리 작성(`count`·`group by region`·`is_top100` 교집합), 본인 행만 집계됨을 RLS로 보장.
-    - [ ] `VisitedStats` 표현 컴포넌트(진척 바·지역 칩·색상 단독 금지).
-    - [ ] 마이페이지 요약/방문 목록 상단에 삽입, 스켈레톤 높이 정합(CLS).
-    - [ ] 경계 검증(방문 0건·중복 없음·비-100대명산만 방문한 경우 진척 0).
+    - [x] 순수 집계 함수 `computeVisitedStats`(`lib/data/visited-stats.ts`) — total·올해(KST 연도)·top100 교집합·지역 group by(내림차순·동수 가나다), 진척 상한 방어.
+    - [x] `VisitedStats` + `VisitedStatsSkeleton` 표현 컴포넌트(타일 3 + 진척 바 + 지역 칩, CLS 회피 스켈레톤).
+    - [x] `/visited` 조회를 목록+통계 겸용으로 확장(`is_top100` 임베드), 패널을 목록 위에 삽입, Suspense 폴백에 통계 스켈레톤 정합.
+    - [x] 경계 단위 검증 15/15(0건·비-100대명산만·연도 KST 경계·지역 정렬·진척 상한 클램프).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 로그인 후 방문 2~3건 등록 → 통계 수치·100대명산 진척·지역 분포 정확 표시.
-    - [ ] 다른 계정 데이터가 집계에 섞이지 않음(RLS) 확인.
-    - [ ] 빈 상태 렌더, 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+    - [x] 로그인 후 방문 3건 등록(북한산·설악산·남산) → 통계·진척·지역 분포 정확 표시(엔진 예측과 일치), 목록 3건 노출.
+    - [x] RLS 로 본인 3행만 집계됨 확인(다른 계정 데이터 미혼입).
+    - [x] 3건 인라인 해제 → 재조회 시 빈 상태·통계 패널 숨김 확인(테스트 데이터 정리 완료). 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+  - **산출물**: ✅ `lib/data/visited-stats.ts`, `components/visited-stats.tsx`, `app/(main)/visited/page.tsx`(통계 삽입·조회 확장)
   - **의존성**: Task 036(100대명산·`is_top100`), Task 037(방문완료)
 
 - **Task 041: 산 상세 공유 (Web Share / 링크 복사)**

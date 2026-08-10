@@ -4,6 +4,8 @@ import { connection } from "next/server";
 
 import { VisitedList, type VisitedItem } from "@/components/visited-list";
 import { VisitedListSkeleton } from "@/components/visited-list-skeleton";
+import { VisitedStats, VisitedStatsSkeleton } from "@/components/visited-stats";
+import { computeVisitedStats, type VisitedStatsRow } from "@/lib/data/visited-stats";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -21,6 +23,7 @@ type VisitedMountain = {
   name: string;
   region: string;
   altitude: number | null;
+  is_top100: boolean;
 };
 
 type VisitedRow = {
@@ -42,23 +45,37 @@ function formatVisitedLabel(iso: string): string {
   return visitedDateFormatter.format(new Date(iso)).replace(/\.\s?/g, ".").replace(/\.$/, "");
 }
 
-/** 방문한 산 메타 + 방문일을 조회한다(DB 전용, 빠름). visited_at 내림차순. */
-async function loadVisited(): Promise<VisitedItem[]> {
+/**
+ * 방문한 산 메타 + 방문일을 조회한다(DB 전용, 빠름). visited_at 내림차순.
+ * 한 번의 조회로 목록 카드(items)와 통계 집계 입력(statsRows)을 함께 만든다.
+ * `is_top100` 임베드로 100대명산 진척을 별도 쿼리 없이 산출한다(Task 040).
+ */
+async function loadVisited(): Promise<{ items: VisitedItem[]; statsRows: VisitedStatsRow[] }> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("visited")
-    .select("mountain_id, visited_at, mountains(id, name, region, altitude)")
+    .select("mountain_id, visited_at, mountains(id, name, region, altitude, is_top100)")
     .order("visited_at", { ascending: false });
 
-  return ((data ?? []) as VisitedRow[])
-    .filter((r): r is VisitedRow & { mountains: VisitedMountain } => r.mountains !== null)
-    .map((r) => ({
-      mountainId: r.mountains.id,
-      name: r.mountains.name,
-      region: r.mountains.region,
-      altitude: r.mountains.altitude,
-      visitedLabel: formatVisitedLabel(r.visited_at),
-    }));
+  const rows = ((data ?? []) as VisitedRow[]).filter(
+    (r): r is VisitedRow & { mountains: VisitedMountain } => r.mountains !== null,
+  );
+
+  const items: VisitedItem[] = rows.map((r) => ({
+    mountainId: r.mountains.id,
+    name: r.mountains.name,
+    region: r.mountains.region,
+    altitude: r.mountains.altitude,
+    visitedLabel: formatVisitedLabel(r.visited_at),
+  }));
+
+  const statsRows: VisitedStatsRow[] = rows.map((r) => ({
+    visitedAt: r.visited_at,
+    region: r.mountains.region,
+    isTop100: r.mountains.is_top100,
+  }));
+
+  return { items, statsRows };
 }
 
 /**
@@ -74,15 +91,30 @@ async function VisitedContent() {
     redirect("/auth/login?next=/visited");
   }
 
-  const items = await loadVisited();
-  return <VisitedList initial={items} />;
+  const { items, statsRows } = await loadVisited();
+  const stats = computeVisitedStats(statsRows);
+
+  // 기록이 있을 때만 통계 패널을 노출한다(0건은 목록의 빈 상태 안내가 대신 렌더된다).
+  return (
+    <div className="flex flex-col gap-6">
+      {items.length > 0 ? <VisitedStats stats={stats} /> : null}
+      <VisitedList initial={items} />
+    </div>
+  );
 }
 
 export default function VisitedPage() {
   return (
     <section className="flex flex-col gap-6 py-6">
       <h1 className="text-xl font-bold">방문완료</h1>
-      <Suspense fallback={<VisitedListSkeleton />}>
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-6">
+            <VisitedStatsSkeleton />
+            <VisitedListSkeleton />
+          </div>
+        }
+      >
         <VisitedContent />
       </Suspense>
     </section>
