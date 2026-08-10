@@ -24,7 +24,7 @@ export async function getFacilitiesForMountain(id: string): Promise<Facility[]> 
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("facilities")
-    .select("id, mountain_id, type, name, lat, lng, accessible, address, elevation")
+    .select("id, mountain_id, type, name, lat, lng, accessible, capacity, address, elevation")
     .eq("mountain_id", id)
     .order("name", { ascending: true });
 
@@ -38,6 +38,7 @@ export async function getFacilitiesForMountain(id: string): Promise<Facility[]> 
     lat: r.lat,
     lng: r.lng,
     accessible: r.accessible,
+    capacity: r.capacity,
     address: r.address,
     elevation: r.elevation,
   }));

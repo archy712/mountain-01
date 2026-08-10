@@ -59,6 +59,9 @@ export function FacilityList({ facilities }: { facilities: Facility[] }) {
                   >
                     <span className="truncate">{f.name}</span>
                     <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                      {f.capacity != null && f.capacity > 0 ? (
+                        <span className="tabular-nums">{f.capacity}명</span>
+                      ) : null}
                       {f.elevation != null ? (
                         <span className="tabular-nums">{f.elevation}m</span>
                       ) : null}

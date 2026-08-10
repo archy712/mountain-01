@@ -14,7 +14,9 @@
 
 /** 사무소코드 → 산 slug(gen-mountains 의 slug 와 동일). 1501 은 코스명으로 분리하므로 제외. */
 export const OFFICE_TO_MOUNTAIN_SLUG: Record<string, string> = {
-  "101": "jirisan", // 지리산
+  "101": "jirisan", // 지리산(본소)
+  "102": "jirisan", // 지리산(사무소 분소 — 대피소 데이터에서 등장)
+  "103": "jirisan", // 지리산(사무소 분소 — 대피소 데이터에서 등장)
   "201": "gyeryongsan", // 계룡산
   "401": "seoraksan", // 설악산
   "501": "songnisan", // 속리산(괴산 칠보산·쌍곡 지구 포함)
@@ -28,6 +30,7 @@ export const OFFICE_TO_MOUNTAIN_SLUG: Record<string, string> = {
   "1601": "sobaeksan", // 소백산
   "1701": "wolchulsan", // 월출산
   "2001": "hallasan", // 한라산
+  "1502": "dobongsan", // 도봉산(북한산 국립공원 도봉지구 별도 사무소코드 — 대피소 데이터에서 등장)
 };
 
 /** 북한산 국립공원(1501) 중 도봉지구로 분류할 코스명 키워드(도봉 고유 능선·봉우리·탐방지원센터). */

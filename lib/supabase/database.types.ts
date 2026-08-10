@@ -118,6 +118,7 @@ export type Database = {
         Row: {
           accessible: boolean
           address: string | null
+          capacity: number | null
           created_at: string
           elevation: number | null
           id: string
@@ -130,6 +131,7 @@ export type Database = {
         Insert: {
           accessible?: boolean
           address?: string | null
+          capacity?: number | null
           created_at?: string
           elevation?: number | null
           id?: string
@@ -142,6 +144,7 @@ export type Database = {
         Update: {
           accessible?: boolean
           address?: string | null
+          capacity?: number | null
           created_at?: string
           elevation?: number | null
           id?: string

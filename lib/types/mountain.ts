@@ -96,6 +96,8 @@ export interface Facility {
   lng: number;
   /** 장애인 편의(화장실) 유무 */
   accessible: boolean;
+  /** 수용 인원(대피소). 해당 없으면 null */
+  capacity: number | null;
   /** 지번 주소. 없으면 null */
   address: string | null;
   /** 고도(m). 미상이면 null */

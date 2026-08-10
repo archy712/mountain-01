@@ -13,7 +13,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { splitCsvLine } from "../../lib/trails/parse-knps-csv";
-import { OFFICE_TO_MOUNTAIN_SLUG } from "../../lib/api/mountain-name-matcher";
+import { resolveFacilityMountainSlug } from "./facility-mapping";
 
 // 결정론적 UUID v5 네임스페이스(gen-mountains.mjs·gen-trails.ts 와 동일). id/mountain_id 는
 // SQL 의 uuid_generate_v5 로 계산하므로(재실행 멱등) JS 측 계산은 두지 않는다.
@@ -39,18 +39,6 @@ function parseFloatOrNull(v: string | undefined): number | null {
   if (s === "") return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
-}
-
-/**
- * 사무소코드(+명칭·주소) → 산 slug. 북한산 사무소(1501)만 주소로 북한산/도봉산 분리
- * (도봉구·의정부·양주 또는 명칭 "도봉/회룡/송추" → 도봉산). 그 외 미매핑 사무소는 null.
- */
-function resolveFacilityMountainSlug(office: string, name: string, address: string): string | null {
-  if (office === "1501") {
-    const isDobong = /도봉구|의정부|양주/.test(address) || /도봉|회룡|송추/.test(name);
-    return isDobong ? "dobongsan" : "bukhansan";
-  }
-  return OFFICE_TO_MOUNTAIN_SLUG[office] ?? null;
 }
 
 // 주의: `국립공원관리번호(ID_CD)` 는 원본 CSV 가 Excel 지수표기(예: 1.50102E+11)로 손상돼
