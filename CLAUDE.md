@@ -8,17 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 명령어
 
-```bash
-npm run dev          # 개발 서버 (HTTP 헤더 크기 제한을 32768로 늘려서 실행)
-npm run build        # 프로덕션 빌드
-npm run start        # 프로덕션 서버 실행
-npm run lint         # ESLint 검사 (eslint-config-next의 core-web-vitals + typescript)
-npm run lint:fix     # ESLint 자동 수정
-npm run typecheck    # 타입 체크 (tsc --noEmit)
-npm run format       # Prettier 전체 포맷
-npm run format:check # Prettier 포맷 위반 검사 (CI용)
-```
-
+- `npm run dev`은 HTTP 헤더 크기 제한을 32768로 늘려 실행합니다(그 외 `build`/`start`/`lint`/`lint:fix`/`typecheck`/`format`/`format:check` 스크립트는 `package.json` 참고).
 - 테스트 러너/스크립트는 아직 구성되어 있지 않습니다. (E2E는 Playwright MCP로 수행하는 것이 이 저장소의 방향이며 `docs/ROADMAP.md`에 명시)
 - 환경변수는 `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` 두 개만 필요합니다. 값이 없으면 `lib/utils.ts`의 `hasEnvVars`가 `false`가 되어 UI가 튜토리얼/경고 모드로 폴백합니다(`components/env-var-warning.tsx`, `lib/supabase/proxy.ts`).
 
