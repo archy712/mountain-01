@@ -285,6 +285,82 @@ export type Database = {
           },
         ]
       }
+      review_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reporter_id: string
+          review_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reporter_id: string
+          review_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reporter_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          created_at: string
+          id: string
+          is_hidden: boolean
+          mountain_id: string
+          rating: number
+          report_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          mountain_id: string
+          rating: number
+          report_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          mountain_id?: string
+          rating?: number
+          report_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       search_logs: {
         Row: {
           created_at: string
@@ -410,7 +486,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      report_review: { Args: { p_review_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

@@ -228,20 +228,25 @@
     - [ ] `typecheck`·`lint`·`build` 통과.
   - **의존성**: Task 030(PWA), Task 026(즐겨찾기)
 
-- **Task 048: 사용자 후기·별점**
+- **✅ Task 048: 사용자 후기·별점** — 완료(2026-08-11)
   - **개요**: 방문자 리뷰·코스별 별점. 유용성은 높으나 **모더레이션·스팸 대응 운영 비용**이 크다. PRD 8장 명시적 제외 항목 → 수요 확인 시 편입. `visited`/`profiles` 위에 얹는다.
-  - **관련 파일**: 신규 `supabase/migrations/*_reviews.sql`, 신규 `app/api/reviews/*`, 신규 `components/{review-form,review-list}.tsx`, `app/(main)/mountains/[id]/page.tsx`
+  - **관련 파일**: ✅ `supabase/migrations/20260811000000_reviews.sql`·`20260811000100_analytics_review_events.sql`(적용됨), `app/api/reviews/{route,report/route}.ts`, `lib/reviews/summary.ts`(집계 순수 로직)·`lib/data/reviews.ts`(서버 read), `components/{star-rating,review-form,review-list,reviews-panel,review-section}.tsx`, `app/(main)/mountains/[id]/page.tsx`(섹션·스켈레톤), `lib/analytics/client.ts`·`app/api/analytics/route.ts`(이벤트 화이트리스트), `lib/supabase/database.types.ts` 재생성, `scratchpad/test-review-summary.ts`
+  - **제품 결정(작업 착수 시 확정)**: ① 작성 자격 = **방문완료(visited)한 산만**(RLS insert with_check 에서 visited EXISTS 강제) ② 모더레이션 = **신고 누적 자동 숨김**(임계치 3회) ③ 입력 = **별점 필수(1~5)·텍스트 선택**.
   - **수락 기준**:
-    - [ ] 로그인 사용자가 별점/후기를 작성·수정·삭제할 수 있다(본인 RLS).
-    - [ ] 상세에 평균 별점·최근 후기가 노출되고, 신고/숨김 등 기본 모더레이션 수단이 있다.
-    - [ ] 방문완료(`visited`) 사용자만 작성 등 남용 억제 정책을 적용한다.
+    - [x] 로그인 사용자가 별점/후기를 작성·수정·삭제할 수 있다(본인 RLS). 라이브(가리산): 5점 작성→표시→4점 수정→삭제 라운드트립, 낙관적 업데이트+`router.refresh()` 재조정.
+    - [x] 상세에 평균 별점·최근 후기가 노출되고(요약 카드: 평균·후기 수·별점 분포 막대), 신고/숨김 등 기본 모더레이션 수단이 있다(신고 누적 3회 → `is_hidden` 자동 전환).
+    - [x] 방문완료(`visited`) 사용자만 작성 등 남용 억제 정책을 적용한다. SQL 시뮬(authenticated 롤): 방문완료 산 insert 성공 / 미방문 산 insert 42501 거부.
   - **구현 단계**:
-    - [ ] 리뷰 스키마·RLS·집계(평균 별점) 설계.
-    - [ ] 작성/목록 API + 낙관적 업데이트 UI(기존 favorite/visited 패턴 재사용).
-    - [ ] 모더레이션(신고·숨김)·스팸 억제 정책.
+    - [x] 리뷰 스키마·RLS·집계(평균 별점) 설계. — `reviews`(공개 read=숨김 제외+본인, visited-only insert, 본인 update/delete, `(user_id,mountain_id)` 유니크)·`review_reports`(RLS 잠금) + `report_review()` SECURITY DEFINER RPC(중복 신고 멱등·임계치 자동 숨김) + BEFORE UPDATE 트리거(모더레이션 컬럼 GUC 가드). 집계는 `computeReviewSummary` 순수 함수(단위 8/8).
+    - [x] 작성/목록 API + 낙관적 업데이트 UI(기존 favorite/visited 패턴 재사용). — `/api/reviews`(upsert·author_name 스냅샷·별점 검증)·`/api/reviews/report`(RPC), `ReviewsPanel`(작성/수정/삭제/신고 낙관적).
+    - [x] 모더레이션(신고·숨김)·스팸 억제 정책. — 신고 누적 3회 자동 숨김, 작성자 직접 UPDATE 로 `report_count`/`is_hidden` 조작 불가(트리거 가드), `review_reports` 직접 쓰기 차단(정의자 RPC 만).
+  - **구현 노트**:
+    - **모더레이션 컬럼 보호**: 정의자 함수만 트랜잭션-로컬 GUC(`app.moderation='on'`)로 `report_count`/`is_hidden` 을 갱신하고, 일반 UPDATE 는 BEFORE UPDATE 트리거가 두 컬럼을 OLD 로 복원한다. `report_review()` 는 `authenticated` 에만 grant(anon revoke, 린트 0028/0029 의도된 예외).
+    - **리뷰어 표시명**: `profiles` 는 본인만 조회 RLS 라 타인 이름을 조인할 수 없어, 작성 시 API 가 본인 프로필(닉네임>이름)을 `author_name` 으로 스냅샷한다(없으면 "익명 사용자" 폴백).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 작성→표시→수정→삭제 라운드트립, 본인 외 접근 차단(RLS), 평균 별점 정확.
-    - [ ] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+    - [x] 작성→표시→수정→삭제 라운드트립(라이브 가리산: 5.0→요약/카드→4.0 수정→삭제 후 빈 상태), 평균 별점·분포 정확, 콘솔 에러 0.
+    - [x] 본인 외 접근 차단(RLS) — authenticated 롤 SQL 시뮬로 검증: 미방문 insert 42501, 작성자 tamper UPDATE 복원(report_count 0·is_hidden false, rating 만 반영), 신고 중복 멱등(count 1), 3회 누적 자동 숨김(is_hidden true), 숨김 후기 anon 0행·작성자 1행, `review_reports` 직접 insert 42501.
+    - [x] `analytics_events` review_add/remove 적재 확인(CHECK 통과, 테스트 telemetry 정리). 순수 로직 단위 **8/8**. `typecheck`·`lint`·`build` 통과.
   - **의존성**: Task 026(인증/즐겨찾기), Task 037(방문완료)
 
 - **Task 049: 주차·교통·입장료** (필요성 재검토 대상)

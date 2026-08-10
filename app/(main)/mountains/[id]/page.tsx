@@ -24,6 +24,7 @@ import { LoadingBar } from "@/components/loading-bar";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
+import { ReviewSection, ReviewSectionSkeleton } from "@/components/review-section";
 import { ScoreBreakdown } from "@/components/score-breakdown";
 import { SeasonalNotice } from "@/components/seasonal-notice";
 import { ShareButton } from "@/components/share-button";
@@ -219,6 +220,12 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
             FacilityList 가 null 을 반환해 섹션이 사라진다. */}
         <FacilityList />
       </FacilitySelectionProvider>
+
+      {/* 등산객 후기·별점(Task 048). 방문완료한 사용자만 작성, 신고 누적 자동 숨김 모더레이션.
+          작성 자격·본인 후기 판정이 세션 의존이라 독립 <Suspense> 로 동적 스트리밍한다. */}
+      <Suspense fallback={<ReviewSectionSkeleton />}>
+        <ReviewSection mountainId={mountain.id} />
+      </Suspense>
     </div>
   );
 }
