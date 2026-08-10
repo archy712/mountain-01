@@ -189,17 +189,17 @@
   - **의존성**: Task 014, Task 017(시드 파이프라인), (지도 시) Task 029
   - **테스트 노트**: 스키마·RLS·시드가 있으므로 API/비즈니스 로직 작업으로 간주 → 위 Playwright 시나리오 필수.
 
-- **Task 046: 계절 명소·야생동물 주의**
-  - **개요**: 단풍·설경 등 시즌 정보와 곰·멧돼지 등 야생동물 출몰 주의를 큐레이션 정적 콘텐츠 + 시즌 기간 판정으로 노출한다(기존 `seasonal-closure.ts` 기간 판정 로직과 유사).
-  - **관련 파일**: 신규 `supabase/migrations/*_seasonal_content.sql` 또는 시드 데이터, 신규 `lib/data/seasonal.ts`, 신규 `lib/seasonal/period.ts`(기간 판정 순수 로직), 신규 `components/seasonal-notice.tsx`, `app/(main)/mountains/[id]/page.tsx`
+- **✅ Task 046: 계절 명소·야생동물 주의** — 완료(2026-08-10)
+  - **개요**: 단풍·설경 등 시즌 정보와 반달곰 등 야생동물 출몰 주의를 큐레이션 정적 콘텐츠 + 시즌 기간 판정으로 노출한다(기존 `seasonal-closure.ts` 기간 판정 로직 재사용). 외부 소스·DB 없이 코드 내 정적 데이터.
+  - **관련 파일**: `lib/data/seasonal.ts`(큐레이션·타입), `lib/seasonal/period.ts`(기간 판정 순수 로직), `components/seasonal-notice.tsx`, `app/(main)/mountains/[id]/page.tsx`(`<SeasonalSection>`), `scratchpad/test-seasonal.ts`(단위 검증)
   - **수락 기준**:
-    - [ ] 조회일이 해당 시즌(예: 단풍 기간)에 들면 시즌 안내가 노출된다.
-    - [ ] 야생동물 주의 정보가 있으면 경고 배너(아이콘+텍스트)로 노출된다.
-    - [ ] 시즌 밖/데이터 없음이면 섹션 미노출.
+    - [x] 조회일이 해당 시즌(예: 단풍 기간)에 들면 시즌 안내가 노출된다.
+    - [x] 야생동물 주의 정보가 있으면 경고 배너(아이콘+텍스트)로 노출된다.
+    - [x] 시즌 밖/데이터 없음이면 섹션 미노출.
   - **구현 단계**:
     - [x] 시즌·주의 콘텐츠 큐레이션 데이터 정의(산×시즌×기간). — `lib/data/seasonal.ts`(산 id(uuid) 키, 22개 산 단풍·설경·철쭉·억새 + 반달곰 지리산·덕유산). 기간은 `seasonal-closure.ts` `SeasonalPeriod`(연말 wrap) 재사용. typecheck 통과.
     - [x] 기간 판정 순수 함수(KST 자정 경계·연말 wrap 처리) + 단위 검증. — `lib/seasonal/period.ts`(`isSeasonActive`·`getActiveSeasonalContent`, `seasonal-closure` 프리미티브 재사용). 단위 검증 `scratchpad/test-seasonal.ts` **30/30 pass**, typecheck 통과.
-    - [ ] 표현 컴포넌트 삽입, 색상 단독 금지·접근성 준수. — `components/seasonal-notice.tsx` + 상세 페이지
+    - [x] 표현 컴포넌트 삽입, 색상 단독 금지·접근성 준수. — `components/seasonal-notice.tsx`(명소 칩 + 야생동물 경고 배너, 아이콘+텍스트 병기, `--grade-dangerous` 톤) + 상세 `<SeasonalSection>`(오늘 KST 기준 `connection()` 동적, 비활성 시 미노출). **build 통과**.
   - **테스트 체크리스트 (Playwright MCP)**:
     - [ ] 시즌 내/외 날짜에서 안내 노출·미노출 경계 확인, 야생동물 경고 렌더.
     - [ ] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.

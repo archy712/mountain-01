@@ -105,10 +105,10 @@
 | Phase 7 | 개인화·콘텐츠 확장                 | 036~038 | ✅ 완료                   | [Phase 5~7](roadmap/phase-5-7-quality-personalization.md) |
 | Phase 8 | 판단·개인화 고도화 (신규 소스 X)   | 039~042, 051 | ✅ 완료 (039~042·051)     | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 9 | 핵심 판단 데이터 강화 (신규 소스)  | 043~044, 052 | ✅ 완료 (043·052 완료 · 044 ⏸보류) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
-| Phase 10 | 콘텐츠 확장 (정적 시드)           | 045~046 | 🚧 진행 중 (045 화장실 완료 · 046 Step 3 대기) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
+| Phase 10 | 콘텐츠 확장 (정적 시드)           | 045~046 | ✅ 완료 (045 화장실·대피소·지도마커 · 046 계절/야생동물) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 11 | 고비용·후순위                     | 047~050 | ⬜ 예정                   | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 
-- **진행 중:** Task 045(편의시설·**화장실+대피소** — 목록·상세 + **지도 마커/클러스터링 완료**, 총 519건, 식수대/매점은 후속)와 Task 046(계절 명소·야생동물, Step 1·2 완료·**Step 3(UI) 대기**)가 병렬 진행 중. Task 044는 ⏸보류(개인 접근 실시간 소스 부재). [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조.
+- **Phase 10 완료:** Task 045(편의시설 화장실+대피소, 목록·상세·지도 마커/클러스터링, 519건)·Task 046(계절 명소·야생동물 주의) 완료. Task 044는 ⏸보류(개인 접근 실시간 소스 부재). **다음 후보:** Phase 11(고비용·후순위 — 푸시·후기·주차·사진, 필요성 재검토 후 착수) 또는 045 후속(식수대/매점). [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조.
 
 ---
 ## Task 의존성 요약
