@@ -168,8 +168,9 @@
 
 > 신규 소스가 필요하지만 대부분 정적 데이터라 **검증된 국립공원공단 CSV 시드 파이프라인**(`parse-knps-csv.ts`·`gen-trails.ts` 패턴)을 재사용한다.
 
-- **✅ Task 045: 편의시설 (화장실 범위)** — 완료(목록·상세 노출). 지도 마커·대피소/식수대/매점 확장은 후속(2026-08-10)
-  - **개요**: 국립공원 편의시설 공공데이터를 `trails`처럼 정적 시드로 적재하고 상세/지도에 노출한다. **1차 범위는 화장실**(`GSTN_TOILET_PT.csv`), 대피소·식수대·매점은 형제 데이터셋 확보 시 확장.
+- **✅ Task 045: 편의시설 (화장실 + 대피소)** — 완료(목록·상세 노출). 지도 마커·식수대/매점 확장은 후속(2026-08-10)
+  - **개요**: 국립공원 편의시설 공공데이터를 `trails`처럼 정적 시드로 적재하고 상세/지도에 노출한다. **화장실**(`GSTN_TOILET_PT.csv`, 492건) + **대피소**(`shelter_*.csv`, 27건, 수용인원 포함). 식수대·매점은 형제 데이터셋 확보 시 확장.
+  - **대피소 확장(2026-08-10)**: `facilities.capacity` 컬럼 추가(마이그레이션 `*_facilities_capacity.sql`), `supabase/seed/gen-shelters.ts`(멀티라인 헤더 → 고정 인덱스 파싱, id `shelter-` 네임스페이스로 화장실과 무충돌), 매핑 표에 지리산 102·103·도봉산 1502 반영(`OFFICE_TO_MOUNTAIN_SLUG`). 27개 100% 매핑(지리산 8·한라 7·설악 5·북한 3·덕유 2·오대 1·도봉 1). 총 facilities **519건**.
   - **소스·매핑 확정(결정 001 "편의시설 데이터(Task 045)" 절)**: `GSTN_TOILET_PT.csv`(KNPS 화장실 포인트, data.go.kr, CP949, 600행, 좌표 결측 0). 사무소코드가 탐방로 CSV와 동일 → `OFFICE_TO_MOUNTAIN_SLUG` 재사용(약 497/600 매핑). 북한산 사무소(1501)는 주소(도봉구·의정부·양주→도봉산) 분리. 해상·경주 등 미매핑 사무소·USE_YN=0 제외.
   - **관련 파일**: 신규 `supabase/migrations/*_facilities.sql`, 신규 `supabase/seed/{gen-facilities.ts,facilities.sql}`, 신규 `lib/data/facilities.ts`, 신규 `components/facility-list.tsx`, `app/(main)/mountains/[id]/page.tsx`, (지도 POI 시) `components/*map*`, `lib/supabase/database.types.ts` 재생성
   - **수락 기준**:
