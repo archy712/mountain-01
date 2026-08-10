@@ -16,7 +16,7 @@ import { hasData } from "@/lib/types";
 import { getWeatherForecast, getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getAirQuality } from "@/lib/api/airkorea";
 import { getUvIndex } from "@/lib/api/kma-uv";
-import { computeConditionScore } from "./score";
+import { assessConditionFactors, computeConditionScore } from "./score";
 import { computeHourlyConditionTrend } from "./hourly";
 import { recommendGear } from "./gear-rules";
 import { readCachedScore, writeScore } from "./cache";
@@ -55,8 +55,10 @@ export async function getConditionForMountain(
 
   const score = computeConditionScore({ weather: weatherResult.data, air, uv, now });
   const gear = recommendGear({ weather: weatherResult.data, air, uv });
+  // 좋은 요인까지 포함한 전체 요인 평가(점수 근거 UI 용). 엔진과 동일 감점 로직 재사용.
+  const factors = assessConditionFactors({ weather: weatherResult.data, air, uv });
   // air/uv 원값도 함께 반환해 상세 화면이 감점 근거를 실제 수치로 노출하게 한다(Task 034).
-  const bundle: ConditionBundle = { score, gear, air, uv };
+  const bundle: ConditionBundle = { score, gear, air, uv, factors };
 
   // 신선한 캐시 행이 없을 때만 저장(행 폭증 방지 + "조회" 경로 겸용).
   const existing = await readCachedScore(mountain.id);

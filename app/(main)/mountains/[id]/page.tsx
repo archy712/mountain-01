@@ -250,7 +250,7 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
   });
 
   if (!hasData(result)) return null;
-  const { score, gear, air, uv } = result.data;
+  const { score, gear, air, uv, factors } = result.data;
 
   // 게이지 자체가 `aria-labelledby` 로 라벨된 섹션이라, 래퍼는 랜드마크·제목을 중복하지
   // 않도록 순수 스타일 컨테이너(div)로 둔다. 감점 근거 아래에 대기질·자외선 실수치를
@@ -258,7 +258,7 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
   return (
     <div className="space-y-4 rounded-lg border p-5">
       <ConditionScoreGauge condition={score} />
-      <ScoreBreakdown condition={score} />
+      <ScoreBreakdown factors={factors} />
       {air || uv ? <AirUvSummary air={air} uv={uv} className="border-t pt-4" /> : null}
       <GearRecommendationList gear={gear} />
     </div>
@@ -375,11 +375,13 @@ function ConditionSectionSkeleton() {
         <Skeleton className="h-6 w-24" />
         <Skeleton className="h-4 w-48" />
       </div>
-      {/* 감점 근거 리스트 */}
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
+      {/* 점수 근거 카드(전체 요인 5행 + 요약) */}
+      <div className="space-y-2.5 rounded-lg border p-4">
+        <Skeleton className="h-5 w-20" />
+        {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-9 w-full rounded-md" />
         ))}
+        <Skeleton className="h-4 w-3/4" />
       </div>
       {/* 대기질·자외선 3타일 패널 */}
       <div className="grid grid-cols-3 gap-2 border-t pt-4">

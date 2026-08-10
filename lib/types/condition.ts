@@ -49,6 +49,32 @@ export interface ScoreBreakdownItem {
   penalty: number;
 }
 
+/**
+ * 요인 상태 (Task 041 후속, 점수 근거 UI 확장).
+ * good: 감점 0(양호) / caution: 감점 있음(유의) / excluded: 데이터 결측으로 계산 제외.
+ */
+export type FactorStatus = "good" | "caution" | "excluded";
+
+/**
+ * 요인별 종합 평가 1건 — "왜 이 점수인지"를 좋은 요인까지 포함해 전부 보여주기 위한 표시용 모델.
+ * 감점된 요인만 나열하던 breakdown 과 달리, 6개 입력을 5개 표시 요인(강수확률·강수형태는 '강수'로
+ * 병합)으로 정리해 좋은 날에도 근거가 알차게 채워지게 한다. 계산 로직은 점수 엔진을 그대로 재사용한다.
+ */
+export interface ScoreFactorAssessment {
+  factor: ScoreFactor;
+  /** 요인 라벨(예: "기온", "강수", "미세먼지") */
+  label: string;
+  /** 현재 값 표기(예: "27℃", "20%", "3.9㎧", "좋음", "6", "정보 없음") */
+  valueText: string;
+  /** 짧은 질적 코멘트(예: "한낮 다소 높음", "걱정 없음", "잔잔함") */
+  note: string;
+  status: FactorStatus;
+  /** 감점(양수 magnitude, good/excluded 이면 0) */
+  penalty: number;
+  /** 이 요인의 최대 감점(막대 정규화용) */
+  maxPenalty: number;
+}
+
 export interface ConditionScore {
   /** 0~100 (감점 합 100 초과 시 0 클램프) */
   score: number;
@@ -114,4 +140,6 @@ export interface ConditionBundle {
   air: AirQuality | null;
   /** 점수 산출에 쓰인 자외선 원값(조회 실패 시 null) */
   uv: UvIndex | null;
+  /** 요인별 종합 평가(좋은 요인 포함 전체) — 점수 근거 UI 용 */
+  factors: ScoreFactorAssessment[];
 }
