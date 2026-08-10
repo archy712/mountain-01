@@ -147,31 +147,45 @@ function percentile(sortedAsc: number[], p: number): number {
 }
 
 /**
+ * 코스 소요시간을 모르는 산(국립공원 외 등 탐방로 미보유)의 보수적 기본 왕복 소요(분).
+ * 일반적인 반나절 산행(왕복 ~2시간)을 가정한다. 이 값이 없으면 일몰 가드가 아예 꺼져
+ * 저녁이 시원해 점수가 높다는 이유로 **일몰 후 출발**을 추천하는 문제가 생긴다(청계산 등).
+ * 안전 방향(과소추정 금지)으로 잡되, 향후 큐레이션 소스로 산별 정밀화 여지가 있다.
+ */
+const DEFAULT_ROUND_TRIP_MIN = 120;
+
+/**
  * 안전 출발(일몰) 입력을 만든다. 참조 왕복시간은 **개방 코스 왕복시간의 상위 80퍼센타일**로
  * 잡아, 초장거리 종주 1개(예: 북한산 13km 종주)가 오후 전체를 "너무 늦음"으로 만드는 왜곡을
- * 피한다(전 코스가 장거리인 한라산은 사실상 최장에 수렴). 코스 소요시간이 전무하면 undefined
- * (일몰 제약 없이 컨디션만으로 추천).
+ * 피한다(전 코스가 장거리인 한라산은 사실상 최장에 수렴). **코스 소요시간이 없으면 기본
+ * 추정치(`DEFAULT_ROUND_TRIP_MIN`)로 대체**해 일몰 가드를 유지한다(estimated=true). 일몰
+ * 자체를 구할 수 없을 때만 undefined(가드 없음).
  */
 function buildDaylightInput(
   mountain: ConditionMountainInput,
   trailsResult: PartialResult<Trail[]>,
   now: Date,
 ): DaylightInput | undefined {
-  if (!hasData(trailsResult)) return undefined;
-
-  const roundTrips = trailsResult.data
-    .filter((t) => t.status !== "closed" && t.status !== "unknown")
-    .map(trailRoundTripMin)
-    .filter((v): v is number => v !== null)
-    .sort((a, b) => a - b);
-
-  const roundTripMin = percentile(roundTrips, 0.8);
-  if (roundTripMin <= 0) return undefined;
+  // 개방 코스 왕복시간 상위 80퍼센타일. 코스 데이터가 없거나 소요시간이 전무하면 기본 추정치.
+  let roundTripMin = DEFAULT_ROUND_TRIP_MIN;
+  let estimated = true;
+  if (hasData(trailsResult)) {
+    const roundTrips = trailsResult.data
+      .filter((t) => t.status !== "closed" && t.status !== "unknown")
+      .map(trailRoundTripMin)
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => a - b);
+    const p80 = percentile(roundTrips, 0.8);
+    if (p80 > 0) {
+      roundTripMin = p80;
+      estimated = false;
+    }
+  }
 
   const sunset = getSunTimesToday(mountain.lat, mountain.lng, now).sunset;
   if (!sunset) return undefined;
   const [h, m] = sunset.split(":").map(Number);
   const sunsetMinutes = h * 60 + m;
 
-  return { roundTripMin, sunsetMinutes };
+  return { roundTripMin, sunsetMinutes, estimated };
 }

@@ -148,14 +148,18 @@ export function HourlyConditionTrend({ trend, className }: { trend: Trend; class
         })}
       </ul>
 
-      {/* 안전 출발(일몰) 안내 */}
+      {/* 안전 출발(일몰) 안내. estimated(코스 소요 미상)면 "긴 코스" 대신 일반 산행 기준으로 안내. */}
       {daylight ? (
         <p className="flex items-start gap-1.5 border-t pt-2 text-xs text-muted-foreground">
           <Sunset className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           <span>
-            {tooLate
-              ? `긴 코스는 왕복 약 ${formatDuration(daylight.roundTripMin)}이라, 지금 출발하면 일몰(${daylight.sunsetLabel}) 전 하산이 어려워요. 짧은 코스나 이른 출발을 권장해요.`
-              : `긴 코스 왕복 약 ${formatDuration(daylight.roundTripMin)} · 일몰 ${daylight.sunsetLabel} — 일몰 전 하산하려면 늦어도 ${friendlyHm(daylight.latestStartLabel)}엔 출발하세요.`}
+            {daylight.estimated
+              ? tooLate
+                ? `일몰(${daylight.sunsetLabel})이 가까워요 — 지금 출발하면 하산이 어두워질 수 있어 이른 출발을 권장해요.`
+                : `일몰 ${daylight.sunsetLabel} · 일반 산행 기준 — 일몰 전 하산하려면 늦어도 ${friendlyHm(daylight.latestStartLabel)}엔 출발하세요.`
+              : tooLate
+                ? `긴 코스는 왕복 약 ${formatDuration(daylight.roundTripMin)}이라, 지금 출발하면 일몰(${daylight.sunsetLabel}) 전 하산이 어려워요. 짧은 코스나 이른 출발을 권장해요.`
+                : `긴 코스 왕복 약 ${formatDuration(daylight.roundTripMin)} · 일몰 ${daylight.sunsetLabel} — 일몰 전 하산하려면 늦어도 ${friendlyHm(daylight.latestStartLabel)}엔 출발하세요.`}
           </span>
         </p>
       ) : null}

@@ -149,6 +149,11 @@ export interface DaylightGuidance {
   latestStartLabel: string;
   /** 표시된 오늘 시간대 중 안전한 출발 슬롯이 하나도 없으면 true(이미 늦음) */
   allTooLate: boolean;
+  /**
+   * 왕복시간이 실제 코스 데이터가 아니라 **기본 추정치**인지 여부(국립공원 외 산 등
+   * 코스 소요시간 미보유). true 면 "긴 코스" 대신 "일반 산행 기준"으로 안내한다.
+   */
+  estimated: boolean;
 }
 
 /**

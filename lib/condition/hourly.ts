@@ -35,6 +35,8 @@ export interface DaylightInput {
   sunsetMinutes: number;
   /** 일몰 전 하산 여유 버퍼(분). 기본 60 */
   bufferMin?: number;
+  /** 왕복시간이 코스 데이터가 아니라 기본 추정치인지(안내 문구 구분용). 기본 false */
+  estimated?: boolean;
 }
 
 export interface HourlyConditionInput {
@@ -117,6 +119,7 @@ export function computeHourlyConditionTrend(input: HourlyConditionInput): Hourly
           sunsetLabel: minutesToHm(daylight.sunsetMinutes),
           latestStartLabel: minutesToHm(latestStartMin),
           allTooLate,
+          estimated: daylight.estimated ?? false,
         }
       : null;
 
