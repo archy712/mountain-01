@@ -86,6 +86,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 95,
       comeMinutes: 75,
       waypoints: "우이동~하루재~백운대",
+      hasPath: true,
     },
     {
       id: "bukhansan-2",
@@ -99,6 +100,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 80,
       comeMinutes: 60,
       waypoints: "산성탐방지원센터~백운봉암문~백운대",
+      hasPath: true,
     },
     {
       id: "bukhansan-3",
@@ -112,6 +114,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 120,
       comeMinutes: 100,
       waypoints: null,
+      hasPath: true,
     },
   ],
   seoraksan: [
@@ -127,6 +130,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 240,
       comeMinutes: 180,
       waypoints: "오색~설악폭포~대청봉",
+      hasPath: true,
     },
     {
       id: "seoraksan-2",
@@ -140,6 +144,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 300,
       comeMinutes: 240,
       waypoints: null,
+      hasPath: true,
     },
   ],
   jirisan: [
@@ -155,6 +160,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 158,
       comeMinutes: 158,
       waypoints: null,
+      hasPath: true,
     },
     {
       id: "jirisan-2",
@@ -168,6 +174,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 181,
       comeMinutes: 181,
       waypoints: null,
+      hasPath: true,
     },
   ],
   hallasan: [
@@ -183,6 +190,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 270,
       comeMinutes: 240,
       waypoints: "성판악~진달래밭~정상(동능)",
+      hasPath: true,
     },
     {
       id: "hallasan-2",
@@ -196,6 +204,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 300,
       comeMinutes: 270,
       waypoints: null,
+      hasPath: true,
     },
   ],
   gwanaksan: [
@@ -211,6 +220,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 90,
       comeMinutes: 70,
       waypoints: null,
+      hasPath: true,
     },
     {
       id: "gwanaksan-2",
@@ -224,6 +234,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: 80,
       comeMinutes: 60,
       waypoints: null,
+      hasPath: true,
     },
   ],
   // 국립공원 외 커버리지 밖 케이스(결정 001 #4): 탐방로 정보 없음
@@ -240,6 +251,7 @@ export const MOCK_TRAILS: Record<string, Trail[]> = {
       goMinutes: null,
       comeMinutes: null,
       waypoints: null,
+      hasPath: true,
     },
   ],
 };

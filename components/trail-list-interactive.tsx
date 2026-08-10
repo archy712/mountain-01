@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Split } from "lucide-react";
+import { MapPinOff, Split } from "lucide-react";
 
 import { TrailDifficulty } from "@/components/trail-difficulty";
 import { TrailStatusBadge } from "@/components/trail-status-badge";
@@ -93,6 +93,14 @@ export function TrailListInteractive({ trails }: { trails: Trail[] }) {
             {trail.waypoints ? (
               <p className="mt-1 truncate text-xs text-muted-foreground/80" title={trail.waypoints}>
                 {trail.waypoints}
+              </p>
+            ) : null}
+            {/* 경로 지오메트리(path_geojson)가 없는 코스는 지도에 선이 없어 클릭(강조)이 안 된다.
+                왜 반응이 없는지 사용자가 알 수 있게 캡션으로 안내한다(서버 판정값이라 SSR 안전). */}
+            {!trail.hasPath ? (
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground/80">
+                <MapPinOff className="size-3 shrink-0" aria-hidden="true" />
+                지도 경로 미제공 · 목록에서 위치 확인만 가능
               </p>
             ) : null}
             {trail.closedReason || trail.closedPeriod ? (

@@ -65,7 +65,7 @@ export async function getTrailsForMountain(
   const { data: rows, error } = await supabase
     .from("trails")
     .select(
-      "id, mountain_id, name, status, closed_reason, closed_period, distance_m, difficulty, go_minutes, come_minutes, segment",
+      "id, mountain_id, name, status, closed_reason, closed_period, distance_m, difficulty, go_minutes, come_minutes, segment, path_geojson",
     )
     .eq("mountain_id", id)
     .order("name", { ascending: true });
@@ -99,6 +99,9 @@ export async function getTrailsForMountain(
       goMinutes: r.go_minutes,
       comeMinutes: r.come_minutes,
       waypoints: r.segment,
+      // 지도 오버레이(getTrailPathsForMountain)와 동일한 추출 로직으로 판정해, 지도에 실제로
+      // 그려질 코스만 hasPath=true 로 둔다(빈/무효 지오메트리는 false).
+      hasPath: extractMultiLineString(r.path_geojson) !== null,
     };
   });
 

@@ -67,6 +67,11 @@ export interface Trail {
   comeMinutes: number | null;
   /** 경유지/상세구간(예: "갑사~금잔디고개~남매탑"). 없으면 null */
   waypoints: string | null;
+  /**
+   * 지도에 그릴 유효한 경로(path_geojson MultiLineString)가 있는지. false 면 지도에 선이
+   * 없어 목록에서 클릭(강조)할 수 없다 — 이를 캡션으로 안내한다(죽은 클릭 혼란 방지).
+   */
+  hasPath: boolean;
 }
 
 /**
