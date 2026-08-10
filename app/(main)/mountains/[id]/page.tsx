@@ -20,6 +20,7 @@ import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
+import { ShareButton } from "@/components/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SunTimesRow } from "@/components/sun-times-row";
 import { TrailList } from "@/components/trail-list";
@@ -76,7 +77,23 @@ export async function generateMetadata({
   const { id } = await params;
   const mountain = await getMountainMeta(id);
   if (!mountain) notFound();
-  return { title: `${mountain.name} 날씨·탐방로` };
+
+  // 공유 시 링크 프리뷰(OG)를 산별로 제공한다(Task 041). metadataBase(app/layout.tsx)가
+  // 상대 URL 을 절대 URL 로 해석한다.
+  const title = `${mountain.name} 날씨·탐방로`;
+  const description = `${mountain.name}(${mountain.region})의 오늘 날씨·탐방로 개방 여부·등산 컨디션을 확인하세요.`;
+  const url = `/mountains/${mountain.id}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${title} | 산길정보`,
+      description,
+      url,
+      type: "article",
+    },
+  };
 }
 
 export default async function MountainDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -92,16 +109,20 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       <MountainDetail
         mountain={mountain}
         action={
-          <Suspense
-            fallback={
-              <div className="flex items-center gap-1.5">
-                <Skeleton className="size-11 rounded-full" />
-                <Skeleton className="size-11 rounded-full" />
-              </div>
-            }
-          >
-            <DetailActions mountainId={mountain.id} />
-          </Suspense>
+          <div className="flex items-center gap-1.5">
+            {/* 공유는 세션과 무관하므로 정적 셸에서 즉시 렌더한다(스트리밍 대기 불필요, Task 041). */}
+            <ShareButton mountainId={mountain.id} mountainName={mountain.name} />
+            <Suspense
+              fallback={
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="size-11 rounded-full" />
+                  <Skeleton className="size-11 rounded-full" />
+                </div>
+              }
+            >
+              <DetailActions mountainId={mountain.id} />
+            </Suspense>
+          </div>
         }
       />
 

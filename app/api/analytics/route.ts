@@ -23,6 +23,7 @@ const ALLOWED_EVENTS = new Set([
   "favorite_remove",
   "visited_add",
   "visited_remove",
+  "mountain_share",
   "pwa_prompt_shown",
   "pwa_install_accepted",
   "pwa_install_dismissed",

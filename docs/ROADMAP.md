@@ -589,22 +589,23 @@
   - **산출물**: ✅ `lib/data/visited-stats.ts`, `components/visited-stats.tsx`, `app/(main)/visited/page.tsx`(통계 삽입·조회 확장)
   - **의존성**: Task 036(100대명산·`is_top100`), Task 037(방문완료)
 
-- **Task 041: 산 상세 공유 (Web Share / 링크 복사)**
-  - **개요**: 상세 화면을 카카오톡·메시지·링크로 공유하는 버튼 추가. 브라우저 Web Share API(미지원 시 클립보드 복사 폴백)라 백엔드 0. 활성도(신규 유입) 기여, 매우 작은 작업.
-  - **관련 파일**: 신규 `components/share-button.tsx`, `app/(main)/mountains/[id]/page.tsx`(액션 슬롯에 배치, `DetailActions`와 정렬), OG 메타는 상세 `generateMetadata` 활용
+- **✅ Task 041: 산 상세 공유 (Web Share / 링크 복사)** - 완료
+  - **개요**: 상세 화면을 OS 공유 시트(Web Share API)로, 미지원 시 링크 클립보드 복사로 공유하는 버튼을 헤더 액션 슬롯(공유·방문완료·즐겨찾기)에 추가. 백엔드 없이 동작하며 활성도(신규 유입) KPI 를 뒷받침한다. 공유는 best-effort 로 계측한다.
   - **수락 기준**:
-    - [ ] 상세 화면에서 공유 버튼을 누르면 OS 공유 시트가 열린다(지원 브라우저).
-    - [ ] Web Share 미지원 시 링크 클립보드 복사 + "복사됨" 토스트로 폴백한다.
-    - [ ] 공유 링크가 해당 산 상세 URL이고, 링크 프리뷰용 OG 제목/설명이 산 이름 기준으로 노출된다.
-    - [ ] 터치 타깃 44px, 접근성 이름 완비.
+    - [x] 공유 버튼 클릭 시 지원 브라우저에서 `navigator.share` 로 OS 공유 시트를 연다(라이브 스텁 검증: 정확한 title/text/url 페이로드).
+    - [x] Web Share 미지원 시 링크를 클립보드에 복사하고 "링크가 복사됐어요" 토스트(`role="status"`)를 노출한다(라이브 검증).
+    - [x] 공유 URL 이 해당 산 상세 URL 이고, OG 제목/설명·canonical 이 산 이름·지역 기준으로 노출된다(라이브: `og:title`·`og:description`·`og:url`·canonical 절대 URL 확인).
+    - [x] 터치 타깃 44×44px, 접근성 이름(`{산이름} 공유하기`) 완비.
   - **구현 단계**:
-    - [ ] `navigator.share` 지원 감지 + 클립보드 폴백 클라이언트 컴포넌트.
-    - [ ] 상세 `generateMetadata`에서 산별 OG title/description 확인·보강.
-    - [ ] (선택) `share` 계측 이벤트를 화이트리스트·DB CHECK·클라이언트 타입 3곳에 추가(Task 037 패턴).
+    - [x] `navigator.share` 지원 감지 + 클립보드 폴백 클라이언트 컴포넌트(`components/share-button.tsx`, AbortError=취소는 무시). 세션 무관이라 정적 셸에서 즉시 렌더(스트리밍 대기 없음).
+    - [x] 상세 `generateMetadata` 에 산별 description·openGraph(title/description/url/type)·canonical 보강(metadataBase 로 절대 URL 해석).
+    - [x] `mountain_share` 계측 이벤트를 클라이언트 타입·API 화이트리스트·**DB CHECK 제약** 3곳에 추가(props.method= web_share|clipboard, Task 037 패턴).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 지원 환경에서 공유 시트 트리거(또는 `navigator.share` 호출) 확인.
-    - [ ] 미지원 시 클립보드 복사·토스트 확인, 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
-  - **의존성**: Task 019(상세 실연동)
+    - [x] Web Share 스텁으로 공유 시트 트리거·페이로드 검증 + `mountain_share`(web_share) 계측 확인.
+    - [x] `navigator.share=undefined` 시뮬레이션 → 클립보드 복사·토스트·`mountain_share`(clipboard) 확인. `analytics_events` 적재 전수 확인(마이그레이션 CHECK 통과) 후 테스트 telemetry 정리.
+    - [x] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+  - **산출물**: ✅ `components/share-button.tsx`, `app/(main)/mountains/[id]/page.tsx`(공유 버튼·OG 보강), `lib/analytics/client.ts`·`app/api/analytics/route.ts`(이벤트 화이트리스트), `supabase/migrations/20260810000000_analytics_share_event.sql`(적용됨)
+  - **의존성**: Task 019(상세 실연동), Task 035(계측 인프라)
 
 - **Task 042: 산 추천 (지역·고도·난이도 필터)**
   - **개요**: `mountains`의 지역·고도 + 탐방로 난이도(Task 034 소요시간 기반 별점)로 "이런 산 어때요?" 필터형 추천을 제공한다. 신규 소스 없음. PRD 10장 "지역/난이도/거리 기반 산 추천".
