@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ConditionChipSkeleton } from "@/components/condition-chip";
 import { FavoriteScore } from "@/components/favorite-score";
 import { HomeMountainCard } from "@/components/home-mountain-card";
+import { HomeReviewCount } from "@/components/home-review-count";
 import { getPopularMountainsGeo } from "@/lib/data/mountains";
 import type { Mountain } from "@/lib/types";
 
@@ -62,6 +63,11 @@ export async function TodayConditionPicks() {
                       region: m.region,
                     }}
                   />
+                </Suspense>
+              }
+              reviewSlot={
+                <Suspense fallback={null}>
+                  <HomeReviewCount mountainId={m.id} />
                 </Suspense>
               }
             />

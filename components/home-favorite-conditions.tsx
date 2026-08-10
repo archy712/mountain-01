@@ -5,6 +5,7 @@ import { Heart } from "lucide-react";
 
 import { FavoriteScore, FavoriteScoreSkeleton } from "@/components/favorite-score";
 import { HomeMountainCard } from "@/components/home-mountain-card";
+import { HomeReviewCount } from "@/components/home-review-count";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
@@ -105,6 +106,11 @@ export async function HomeFavoriteConditions() {
                       region: m.region,
                     }}
                   />
+                </Suspense>
+              }
+              reviewSlot={
+                <Suspense fallback={null}>
+                  <HomeReviewCount mountainId={m.id} />
                 </Suspense>
               }
             />

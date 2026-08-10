@@ -11,6 +11,25 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+
+/**
+ * 산의 공개 후기 수(숨김 제외)를 반환한다 — 홈 카드 배지용.
+ *
+ * 뷰어와 무관한 공개 집계라 **쿠키 없는 공개 클라이언트**로 조회한다(anon RLS 로 숨김은
+ * 자동 제외되지만 `is_hidden=false` 를 명시해 의도를 분명히 한다). `head:true` 로 행 없이
+ * count 만 받는다. 홈 카드가 `connection()` 안에서 호출해 매번 최신 수를 스트리밍한다.
+ */
+export async function getReviewCountForMountain(mountainId: string): Promise<number> {
+  const supabase = createPublicClient();
+  const { count, error } = await supabase
+    .from("reviews")
+    .select("id", { count: "exact", head: true })
+    .eq("mountain_id", mountainId)
+    .eq("is_hidden", false);
+  if (error) return 0;
+  return count ?? 0;
+}
 
 /** 화면 표현용 후기 1건. */
 export interface ReviewView {

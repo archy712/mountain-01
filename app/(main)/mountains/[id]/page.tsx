@@ -222,10 +222,14 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       </FacilitySelectionProvider>
 
       {/* 등산객 후기·별점(Task 048). 방문완료한 사용자만 작성, 신고 누적 자동 숨김 모더레이션.
-          작성 자격·본인 후기 판정이 세션 의존이라 독립 <Suspense> 로 동적 스트리밍한다. */}
-      <Suspense fallback={<ReviewSectionSkeleton />}>
-        <ReviewSection mountainId={mountain.id} />
-      </Suspense>
+          작성 자격·본인 후기 판정이 세션 의존이라 독립 <Suspense> 로 동적 스트리밍한다.
+          id="reviews" 는 홈 카드의 후기 배지가 가리키는 앵커(스켈레톤이 즉시 렌더돼 해시 스크롤
+          대상이 초기 HTML 에 존재). sticky 헤더 높이만큼 scroll-mt 로 여백을 준다. */}
+      <div id="reviews" className="scroll-mt-20">
+        <Suspense fallback={<ReviewSectionSkeleton />}>
+          <ReviewSection mountainId={mountain.id} />
+        </Suspense>
+      </div>
     </div>
   );
 }
