@@ -16,7 +16,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 
 /** 외부 소스 식별자. api_logs.source CHECK 제약과 일치해야 한다. */
-export type ApiSource = "weather" | "vilage" | "air" | "uv" | "trails" | "fire";
+export type ApiSource = "weather" | "vilage" | "air" | "dust" | "uv" | "trails" | "fire";
 
 /** api_logs.status. PartialResult 상태와 1:1. */
 export type ApiCallStatus = "success" | "stale" | "failure";
@@ -40,6 +40,7 @@ export function deriveSource(key: string): ApiSource | null {
     case "weather":
     case "vilage":
     case "air":
+    case "dust":
     case "uv":
     case "trails":
     case "fire":

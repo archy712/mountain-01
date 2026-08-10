@@ -28,6 +28,8 @@ export const CACHE_PROFILE = {
   vilage: "vilage-3h",
   /** 대기질(에어코리아): revalidate 1시간 */
   air: "air-1h",
+  /** 대기질 예보통보(에어코리아, 하루 4회 발표): revalidate 6시간 (Task 052) */
+  dust: "dust-6h",
   /** 자외선(생활기상지수 V5): revalidate 3시간 */
   uv: "uv-3h",
   /** 탐방로(정적 CSV + 오늘 통제 계산): revalidate 6시간 */
@@ -49,6 +51,7 @@ export const CACHE_TTL_SECONDS: Record<CacheProfileName, number> = {
   "weather-30m": 30 * 60,
   "vilage-3h": 3 * 60 * 60,
   "air-1h": 60 * 60,
+  "dust-6h": 6 * 60 * 60,
   "uv-3h": 3 * 60 * 60,
   "trails-6h": 6 * 60 * 60,
   "fire-3h": 3 * 60 * 60,
@@ -76,6 +79,15 @@ export function airKey(stationName: string, yyyymmddhh: string): string {
 /** `uv:{areaNo}:{yyyyMMddHH}` */
 export function uvKey(areaNo: string, yyyymmddhh: string): string {
   return `uv:${areaNo}:${yyyymmddhh}`;
+}
+
+/**
+ * `dust:{yyyyMMdd}:{slot}` — 대기질 예보통보(전국) 스냅샷 캐시 키.
+ * 예보통보는 1회 호출로 전 권역이 모두 오므로 산별 키가 아니라 발표 슬롯 단위로만 캐싱한다.
+ * slot 은 하루 4회 발표시각(05·11·17·23)에 정렬해 새 발표를 즉시 반영한다.
+ */
+export function dustKey(yyyymmdd: string, slot: string): string {
+  return `dust:${yyyymmdd}:${slot}`;
 }
 
 /** `trails:{mountainId}:{yyyyMMdd}` */

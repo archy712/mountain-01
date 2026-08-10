@@ -7,6 +7,7 @@ import { AirUvSummary } from "@/components/air-uv-summary";
 import { FireRiskBadge } from "@/components/fire-risk-badge";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
+import { DustForecastPanel } from "@/components/dust-forecast";
 import { BackToListButton } from "@/components/back-to-list-button";
 import { FavoriteButton } from "@/components/favorite-button";
 import { VisitedButton } from "@/components/visited-button";
@@ -28,6 +29,7 @@ import { TrailList } from "@/components/trail-list";
 import { TrailSelectionProvider } from "@/components/trail-selection";
 import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherForecast } from "@/lib/api/kma-forecast";
+import { getDustForecastForMountain } from "@/lib/api/airkorea-forecast";
 import { getConditionForMountain, getConditionTrendForMountain } from "@/lib/condition";
 import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { getAllMountains } from "@/lib/data/mountains";
@@ -139,6 +141,12 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
       <Suspense fallback={<WeatherCardSkeleton />}>
         <WeatherSection mountain={mountain} />
+      </Suspense>
+
+      {/* 오늘·내일 대기질 예보(에어코리아 예보통보, Task 052). 실시간 측정(컨디션 카드)과
+          독립 스트리밍하며, 미커버리지/실패 시 섹션을 숨긴다. */}
+      <Suspense fallback={<DustForecastSkeleton />}>
+        <DustForecastSection mountain={mountain} />
       </Suspense>
 
       {/* 탐방로 목록 ↔ 지도 폴리라인 선택 연동(Task 032). 두 섹션을 한 Provider 로 감싸
@@ -341,6 +349,23 @@ async function WeatherSection({ mountain }: { mountain: Mountain }) {
 }
 
 /**
+ * 대기질 예보 스트리밍 서브트리 (Task 052). 산의 region → 예보권역으로 오늘·내일 PM10/PM2.5
+ * 예보 등급을 조회한다. 예보통보는 전국 1회 호출을 발표 슬롯 단위로 캐싱하므로 산이 늘어도
+ * 추가 네트워크가 없다. 미커버리지(권역 미매핑)·실패 시 섹션을 숨긴다(타 섹션 독립).
+ * 발표시각·"오늘"이 매 요청 달라지므로 `connection()` 으로 동적 홀임을 명시한다.
+ */
+async function DustForecastSection({ mountain }: { mountain: Mountain }) {
+  await connection();
+  const result = await getDustForecastForMountain(mountain.region);
+  if (!hasData(result)) return null;
+  return (
+    <div className="rounded-lg border p-5">
+      <DustForecastPanel forecast={result.data} />
+    </div>
+  );
+}
+
+/**
  * 탐방로 스트리밍 서브트리. 오늘(KST) 기준 실효 상태를 계산해 목록을 그린다.
  * "오늘"이 매 요청 달라지므로 `connection()` 으로 동적 홀임을 명시한다.
  */
@@ -398,6 +423,31 @@ function ConditionSectionSkeleton() {
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-[116px] w-full rounded-lg" />
       </div>
+    </div>
+  );
+}
+
+/**
+ * 대기질 예보 스트리밍 대기용 스켈레톤 (Task 052).
+ *
+ * 실제 섹션은 제목 + 2행(오늘·내일: PM10·PM2.5 pill) + 발생원인/각주로 구성된다. 콜드
+ * 스트리밍에서 아래 섹션을 밀어내지 않도록 실제 구조·높이를 예약한다(CLS 회피, Task 032).
+ */
+function DustForecastSkeleton() {
+  return (
+    <div className="rounded-lg border p-5" aria-busy="true">
+      <LoadingBar className="mb-4" />
+      <Skeleton className="mb-3 h-5 w-24" />
+      <div className="space-y-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton className="h-4 w-9" />
+            <Skeleton className="h-8 flex-1 rounded-md" />
+            <Skeleton className="h-8 flex-1 rounded-md" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="mt-3 h-4 w-3/4" />
     </div>
   );
 }

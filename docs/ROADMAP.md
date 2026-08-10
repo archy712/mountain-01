@@ -104,11 +104,11 @@
 | Phase 6 | 품질·성능·운영                     | 032~035 | ✅ 완료                   | [Phase 5~7](roadmap/phase-5-7-quality-personalization.md) |
 | Phase 7 | 개인화·콘텐츠 확장                 | 036~038 | ✅ 완료                   | [Phase 5~7](roadmap/phase-5-7-quality-personalization.md) |
 | Phase 8 | 판단·개인화 고도화 (신규 소스 X)   | 039~042, 051 | ✅ 완료 (039~042·051)     | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
-| Phase 9 | 핵심 판단 데이터 강화 (신규 소스)  | 043~044, 052 | 🚧 진행 중 (043 완료·044·052 예정) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
+| Phase 9 | 핵심 판단 데이터 강화 (신규 소스)  | 043~044, 052 | 🚧 진행 중 (043·052 완료·044 예정) | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 10 | 콘텐츠 확장 (정적 시드)           | 045~046 | ⬜ 예정                   | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 | Phase 11 | 고비용·후순위                     | 047~050 | ⬜ 예정                   | [Phase 8~11](roadmap/phase-8-11-expansion.md) |
 
-- **다음 착수 대상:** Task 052(미세먼지 예보통보) → 이후 Task 044(실시간 탐방로 통제) — [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조. (Task 051 초단기실황 보정 완료)
+- **다음 착수 대상:** Task 044(실시간 탐방로 통제) — [Phase 8~11 문서](roadmap/phase-8-11-expansion.md) 참조. (Task 052 미세먼지 예보통보 완료)
 
 ---
 ## Task 의존성 요약

@@ -66,3 +66,47 @@ export interface UvIndex {
 
 export type AirQualityNormalizer = Normalizer<AirQuality>;
 export type UvNormalizer = Normalizer<UvIndex>;
+
+// ── 대기질 예보통보 (에어코리아 getMinuDustFrcstDspth, Task 052) ──────────
+//
+// 실시간 측정값(오늘·지금)과 달리 **오늘·내일 예보 등급**(권역 단위)을 제공한다.
+// 발생원인(informCause)·발표시각과 함께 "내일/주말 산행 계획"을 돕는다.
+
+/** 예보통보 한글 등급("좋음"~"매우나쁨") → `AirGrade` 매핑. */
+export const AIR_GRADE_KOR_MAP: Record<string, AirGrade> = {
+  좋음: "good",
+  보통: "moderate",
+  나쁨: "unhealthy",
+  매우나쁨: "very-unhealthy",
+};
+
+/** 등급 심각도(값이 클수록 나쁨). 여러 권역/토큰을 아우를 때 최악값 선택에 쓴다. */
+export const AIR_GRADE_SEVERITY: Record<AirGrade, number> = {
+  good: 0,
+  moderate: 1,
+  unhealthy: 2,
+  "very-unhealthy": 3,
+};
+
+/** 예보 대상일(오늘/내일) 한 칸의 PM10·PM2.5 등급. */
+export interface DustForecastDay {
+  /** 예보 대상일 "YYYY-MM-DD" */
+  date: string;
+  /** 화면 라벨 구분 */
+  when: "today" | "tomorrow";
+  pm10Grade: AirGrade | null;
+  pm25Grade: AirGrade | null;
+}
+
+export interface DustForecast {
+  /** 오늘·내일(가용 범위) 예보 등급 */
+  days: DustForecastDay[];
+  /** 발생원인 요약(국내/국외/황사 등). 없으면 null */
+  cause: string | null;
+  /** 매핑된 예보권역명(예: "서울", "영동·영서") */
+  regionName: string;
+  /** 발표시각 라벨(예: "2026-08-10 11시 발표") */
+  announcedAt: string;
+}
+
+export type DustForecastNormalizer = Normalizer<DustForecast>;

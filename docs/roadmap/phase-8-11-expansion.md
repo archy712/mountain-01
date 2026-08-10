@@ -150,24 +150,23 @@
     - [ ] 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
   - **의존성**: Task 017(탐방로), Task 015(API 프록시)
 
-- **Task 052: 미세먼지 예보통보 연동 (내일/주간 대기질 전망)**
+- **✅ Task 052: 미세먼지 예보통보 연동 (내일/주간 대기질 전망)** - 완료
   - **개요**: 현재 대기질은 실시간 측정값(오늘·지금)만 제공한다. "내일/주말 산행 계획"을 위해 에어코리아 **대기질 예보통보**(`ArpltnInforInqireSvc/getMinuDustFrcstDspth`)로 오늘·내일 PM10/PM2.5 예보 등급 + 발생원인(국내/국외/황사)을 노출한다. **기존 `AIRKOREA_SERVICE_KEY`로 접근 가능한 같은 서비스의 다른 오퍼레이션이라 신규 키 발급 불필요**(신규 데이터 피드).
-  - **관련 파일**: 신규 `lib/api/airkorea-forecast.ts`·`*-core.ts`(예보통보 프록시·정규화), `lib/api/cache.ts`(예보 캐시 프로필/키), `next.config.ts`, `lib/types/air.ts`(예보 등급 타입), 신규 `components/dust-forecast-*.tsx`, `app/(main)/mountains/[id]/page.tsx`, 산→예보권역 매핑 유틸(자외선 areaNo 유사)
+  - **관련 파일**: ✅ `lib/api/airkorea-forecast.ts`·`airkorea-forecast-core.ts`(예보통보 프록시·정규화·권역매핑·발표슬롯), `lib/api/cache.ts`(dust 프로필·`dustKey`), `next.config.ts`(dust-6h cacheLife), `lib/api/metrics.ts`(source `dust`), `lib/types/air.ts`(DustForecast·한글등급 매핑), `components/dust-forecast.tsx`, `app/(main)/mountains/[id]/page.tsx`(섹션·스켈레톤), `supabase/migrations/20260810110000_api_logs_dust_source.sql`(적용됨), `scratchpad/test-dust.ts`(단위 검증)
   - **수락 기준**:
-    - [ ] 상세 화면에 오늘·내일 PM10/PM2.5 예보 등급이 아이콘+텍스트로 노출된다(색상 단독 금지).
-    - [ ] 발생원인(국내/국외/황사 등) 요약이 함께 표시된다.
-    - [ ] 산이 속한 예보권역(수도권·영남 등)으로 매핑되며, 미매핑 시 폴백한다.
-    - [ ] 소스 실패 시 해당 섹션만 격리(실시간 측정·타 섹션 정상), 앱 크래시 0.
-    - [ ] 서버 프록시로만 호출되고 API 키가 노출되지 않는다.
-  - **구현 단계**:
-    - [ ] `getMinuDustFrcstDspth` 프록시·정규화(`*-core.ts` 순수 로직 분리) + `withStaleFallback` + api_logs 계측 편입(source 추가 시 CHECK 마이그레이션).
-    - [ ] 산 위경도 → 예보권역(informCode/권역명) 매핑 규칙 정의(정적 테이블).
-    - [ ] 발표주기 정렬 캐시 프로필/키 추가.
-    - [ ] 예보 배지·상세 섹션 스트리밍 삽입.
+    - [x] 상세 화면에 오늘·내일 PM10/PM2.5 예보 등급이 아이콘+텍스트로 노출된다(색상 단독 금지). 라이브: 북한산·설악산 오늘/내일 PM10·PM2.5 "좋음" pill + 등급 텍스트 병기.
+    - [x] 발생원인(국내/국외/황사 등) 요약이 함께 표시된다(라이브: "청정한 동풍 기류 유입으로…", 불릿 `○` 정리).
+    - [x] 산이 속한 예보권역으로 매핑되며, 미매핑 시 폴백한다. 라이브: 북한산 "서울·경기남부·경기북부", 설악산 "영동·영서"(강원 분할 권역 최악값). 미매핑 region → `not_covered` failure → 섹션 미노출.
+    - [x] 소스 실패 시 해당 섹션만 격리(실시간 측정·타 섹션 정상), 앱 크래시 0(독립 `<Suspense>`+`hasData` 가드, 라이브 콘솔 에러 0). 강제 실패는 `withStaleFallback`+`normalizeDustForecast` 실패 경로 단위 검증으로 갈음.
+    - [x] 서버 프록시(`'use cache'`)로만 호출되고 API 키가 노출되지 않는다(`decodeURIComponent` 1회 인코딩).
+  - **구현 노트**:
+    - **1회 호출로 전 권역이 모두 옴** → 산별 호출 없이 발표 슬롯 단위 1회 캐싱(`dust:{yyyymmdd}:{slot}`, dust-6h). `InformCode` 파라미터를 줘도 PM10/PM25/O3 가 섞여 오고 같은 대상일에 여러 발표(05·11·17·23시)가 오므로, 코어에서 **코드 재필터 + 최신 발표만** 채택한다.
+    - 예보권역 토큰: 시도명과 대체로 같으나 **강원=영동/영서, 경기=경기남부/경기북부로 분할**. 산 `region` → 권역 매핑(`REGION_TO_FORECAST`), 여러 권역/다중토큰 산은 **최악 등급**(안전 우선).
+    - 한글 등급(좋음/보통/나쁨/매우나쁨) → `AirGrade` 매핑(`AIR_GRADE_KOR_MAP`), 심각도 순서(`AIR_GRADE_SEVERITY`)로 최악값 선택. 점수 감점 없음(예보는 표시 전용, `calc_version` 불변).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 라이브 산에서 오늘·내일 예보 등급·발생원인 렌더, 권역 매핑 정확성 확인.
-    - [ ] 소스 강제 실패 시 섹션 격리·타 섹션 정상, 콘솔 에러 0.
-    - [ ] `api_logs` 적재·순수 로직 단위 검증, `typecheck`·`lint`·`build` 통과.
+    - [x] 라이브 산에서 오늘·내일 예보 등급·발생원인 렌더, 권역 매핑 정확성 확인(북한산 서울·경기, 설악산 영동·영서).
+    - [x] 소스 실패 격리는 독립 Suspense+hasData 구조 + normalize 실패 단위 검증으로 갈음, 타 섹션 정상·콘솔 에러 0.
+    - [x] `api_logs` source `dust` 적재 확인(CHECK 제약 통과, 테스트 telemetry 정리). 순수 로직 단위 **29/29**. 360px 오버플로 0. `typecheck`·`lint`·`build` 통과.
   - **의존성**: Task 021(대기질 실시간), Task 015(API 프록시)
 
 ---

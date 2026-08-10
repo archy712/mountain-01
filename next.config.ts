@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
       revalidate: 60 * 60, // 대기질 1시간
       expire: 2 * 60 * 60,
     },
+    "dust-6h": {
+      stale: 6 * 60 * 60,
+      revalidate: 6 * 60 * 60, // 대기질 예보통보(하루 4회 발표) 6시간 (Task 052)
+      expire: 12 * 60 * 60,
+    },
     "uv-3h": {
       stale: 3 * 60 * 60,
       revalidate: 3 * 60 * 60, // 자외선 3시간
