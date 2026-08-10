@@ -61,8 +61,11 @@ export function DustForecastPanel({
       <ul className="space-y-2">
         {forecast.days.map((day) => (
           <li key={day.date} className="flex items-center gap-2">
-            <span className="flex w-9 shrink-0 items-center gap-1 text-sm font-medium">
-              <CalendarDays className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="flex w-14 shrink-0 items-center gap-1 text-sm font-medium whitespace-nowrap">
+              <CalendarDays
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
               {WHEN_LABEL[day.when]}
             </span>
             <GradePill label="PM10" grade={day.pm10Grade} />
