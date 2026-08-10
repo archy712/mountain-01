@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Split } from "lucide-react";
 
 import { TrailDifficulty } from "@/components/trail-difficulty";
@@ -15,6 +16,12 @@ function formatDistance(m: number | null): string | null {
   if (m == null || m <= 0) return null;
   return m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`;
 }
+
+// 하이드레이션 여부 감지(외부 스토어 없이). 서버 스냅샷=false 로 첫 렌더를 SSR 과 일치시키고,
+// 하이드레이션 후 클라이언트 스냅샷=true 로 바뀐다(useSyncExternalStore 는 하이드레이션 안전).
+const subscribeNoop = () => () => {};
+const getHydratedSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 /** 분 → "1시간 55분" / "40분". 미상이면 null. */
 function formatMinutes(min: number | null): string | null {
@@ -38,6 +45,13 @@ function formatMinutes(min: number | null): string | null {
  */
 export function TrailListInteractive({ trails }: { trails: Trail[] }) {
   const { selectedId, select, availableIds } = useTrailSelection();
+
+  // `availableIds` 는 지도 오버레이가 **클라이언트에서 마운트된 뒤** 등록한다(카카오맵은 클라이언트
+  // 전용이라 서버 렌더에는 항상 비어 있음 → 모든 행이 정적 <li>). 스트리밍 순서에 따라 오버레이의
+  // 등록이 이 목록의 하이드레이션보다 먼저 일어나면, 서버가 <li> 로 그린 행을 클라이언트가 <button>
+  // 으로 렌더해 하이드레이션 불일치가 난다. 첫 클라이언트 렌더를 서버와 동일하게(모두 정적) 맞춘 뒤
+  // 하이드레이션 후에만 버튼으로 업그레이드해 불일치를 없앤다.
+  const hydrated = useSyncExternalStore(subscribeNoop, getHydratedSnapshot, getServerSnapshot);
 
   return (
     <ul className="space-y-2">
@@ -90,8 +104,8 @@ export function TrailListInteractive({ trails }: { trails: Trail[] }) {
           </>
         );
 
-        // 지도에 대응 선이 없으면 정적 항목(기존과 동일).
-        if (!availableIds.has(trail.id)) {
+        // 하이드레이션 전(SSR·첫 클라이언트 렌더)이거나 지도에 대응 선이 없으면 정적 항목.
+        if (!hydrated || !availableIds.has(trail.id)) {
           return (
             <li key={trail.id} className="rounded-lg border p-3">
               {body}
