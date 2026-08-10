@@ -16,6 +16,7 @@ import { hasData } from "@/lib/types";
 import { getWeatherForecast, getWeatherSnapshot } from "@/lib/api/kma-forecast";
 import { getAirQuality } from "@/lib/api/airkorea";
 import { getUvIndex } from "@/lib/api/kma-uv";
+import { getFireRiskForMountain } from "@/lib/api/forest-fire";
 import { getTrailsForMountain } from "@/lib/data/mountain-detail";
 import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { assessConditionFactors, computeConditionScore } from "./score";
@@ -30,6 +31,8 @@ export interface ConditionMountainInput {
   gridNy: number;
   lat: number;
   lng: number;
+  /** 행정 지역(시도 단위, 산불위험 조회용, Task 043) */
+  region: string;
 }
 
 /**
@@ -41,10 +44,11 @@ export async function getConditionForMountain(
   mountain: ConditionMountainInput,
   now: Date = new Date(),
 ): Promise<PartialResult<ConditionBundle>> {
-  const [weatherResult, airResult, uvResult] = await Promise.all([
+  const [weatherResult, airResult, uvResult, fireResult] = await Promise.all([
     getWeatherSnapshot(mountain.id, { nx: mountain.gridNx, ny: mountain.gridNy }, now),
     getAirQuality(mountain.id, mountain.lat, mountain.lng, now),
     getUvIndex(mountain.id, now),
+    getFireRiskForMountain(mountain.region, now),
   ]);
 
   // 날씨는 핵심 입력 — 사용 가능한 데이터가 없으면 점수를 낼 수 없다.
@@ -54,13 +58,14 @@ export async function getConditionForMountain(
 
   const air = hasData(airResult) ? airResult.data : null;
   const uv = hasData(uvResult) ? uvResult.data : null;
+  const fire = hasData(fireResult) ? fireResult.data : null;
 
-  const score = computeConditionScore({ weather: weatherResult.data, air, uv, now });
+  const score = computeConditionScore({ weather: weatherResult.data, air, uv, fire, now });
   const gear = recommendGear({ weather: weatherResult.data, air, uv });
   // 좋은 요인까지 포함한 전체 요인 평가(점수 근거 UI 용). 엔진과 동일 감점 로직 재사용.
-  const factors = assessConditionFactors({ weather: weatherResult.data, air, uv });
-  // air/uv 원값도 함께 반환해 상세 화면이 감점 근거를 실제 수치로 노출하게 한다(Task 034).
-  const bundle: ConditionBundle = { score, gear, air, uv, factors };
+  const factors = assessConditionFactors({ weather: weatherResult.data, air, uv, fire });
+  // air/uv/fire 원값도 함께 반환해 상세 화면이 감점 근거를 실제 수치로 노출하게 한다(Task 034·043).
+  const bundle: ConditionBundle = { score, gear, air, uv, fire, factors };
 
   // 신선한 캐시 행이 없을 때만 저장(행 폭증 방지 + "조회" 경로 겸용).
   const existing = await readCachedScore(mountain.id);

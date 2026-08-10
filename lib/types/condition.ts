@@ -6,7 +6,7 @@
 import type { AirQuality, UvIndex } from "./air";
 
 /** 점수 감점/추천에 관여하는 입력 변수 */
-export type ScoreFactor = "pop" | "pty" | "temp" | "wind" | "air" | "uv";
+export type ScoreFactor = "pop" | "pty" | "temp" | "wind" | "air" | "uv" | "fire";
 
 export const SCORE_FACTOR_LABEL: Record<ScoreFactor, string> = {
   pop: "강수확률",
@@ -15,7 +15,33 @@ export const SCORE_FACTOR_LABEL: Record<ScoreFactor, string> = {
   wind: "풍속",
   air: "미세먼지",
   uv: "자외선",
+  fire: "산불위험",
 };
+
+/**
+ * 산불위험 등급 (산림청 국립산림과학원 산불위험예보정보, Task 043).
+ * 지수 1~100 → 4단계: 낮음(≤50) / 다소 높음(51~65) / 높음(66~85) / 매우 높음(86+).
+ */
+export type FireLevel = "low" | "moderate" | "high" | "very-high";
+
+export const FIRE_LEVEL_LABEL: Record<FireLevel, string> = {
+  low: "낮음",
+  moderate: "다소 높음",
+  high: "높음",
+  "very-high": "매우 높음",
+};
+
+/** 산불위험 정보 1건(시도 단위 대표값, Task 043). */
+export interface FireRisk {
+  /** 대표 위험지수(시도 평균, 0~100) */
+  index: number;
+  /** 등급(색상 단독 금지 원칙: 항상 라벨 병기) */
+  level: FireLevel;
+  /** 시도명 원문(예: "강원특별자치도") */
+  regionName: string;
+  /** 분석일시 원문(예: "2026-08-10 10") */
+  analdate: string;
+}
 
 /**
  * 점수 등급 (결정 003 동결 구간).
@@ -162,6 +188,8 @@ export interface ConditionBundle {
   air: AirQuality | null;
   /** 점수 산출에 쓰인 자외선 원값(조회 실패 시 null) */
   uv: UvIndex | null;
+  /** 점수 산출에 쓰인 산불위험 원값(미커버·조회 실패 시 null, Task 043) */
+  fire: FireRisk | null;
   /** 요인별 종합 평가(좋은 요인 포함 전체) — 점수 근거 UI 용 */
   factors: ScoreFactorAssessment[];
 }

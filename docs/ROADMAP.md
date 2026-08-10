@@ -633,25 +633,23 @@
 
 > 제품의 핵심 가치("지금 이 산에 갈 수 있나")를 **직접 끌어올리는** 신규 외부 소스. 기존 `lib/api/*` 프록시·캐싱·`PartialResult` 격리 패턴과 컨디션 점수 모델에 편입한다.
 
-- **Task 043: 산불위험지수·입산통제 연동**
-  - **개요**: 봄·가을 산행의 실질적 차단 요인인 산불 위험·산불조심기간 입산통제를 노출하고 **컨디션 점수 감점 요인으로 편입**한다. 산림청 산불위험예보는 지역·날짜별 수치 지수라 기존 API 프록시 패턴에 잘 맞는다.
-  - **관련 파일**: 신규 `lib/api/forest-fire.ts`·`forest-fire-core.ts`(프록시·정규화), `lib/api/cache.ts`(cacheLife 프로필·캐시 키 추가), `lib/condition/{score,service}.ts`(감점 반영·`calc_version` 증가), `lib/types/{condition,index}.ts`, 신규 `components/fire-risk-badge.tsx`, `app/(main)/mountains/[id]/page.tsx`, `docs/decisions/001-data-sources.md`(소스 기록)
+- **✅ Task 043: 산불위험지수 연동** - 완료
+  - **개요**: 봄·가을 산행의 실질적 차단 요인인 산불 위험을 노출하고 **컨디션 점수 감점 요인으로 편입**한다. 산림청 산불위험예보는 지역·날짜별 수치 지수라 기존 API 프록시 패턴에 잘 맞는다. (실시간 입산통제는 Task 044 로 분리 — 이 API 는 위험 "지수"이지 통제 목록이 아니며, 계절 입산통제는 이미 `seasonal-closure.ts` 로 반영됨.)
+  - **관련 파일**: ✅ `lib/api/forest-fire.ts`·`forest-fire-core.ts`(프록시·정규화), `lib/api/cache.ts`(fire-3h 프로필·`fireKey`), `next.config.ts`(cacheLife), `lib/api/metrics.ts`(source `fire`), `lib/condition/{score,service}.ts`(감점·`calc_version` v2), `lib/types/condition.ts`(FireRisk·ScoreFactor), `components/fire-risk-badge.tsx`, `components/score-breakdown.tsx`(fire 아이콘), `app/(main)/mountains/[id]/page.tsx`, 호출부 4곳(region 전달), `supabase/migrations/20260810100000_api_logs_fire_source.sql`(적용됨), `lib/env.ts`·`.env.local.example`(`FOREST_FIRE_SERVICE_KEY`), `docs/decisions/{001,003}`
   - **수락 기준**:
-    - [ ] 산불위험 등급이 상세 화면에 아이콘+텍스트로 노출된다(색상 단독 금지).
-    - [ ] 산불조심기간 입산통제에 해당하면 탐방로 상태/컨디션에 반영된다.
-    - [ ] 산불위험이 컨디션 점수 감점에 반영되고 근거가 `ScoreBreakdown`에 표시되며 `calc_version`이 증가한다.
-    - [ ] 소스 실패 시 해당 변수만 제외하고 점수를 계산한다(부분 폴백), 앱 크래시 0.
-    - [ ] 응답은 서버 프록시로만 호출되고 API 키가 노출되지 않는다.
-  - **구현 단계**:
-    - [ ] 산림청 산불위험예보/입산통제 API 키 발급·엔드포인트·지역코드 매핑 검증(결정 문서화).
-    - [ ] 프록시·정규화(`*-core.ts` 순수 로직 분리) + `withStaleFallback` + api_logs 계측 자동 편입(Task 035).
-    - [ ] cacheLife 프로필/캐시 키 추가(발표주기 정렬).
-    - [ ] 컨디션 점수 감점 규칙 추가 + `calc_version` 증가 + 타입 재생성 불필요(외부 소스).
-    - [ ] 배지·상세 섹션 스트리밍 삽입.
+    - [x] 산불위험 등급이 상세 화면에 아이콘(Flame)+텍스트로 노출된다(색상 단독 금지). 라이브: 설악산 "낮음 지수 19 강원특별자치도 기준", 계룡산 "낮음 지수 29 대전광역시 기준".
+    - [~] 산불조심기간 입산통제 반영 — 이 API 는 통제 목록이 아니라 지수이므로, 정적 계절 입산통제(`seasonal-closure.ts`)로 이미 반영. 실시간 통제는 Task 044 로 분리(결정 001 기록).
+    - [x] 산불위험이 컨디션 점수 감점에 반영되고 근거가 `ScoreBreakdown`에 표시되며 `calc_version` v1→**v2** 증가. (현재 전국 낮음 → 감점 0·"양호"; 감점 로직은 단위 검증.)
+    - [x] 소스 실패 시 해당 변수만 제외하고 점수를 계산한다(부분 폴백), 앱 크래시 0. 라이브: 잘못된 키 주입 시 배지 숨김 + 근거에 산불위험 "제외" 행 + 날씨·탐방로 정상.
+    - [x] 응답은 서버 프록시(`'use cache'`)로만 호출되고 API 키가 노출되지 않는다(`decodeURIComponent` 1회 인코딩).
+  - **구현 노트**:
+    - **시도 1회 호출로 전국 16개 시도 반환**(`forestPointListSidoSearchV2`, 지역코드 파라미터 불필요) → 산별 호출 없이 발표 슬롯 단위 1회 캐싱(`fire:sido:{yyyymmdd}:{slot}`, fire-3h). `meanavg`(시도 평균지수)를 대표값으로 채택.
+    - 산 `region` → 시도 코드 매핑(`SIDO_REGION_CODE`). 특이점: 강원=51·전북=52 신 코드, **광주+전남=12 통합코드**. 여러 시도에 걸친 산은 **최댓값**(안전 우선).
+    - 감점: 낮음 0 / 다소높음 −10 / 높음 −20 / 매우높음 −30 (결정 003 v2 동결).
   - **테스트 체크리스트 (Playwright MCP)**:
-    - [ ] 라이브 산에서 산불위험 등급·감점 근거 렌더, 통제기간 반영 확인.
-    - [ ] 소스 강제 실패 시 점수 "일부 데이터 제외" 배지·타 섹션 정상.
-    - [ ] `api_logs`에 소스별 success/failure 적재 확인, 콘솔 에러 0, `typecheck`·`lint`·`build` 통과.
+    - [x] 라이브 산에서 산불위험 등급·근거 렌더(설악산·계룡산), region 다중토큰 최댓값 채택 확인.
+    - [x] 소스 강제 실패(잘못된 키 격리 인스턴스) 시 배지 숨김 + "제외" 근거·타 섹션 정상, 콘솔 에러 0.
+    - [x] `api_logs`에 source `fire` success/failure 적재 확인(CHECK 제약 통과, 테스트 telemetry 정리). 순수 코어 단위 **25/25**. `typecheck`·`lint`·`build` 통과.
   - **의존성**: Task 015(API 프록시), Task 023(점수 엔진)
 
 - **Task 044: 실시간 탐방로 통제·공지 (정적 스냅샷 보완)**

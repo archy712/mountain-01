@@ -102,6 +102,7 @@ export async function HomeFavoriteConditions() {
                       gridNy: m.grid_ny,
                       lat: m.lat,
                       lng: m.lng,
+                      region: m.region,
                     }}
                   />
                 </Suspense>

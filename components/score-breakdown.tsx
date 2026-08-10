@@ -2,6 +2,7 @@ import {
   Check,
   CloudFog,
   Droplets,
+  Flame,
   Info,
   Sun,
   ThermometerSun,
@@ -28,6 +29,7 @@ const FACTOR_ICON: Record<ScoreFactor, LucideIcon> = {
   wind: Wind,
   air: CloudFog,
   uv: Sun,
+  fire: Flame,
 };
 
 /** 좋은 요인 위주의 한 줄 요약. 감점 요인이 있으면 가장 큰 것을 짚어준다. */

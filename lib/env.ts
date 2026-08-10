@@ -35,6 +35,10 @@ export const serverEnv = {
   get kmaLivingIndexKey() {
     return requireServerEnv("KMA_LIVING_INDEX_KEY");
   },
+  /** 산림청 국립산림과학원 산불위험예보정보 서비스 키 (Task 043, data.go.kr 15084817) */
+  get forestFireServiceKey() {
+    return requireServerEnv("FOREST_FIRE_SERVICE_KEY");
+  },
 } as const;
 
 /**

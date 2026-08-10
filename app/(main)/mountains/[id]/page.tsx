@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
 import { AirUvSummary } from "@/components/air-uv-summary";
+import { FireRiskBadge } from "@/components/fire-risk-badge";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { BackToListButton } from "@/components/back-to-list-button";
@@ -247,10 +248,11 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
     gridNy: mountain.gridNy,
     lat: mountain.lat,
     lng: mountain.lng,
+    region: mountain.region,
   });
 
   if (!hasData(result)) return null;
-  const { score, gear, air, uv, factors } = result.data;
+  const { score, gear, air, uv, fire, factors } = result.data;
 
   // 게이지 자체가 `aria-labelledby` 로 라벨된 섹션이라, 래퍼는 랜드마크·제목을 중복하지
   // 않도록 순수 스타일 컨테이너(div)로 둔다. 감점 근거 아래에 대기질·자외선 실수치를
@@ -259,6 +261,7 @@ async function ConditionSection({ mountain }: { mountain: Mountain }) {
     <div className="space-y-4 rounded-lg border p-5">
       <ConditionScoreGauge condition={score} />
       <ScoreBreakdown factors={factors} />
+      {fire ? <FireRiskBadge fire={fire} className="border-t pt-4" /> : null}
       {air || uv ? <AirUvSummary air={air} uv={uv} className="border-t pt-4" /> : null}
       <GearRecommendationList gear={gear} />
     </div>
@@ -279,6 +282,7 @@ async function ConditionTrendSection({ mountain }: { mountain: Mountain }) {
     gridNy: mountain.gridNy,
     lat: mountain.lat,
     lng: mountain.lng,
+    region: mountain.region,
   });
 
   if (!hasData(result) || result.data.points.length === 0) return null;

@@ -71,7 +71,14 @@ async function FavoritesContent() {
     scoreSlot: (
       <Suspense fallback={<FavoriteScoreSkeleton />}>
         <FavoriteScore
-          mountain={{ id: m.id, gridNx: m.grid_nx, gridNy: m.grid_ny, lat: m.lat, lng: m.lng }}
+          mountain={{
+            id: m.id,
+            gridNx: m.grid_nx,
+            gridNy: m.grid_ny,
+            lat: m.lat,
+            lng: m.lng,
+            region: m.region,
+          }}
         />
       </Suspense>
     ),

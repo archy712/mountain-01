@@ -32,6 +32,8 @@ export const CACHE_PROFILE = {
   uv: "uv-3h",
   /** 탐방로(정적 CSV + 오늘 통제 계산): revalidate 6시간 */
   trails: "trails-6h",
+  /** 산불위험예보(산림청, 3시간 간격 발표): revalidate 3시간 (Task 043) */
+  fire: "fire-3h",
   /** 산 마스터 목록(거의 불변, Task 018): revalidate 1일 */
   mountains: "mountains-1d",
   /** 인기 산/검색 로그 집계(Task 018): revalidate 1시간 */
@@ -49,6 +51,7 @@ export const CACHE_TTL_SECONDS: Record<CacheProfileName, number> = {
   "air-1h": 60 * 60,
   "uv-3h": 3 * 60 * 60,
   "trails-6h": 6 * 60 * 60,
+  "fire-3h": 3 * 60 * 60,
   "mountains-1d": 24 * 60 * 60,
   "search-1h": 60 * 60,
 };
@@ -78,6 +81,15 @@ export function uvKey(areaNo: string, yyyymmddhh: string): string {
 /** `trails:{mountainId}:{yyyyMMdd}` */
 export function trailsKey(mountainId: string, yyyymmdd: string): string {
   return `trails:${mountainId}:${yyyymmdd}`;
+}
+
+/**
+ * `fire:sido:{yyyyMMdd}:{slot}` — 산불위험(시도) 스냅샷 캐시 키.
+ * 시도 1회 호출로 전국 16개 시도가 모두 오므로 산별 키가 아니라 발표 슬롯 단위로만 캐싱한다.
+ * slot 은 3시간 단위(발표주기)로 정렬해 TTL(fire-3h)과 맞춘다.
+ */
+export function fireKey(yyyymmdd: string, slot: string): string {
+  return `fire:sido:${yyyymmdd}:${slot}`;
 }
 
 // ── 캐시 태그 빌더 (revalidateTag 무효화용) ─────────────────────────

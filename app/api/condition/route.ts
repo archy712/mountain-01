@@ -30,7 +30,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: mountain, error: dbError } = await supabase
     .from("mountains")
-    .select("id, grid_nx, grid_ny, lat, lng")
+    .select("id, grid_nx, grid_ny, lat, lng, region")
     .eq("id", mountainId)
     .maybeSingle();
 
@@ -54,6 +54,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     gridNy: mountain.grid_ny,
     lat: mountain.lat,
     lng: mountain.lng,
+    region: mountain.region,
   });
 
   if (result.status === "success") {

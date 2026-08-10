@@ -59,6 +59,7 @@ export async function TodayConditionPicks() {
                       gridNy: m.gridNy,
                       lat: m.lat,
                       lng: m.lng,
+                      region: m.region,
                     }}
                   />
                 </Suspense>

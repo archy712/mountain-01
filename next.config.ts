@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
       revalidate: 6 * 60 * 60, // 탐방로(정적+오늘 통제 계산) 6시간
       expire: 12 * 60 * 60,
     },
+    "fire-3h": {
+      stale: 3 * 60 * 60,
+      revalidate: 3 * 60 * 60, // 산불위험예보(산림청, 3시간 간격) 3시간 (Task 043)
+      expire: 6 * 60 * 60,
+    },
     // 산 마스터(거의 불변)·검색 로그 집계용 (Task 018). 시드 갱신 시 태그로 무효화.
     "mountains-1d": {
       stale: 24 * 60 * 60,

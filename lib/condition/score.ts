@@ -21,6 +21,8 @@ import type {
   AirGrade,
   AirQuality,
   ConditionScore,
+  FireLevel,
+  FireRisk,
   PrecipitationType,
   ScoreBreakdownItem,
   ScoreFactor,
@@ -28,11 +30,14 @@ import type {
   UvIndex,
   WeatherSnapshot,
 } from "@/lib/types";
-import { PTY_LABEL, AIR_GRADE_LABEL } from "@/lib/types";
+import { PTY_LABEL, AIR_GRADE_LABEL, FIRE_LEVEL_LABEL } from "@/lib/types";
 import { scoreToGrade, gradeMessage } from "./grade";
 
-/** 알고리즘 버전 (결정 003 #10). 가중치·구간·보간식·등급 경계 변경 시 증가. */
-export const CALC_VERSION = "v1";
+/**
+ * 알고리즘 버전 (결정 003 #10). 가중치·구간·보간식·등급 경계 변경 시 증가.
+ * v2: 산불위험(fire) 감점 요인 추가 (Task 043).
+ */
+export const CALC_VERSION = "v2";
 
 // ── v1 동결 상수 (결정 003 #11) ─────────────────────────────────────
 const POP_START = 30; // % — 감점 시작
@@ -55,6 +60,15 @@ const AIR_MAX_PENALTY = 20;
 const UV_START = 6; // '높음' — 감점 시작
 const UV_MAX = 11; // '위험' — 최대 감점 도달
 const UV_MAX_PENALTY = 10;
+
+// 산불위험(fire) — 등급 단계 감점 (Task 043, v2). 봄·가을 실질적 차단 요인이라 비중을 크게 둔다.
+const FIRE_MAX_PENALTY = 30;
+const FIRE_PENALTY: Record<FireLevel, number> = {
+  low: 0, // 낮음
+  moderate: 10, // 다소 높음
+  high: 20, // 높음
+  "very-high": FIRE_MAX_PENALTY, // 매우 높음(사실상 입산통제 수준)
+};
 
 /** 선형 보간: [start, max] 구간에서 0→maxPenalty. 구간 밖은 클램프. */
 function linearPenalty(value: number, start: number, max: number, maxPenalty: number): number {
@@ -127,6 +141,8 @@ export interface ScoreInputs {
   air?: AirQuality | null;
   /** 결측 시 null → 감점 후보 제외 */
   uv?: UvIndex | null;
+  /** 산불위험(미커버·조회 실패 시 null → 감점 후보 제외, Task 043) */
+  fire?: FireRisk | null;
   /** 계산 시각 주입(테스트 결정성). 기본 now. */
   now?: Date;
 }
@@ -136,7 +152,7 @@ export interface ScoreInputs {
  * 2~3개를 breakdown 으로 노출한다. 대기질/자외선 결측은 excludedVariables 로 격리한다.
  */
 export function computeConditionScore(inputs: ScoreInputs): ConditionScore {
-  const { weather, air, uv, now = new Date() } = inputs;
+  const { weather, air, uv, fire, now = new Date() } = inputs;
 
   const candidates: ScoreBreakdownItem[] = [];
   const excludedVariables: ScoreFactor[] = [];
@@ -181,6 +197,13 @@ export function computeConditionScore(inputs: ScoreInputs): ConditionScore {
     excludedVariables.push("uv");
   } else {
     push("uv", `자외선 ${uv.value}`, linearPenalty(uv.value, UV_START, UV_MAX, UV_MAX_PENALTY));
+  }
+
+  // 산불위험 (부분 폴백) — 미커버·조회 실패면 제외 (Task 043)
+  if (!fire) {
+    excludedVariables.push("fire");
+  } else {
+    push("fire", `산불위험 ${FIRE_LEVEL_LABEL[fire.level]}`, FIRE_PENALTY[fire.level]);
   }
 
   const totalPenalty = candidates.reduce((sum, c) => sum + c.penalty, 0);
@@ -252,7 +275,7 @@ function uvNote(v: number): string {
  * `100 − score` 와 일치한다. 대기질·자외선 결측은 excluded 로 표시한다.
  */
 export function assessConditionFactors(inputs: ScoreInputs): ScoreFactorAssessment[] {
-  const { weather, air = null, uv = null } = inputs;
+  const { weather, air = null, uv = null, fire = null } = inputs;
   const rows: ScoreFactorAssessment[] = [];
 
   const tempP = Math.round(tmpPenalty(weather.tempC));
@@ -335,6 +358,30 @@ export function assessConditionFactors(inputs: ScoreInputs): ScoreFactorAssessme
       status: uvP > 0 ? "caution" : "good",
       penalty: uvP,
       maxPenalty: UV_MAX_PENALTY,
+    });
+  }
+
+  // 산불위험 (Task 043)
+  if (!fire) {
+    rows.push({
+      factor: "fire",
+      label: "산불위험",
+      valueText: "정보 없음",
+      note: "미제공 지역",
+      status: "excluded",
+      penalty: 0,
+      maxPenalty: FIRE_MAX_PENALTY,
+    });
+  } else {
+    const fireP = FIRE_PENALTY[fire.level];
+    rows.push({
+      factor: "fire",
+      label: "산불위험",
+      valueText: FIRE_LEVEL_LABEL[fire.level],
+      note: `지수 ${fire.index}`,
+      status: fireP > 0 ? "caution" : "good",
+      penalty: fireP,
+      maxPenalty: FIRE_MAX_PENALTY,
     });
   }
 
