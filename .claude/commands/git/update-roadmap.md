@@ -1,11 +1,30 @@
 ---
 description: "ROADMAP.md에서 완료된 작업을 체크하고 진행 상황을 업데이트합니다"
-allowed-tools: ["Read(docs/ROADMAP.md:*)", "Edit(docs/ROADMAP.md:*)"]
+allowed-tools:
+  [
+    "Read(docs/ROADMAP.md:*)",
+    "Edit(docs/ROADMAP.md:*)",
+    "Read(docs/roadmap/*)",
+    "Edit(docs/roadmap/*)",
+  ]
 ---
 
 # Claude 명령어: Update Roadmap
 
-완료된 작업을 ROADMAP.md에 체크하고 진행 상황을 업데이트합니다.
+완료된 작업을 로드맵에 체크하고 진행 상황을 업데이트합니다.
+
+## 파일 구조 (2026-08-10 분리)
+
+로드맵은 **허브 + 스포크** 구조입니다. Task 상태를 갱신할 때 편집 위치가 다릅니다:
+
+- **`docs/ROADMAP.md`** (허브) — 목차·워크플로우·의존성·리스크 + **Phase 인덱스 표**(Phase 단위 상태만). 개별 Task 상세는 없음.
+- **`docs/roadmap/phase-*.md`** (스포크) — 각 Task 의 제목·수락 기준·구현 단계·테스트·산출물. **개별 Task 완료 체크는 여기서 수행.**
+  - `phase-0-2-foundation.md` (Task 001~013)
+  - `phase-3-4-mvp.md` (Task 014~027)
+  - `phase-5-7-quality-personalization.md` (Task 028~038)
+  - `phase-8-11-expansion.md` (Task 039~050)
+
+**업데이트 순서:** ① 완료 Task 번호로 해당 스포크 파일을 찾아 Task 제목·하위 체크 갱신 → ② 그 Phase 의 모든 Task 가 완료되면 허브 `docs/ROADMAP.md` Phase 인덱스 표의 해당 행 상태(✅/🚧/⬜)도 갱신.
 
 ## 사용법
 
@@ -15,12 +34,12 @@ allowed-tools: ["Read(docs/ROADMAP.md:*)", "Edit(docs/ROADMAP.md:*)"]
 
 ## 프로세스
 
-1. ROADMAP.md 파일 읽기
+1. 허브(`docs/ROADMAP.md`) Phase 인덱스로 Task 번호가 속한 **스포크 파일** 파악
 2. 사용자에게 완료한 Task 번호 확인
-3. 해당 Task와 하위 체크리스트에 체크 표시 추가
-4. Phase 진행 상황 업데이트
-5. 문서 버전 및 최종 업데이트 날짜 갱신
-6. 진행 상황(X/12 Tasks 완료) 업데이트
+3. 해당 스포크 파일에서 Task와 하위 체크리스트에 체크 표시 추가
+4. 그 Phase 의 전체 Task 완료 시 허브 Phase 인덱스 표의 상태 갱신
+5. 최종 업데이트 날짜 갱신(있는 경우)
+6. 진행 상황 업데이트
 
 ## 업데이트 규칙
 

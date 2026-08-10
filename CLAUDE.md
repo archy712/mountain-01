@@ -39,7 +39,7 @@ npm run format:check # Prettier 포맷 위반 검사 (CI용)
 `docs/` 하위 문서:
 
 - `docs/guides/` — 아키텍처/스타일/폼 처리/Next.js 16 등 상세 가이드 5종. 관련 작업 전 참고.
-- `docs/PRD.md` (제품 요구사항), `docs/ROADMAP.md` (Phase/Task 개발 로드맵), `docs/decisions/` (기술 결정 기록, 예: 외부 데이터 소스·API 선정) — 진행 중인 프로덕트("산길정보") 기획 문서. 기능 작업 시 해당 Task/결정을 확인하세요.
+- `docs/PRD.md` (제품 요구사항), `docs/ROADMAP.md` (Phase/Task 개발 로드맵 **허브** — 목차·워크플로우·Phase 인덱스·의존성·리스크), `docs/roadmap/phase-*.md` (Task 상세를 Phase 그룹별로 분리: `phase-0-2-foundation`·`phase-3-4-mvp`·`phase-5-7-quality-personalization`·`phase-8-11-expansion`), `docs/decisions/` (기술 결정 기록, 예: 외부 데이터 소스·API 선정) — 진행 중인 프로덕트("산길정보") 기획 문서. 기능 작업 시 해당 Task/결정을 확인하세요. Task 상태 갱신은 스포크 파일에서, Phase 단위 상태는 허브 인덱스 표에서 합니다.
 
 ### Supabase 클라이언트 3종 — 컨텍스트별로 반드시 구분해서 사용
 

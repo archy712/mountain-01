@@ -130,13 +130,14 @@ docs/                # PRD · ROADMAP · 결정 기록 · 개발 가이드 · �
 
 ## 문서
 
-| 문서                                 | 내용                                           |
-| ------------------------------------ | ---------------------------------------------- |
-| [`docs/PRD.md`](docs/PRD.md)         | 제품 요구사항 정의서                           |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Phase/Task 기반 개발 로드맵                    |
-| [`docs/decisions/`](docs/decisions/) | 기술 결정 기록 (외부 데이터 소스·API 선정 등)  |
-| [`docs/guides/`](docs/guides/)       | 아키텍처·스타일·폼 처리·Next.js 16 상세 가이드 |
-| [`CLAUDE.md`](CLAUDE.md)             | 코드베이스 작업 가이드 (아키텍처·컨벤션)       |
+| 문서                                 | 내용                                              |
+| ------------------------------------ | ------------------------------------------------- |
+| [`docs/PRD.md`](docs/PRD.md)         | 제품 요구사항 정의서                              |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | 개발 로드맵 허브 (Phase 인덱스·워크플로우·의존성) |
+| [`docs/roadmap/`](docs/roadmap/)     | Phase 그룹별 Task 상세 (0~~2·3~~4·5~~7·8~~11)     |
+| [`docs/decisions/`](docs/decisions/) | 기술 결정 기록 (외부 데이터 소스·API 선정 등)     |
+| [`docs/guides/`](docs/guides/)       | 아키텍처·스타일·폼 처리·Next.js 16 상세 가이드    |
+| [`CLAUDE.md`](CLAUDE.md)             | 코드베이스 작업 가이드 (아키텍처·컨벤션)          |
 
 ---
 
