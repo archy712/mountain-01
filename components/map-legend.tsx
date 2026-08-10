@@ -1,4 +1,14 @@
-import { CircleAlert, CircleCheck, CircleHelp, CircleSlash, type LucideIcon } from "lucide-react";
+import {
+  CircleAlert,
+  CircleCheck,
+  CircleHelp,
+  CircleSlash,
+  Droplets,
+  Store,
+  TentTree,
+  Toilet,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { FACILITY_MARKER_STYLE } from "@/lib/facilities/marker-style";
@@ -10,11 +20,11 @@ import {
 } from "@/lib/types";
 
 /**
- * 지도 탐방로 상태 범례 (Task 012, 3단계 지도 준비).
+ * 지도 탐방로 상태 + 편의시설 범례 (Task 012 → 유형 아이콘 핀 개편).
  *
- * 접근성 원칙(결정 001 #4): **색상 단독으로 상태를 구분하지 않는다.**
- * 각 항목에 색상 점 + 상태 아이콘 + 한국어 라벨(`TRAIL_STATUS_LABEL`)을 함께 노출한다.
- * Task 029에서 카카오맵 폴리라인 색상과 이 범례를 연동한다.
+ * 접근성 원칙(결정 001 #4): **색상 단독으로 구분하지 않는다.** 탐방로는 색 점 + 상태 아이콘 +
+ * 라벨을, 편의시설은 유형 색 + **아이콘**(지도 핀과 동일) + 라벨을 함께 노출한다. 또한 클러스터
+ * 숫자 배지가 "이 구역 편의시설 개수"임을 각주로 설명해, 지도의 숫자·점이 무엇인지 읽히게 한다.
  */
 
 const STATUS_LEGEND: Record<TrailStatus, { icon: LucideIcon; dot: string; text: string }> = {
@@ -22,6 +32,13 @@ const STATUS_LEGEND: Record<TrailStatus, { icon: LucideIcon; dot: string; text: 
   closed: { icon: CircleSlash, dot: "bg-status-closed", text: "text-status-closed" },
   partial: { icon: CircleAlert, dot: "bg-status-partial", text: "text-status-partial" },
   unknown: { icon: CircleHelp, dot: "bg-status-unknown", text: "text-status-unknown" },
+};
+
+const FACILITY_ICON: Record<FacilityType, LucideIcon> = {
+  toilet: Toilet,
+  shelter: TentTree,
+  spring: Droplets,
+  shop: Store,
 };
 
 const DEFAULT_ORDER: TrailStatus[] = ["open", "partial", "closed", "unknown"];
@@ -62,19 +79,31 @@ export function MapLegend({
           <p className="mt-2.5 mb-2 text-xs font-semibold text-muted-foreground">편의시설</p>
           <ul className="flex flex-wrap gap-x-4 gap-y-2">
             {facilities.map((type) => {
-              const { color, shape } = FACILITY_MARKER_STYLE[type];
+              const { color } = FACILITY_MARKER_STYLE[type];
+              const Icon = FACILITY_ICON[type];
               return (
                 <li key={type} className="flex items-center gap-1.5 text-xs">
                   <span
                     aria-hidden="true"
                     style={{ backgroundColor: color }}
-                    className={cn("size-2.5", shape === "circle" ? "rounded-full" : "rounded-sm")}
-                  />
+                    className="flex size-4 items-center justify-center rounded-full text-white"
+                  >
+                    <Icon className="size-2.5" strokeWidth={2.5} />
+                  </span>
                   <span className="text-foreground">{FACILITY_TYPE_LABEL[type]}</span>
                 </li>
               );
             })}
           </ul>
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-tight text-muted-foreground">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-white bg-slate-700 text-[9px] font-bold text-white"
+            >
+              N
+            </span>
+            숫자 = 이 구역 편의시설 개수 · 지도를 확대하면 개별 표시
+          </p>
         </>
       ) : null}
     </div>

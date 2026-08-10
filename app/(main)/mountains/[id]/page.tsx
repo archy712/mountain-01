@@ -10,6 +10,7 @@ import { DailyForecastList } from "@/components/daily-forecast-list";
 import { DustForecastPanel } from "@/components/dust-forecast";
 import { FacilityList } from "@/components/facility-list";
 import { FacilityMarkers } from "@/components/facility-markers";
+import { FacilitySelectionProvider } from "@/components/facility-selection";
 import { BackToListButton } from "@/components/back-to-list-button";
 import { FavoriteButton } from "@/components/favorite-button";
 import { VisitedButton } from "@/components/visited-button";
@@ -110,6 +111,13 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
   if (!mountain) notFound();
 
+  // 편의시설은 near-immutable 정적 시드('use cache')라 셸에서 1회 조회해 지도 마커와 리스트가
+  // 같은 배열·선택 상태를 공유하게 한다(리스트↔지도 연동). 미보유 산은 빈 배열 → 섹션 숨김.
+  const facilities = await getFacilitiesForMountain(mountain.id);
+  const facilityTypes = (["toilet", "shelter", "spring", "shop"] as const).filter((t) =>
+    facilities.some((f) => f.type === t),
+  );
+
   return (
     <div className="space-y-6 py-6">
       <MountainViewTracker mountainId={mountain.id} />
@@ -159,57 +167,58 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
         <SeasonalSection mountainId={mountain.id} />
       </Suspense>
 
-      {/* 탐방로 목록 ↔ 지도 폴리라인 선택 연동(Task 032). 두 섹션을 한 Provider 로 감싸
-          목록 클릭 시 지도의 해당 선을 강조색으로 부각한다(반대 방향도 동작). */}
-      <TrailSelectionProvider>
-        <Suspense fallback={<TrailListSkeleton />}>
-          <TrailSection mountainId={mountain.id} />
-        </Suspense>
+      {/* 편의시설 리스트 ↔ 지도 마커 선택 연동. 지도 섹션과 편의시설 목록을 한 Provider 로
+          감싸 같은 시설·필터·선택 상태를 공유한다(행 클릭→지도 이동, 마커 클릭→목록 스크롤). */}
+      <FacilitySelectionProvider facilities={facilities}>
+        {/* 탐방로 목록 ↔ 지도 폴리라인 선택 연동(Task 032). 두 섹션을 한 Provider 로 감싸
+            목록 클릭 시 지도의 해당 선을 강조색으로 부각한다(반대 방향도 동작). */}
+        <TrailSelectionProvider>
+          <Suspense fallback={<TrailListSkeleton />}>
+            <TrailSection mountainId={mountain.id} />
+          </Suspense>
 
-        {/* 지도 섹션 — 카카오맵(Task 028) + 등산로 폴리라인(Task 029) + 선택 강조(Task 032).
-            id 는 목록에서 코스 선택 시 지도로 스크롤하는 앵커로 쓰인다(Task 033 #1). */}
-        <section
-          id="trail-map-section"
-          aria-labelledby="map-heading"
-          className="scroll-mt-4 space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <h2 id="map-heading" className="text-base font-semibold">
-              지도
-            </h2>
-            {/* 선택한 코스를 ?trail= 로 전달해 전체화면에서 복원한다(Task 033 후속). */}
-            <FullscreenMapLink mountainId={id} />
-          </div>
-          <div className="relative overflow-hidden rounded-lg border">
-            <KakaoMap
-              lat={mountain.lat}
-              lng={mountain.lng}
-              name={mountain.name}
-              appKey={publicEnv.kakaoMapKey}
-              className="h-[220px]"
-            >
-              <Suspense fallback={null}>
-                <TrailOverlaySection mountainId={mountain.id} />
-              </Suspense>
-              {/* 편의시설 마커(화장실·대피소, Task 045). 정적 캐시 데이터라 폴리라인과 독립. */}
-              <Suspense fallback={null}>
-                <FacilityMarkersSection mountainId={mountain.id} />
-              </Suspense>
-            </KakaoMap>
+          {/* 지도 섹션 — 카카오맵(Task 028) + 등산로 폴리라인(Task 029) + 선택 강조(Task 032).
+              id 는 목록에서 코스 선택 시 지도로 스크롤하는 앵커로 쓰인다(Task 033 #1). */}
+          <section
+            id="trail-map-section"
+            aria-labelledby="map-heading"
+            className="scroll-mt-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <h2 id="map-heading" className="text-base font-semibold">
+                지도
+              </h2>
+              {/* 선택한 코스를 ?trail= 로 전달해 전체화면에서 복원한다(Task 033 후속). */}
+              <FullscreenMapLink mountainId={id} />
+            </div>
+            <div className="relative overflow-hidden rounded-lg border">
+              <KakaoMap
+                lat={mountain.lat}
+                lng={mountain.lng}
+                name={mountain.name}
+                appKey={publicEnv.kakaoMapKey}
+                className="h-[340px] sm:h-[400px]"
+              >
+                <Suspense fallback={null}>
+                  <TrailOverlaySection mountainId={mountain.id} />
+                </Suspense>
+                {/* 편의시설 아이콘 핀 — 프로바이더의 시설·필터·선택 상태를 구독한다. */}
+                <FacilityMarkers />
+              </KakaoMap>
+            </div>
+            {/* 범례는 지형을 가리지 않도록 지도 아래에 둔다(카카오 오버레이 z-index 회피 겸
+                항상 보이도록). 클러스터 숫자 의미도 여기서 설명한다. */}
             <MapLegend
               statuses={["open", "partial", "closed"]}
-              facilities={["toilet", "shelter"]}
-              className="absolute right-3 bottom-3 left-3 sm:right-auto"
+              facilities={facilityTypes.length > 0 ? facilityTypes : undefined}
             />
-          </div>
-        </section>
-      </TrailSelectionProvider>
+          </section>
+        </TrailSelectionProvider>
 
-      {/* 편의시설(화장실) — 국립공원공단 정적 시드(Task 045). near-immutable 캐시 데이터라
-          독립 <Suspense> 로 담아도 콜드 캐시에서만 잠깐 스켈레톤을 보이고, 미보유 산은 숨긴다. */}
-      <Suspense fallback={<FacilityListSkeleton />}>
-        <FacilitySection mountainId={mountain.id} />
-      </Suspense>
+        {/* 편의시설 목록 — 지도 마커와 같은 시설·필터·선택 상태를 공유한다. 미보유 산은
+            FacilityList 가 null 을 반환해 섹션이 사라진다. */}
+        <FacilityList />
+      </FacilitySelectionProvider>
     </div>
   );
 }
@@ -426,25 +435,6 @@ async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
 }
 
 /**
- * 편의시설(화장실) 서브트리 (Task 045). 정적 시드(`'use cache'`, mountains-1d)라 `connection()`
- * 없이 프리렌더 가능하며, 미보유 산은 `FacilityList` 가 null 을 반환해 섹션이 사라진다.
- */
-async function FacilitySection({ mountainId }: { mountainId: string }) {
-  const facilities = await getFacilitiesForMountain(mountainId);
-  return <FacilityList facilities={facilities} />;
-}
-
-/**
- * 편의시설 지도 마커 서브트리 (Task 045). 목록 섹션과 동일한 `'use cache'` 데이터를 재사용해
- * (추가 네트워크 없이) 지도에 유형별 마커를 클러스터링해 얹는다. 미보유 산은 null.
- */
-async function FacilityMarkersSection({ mountainId }: { mountainId: string }) {
-  const facilities = await getFacilitiesForMountain(mountainId);
-  if (facilities.length === 0) return null;
-  return <FacilityMarkers facilities={facilities} />;
-}
-
-/**
  * 컨디션 점수 섹션 스트리밍 대기용 스켈레톤.
  *
  * 콜드 캐시(스태거드 스트리밍)에서 스켈레톤보다 실제 콘텐츠가 크면 아래 섹션을 밀어내
@@ -594,27 +584,6 @@ function TrailListSkeleton() {
           <Skeleton className="h-6 w-16 rounded-full" />
         </div>
       ))}
-    </div>
-  );
-}
-
-/**
- * 편의시설 섹션 스트리밍 대기용 스켈레톤 (Task 045).
- *
- * 실제 섹션은 제목 + 유형 요약 행 + 목록(스크롤)로 구성된다. 페이지 최하단이라 CLS 가중치는
- * 낮지만, 실제 구조/높이를 예약해 콜드 캐시에서 흔들림을 줄인다.
- */
-function FacilityListSkeleton() {
-  return (
-    <div className="space-y-3" aria-busy="true">
-      <LoadingBar />
-      <Skeleton className="h-5 w-20" />
-      <div className="space-y-2 rounded-lg border p-4">
-        <Skeleton className="h-4 w-28" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-full rounded-md" />
-        ))}
-      </div>
     </div>
   );
 }

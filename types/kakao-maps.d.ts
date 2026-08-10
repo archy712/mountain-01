@@ -36,8 +36,11 @@ declare global {
       constructor(container: HTMLElement, options: MapOptions);
       setCenter(latlng: LatLng): void;
       getCenter(): LatLng;
-      setLevel(level: number): void;
+      /** 확대 레벨 설정. anchor 지정 시 그 좌표를 기준으로 확대(클러스터 펼치기). */
+      setLevel(level: number, options?: { anchor?: LatLng }): void;
       getLevel(): number;
+      /** 부드럽게 중심 이동(선택한 편의시설로 이동) */
+      panTo(latlng: LatLng): void;
       /** 주어진 범위가 보이도록 중심·레벨을 조정한다(선택 코스 프레이밍). 여백은 px. */
       setBounds(
         bounds: LatLngBounds,
@@ -85,6 +88,10 @@ declare global {
       constructor(options: MarkerOptions);
       setMap(map: Map | null): void;
       getPosition(): LatLng;
+      /** 마커 이미지 교체(선택 강조 ↔ 일반) */
+      setImage(image: MarkerImage): void;
+      /** 그리기 순서 설정(선택 마커를 위로) */
+      setZIndex(zIndex: number): void;
     }
 
     interface InfoWindowOptions {
@@ -112,6 +119,15 @@ declare global {
       gridSize?: number;
       /** 클러스터 클릭 시 자동 확대 비활성화 */
       disableClickZoom?: boolean;
+      /** 클러스터 배지 커스텀 스타일(CSS 속성 객체 배열). 개수 배지를 알약으로. */
+      styles?: Array<Record<string, string>>;
+    }
+
+    /** 클러스터(개수 배지). clusterclick 콜백 인자로 전달된다. */
+    class Cluster {
+      getCenter(): LatLng;
+      getSize(): number;
+      getMarkers(): Marker[];
     }
 
     /**
@@ -174,15 +190,17 @@ declare global {
     }
 
     namespace event {
-      function addListener(
+      // 콜백 인자는 대상·이벤트에 따라 다르다(지도 click→MouseEvent, clusterclick→Cluster,
+      // marker click→인자 없음). 기본 MouseEvent 로 두되 제네릭으로 좁혀 쓸 수 있게 한다.
+      function addListener<T = MouseEvent>(
         target: object,
         type: string,
-        handler: (mouseEvent: MouseEvent) => void,
+        handler: (event: T) => void,
       ): void;
-      function removeListener(
+      function removeListener<T = MouseEvent>(
         target: object,
         type: string,
-        handler: (mouseEvent: MouseEvent) => void,
+        handler: (event: T) => void,
       ): void;
     }
 

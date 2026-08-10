@@ -6,6 +6,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { KakaoMap } from "@/components/kakao-map";
 import { FacilityMarkers } from "@/components/facility-markers";
+import { FacilitySelectionProvider } from "@/components/facility-selection";
+import { FacilityFilterChips } from "@/components/facility-filter-chips";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { TrailSelectionProvider } from "@/components/trail-selection";
@@ -37,18 +39,17 @@ async function FullscreenTrailOverlay({ mountainId }: { mountainId: string }) {
   return <TrailOverlay trails={paths} />;
 }
 
-/** 전체화면 지도의 편의시설 마커(화장실·대피소, Task 045). 정적 캐시 데이터, 미보유 산은 null. */
-async function FullscreenFacilityMarkers({ mountainId }: { mountainId: string }) {
-  const facilities = await getFacilitiesForMountain(mountainId);
-  if (facilities.length === 0) return null;
-  return <FacilityMarkers facilities={facilities} />;
-}
-
 export default async function MountainMapPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const mountain = await getMountainMeta(id);
   if (!mountain) notFound();
   const title = `${mountain.name} 지도`;
+
+  // 편의시설을 1회 조회해 프로바이더에 올린다(마커·필터칩 공유). 미보유 산은 빈 배열.
+  const facilities = await getFacilitiesForMountain(mountain.id);
+  const facilityTypes = (["toilet", "shelter", "spring", "shop"] as const).filter((t) =>
+    facilities.some((f) => f.type === t),
+  );
 
   return (
     <section className="flex flex-col gap-3 py-6">
@@ -65,35 +66,39 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
 
       {/* 풀스크린 지도 영역 (Task 028: KakaoMap, Task 029: 폴리라인, Task 032: 선택 강조).
           목록이 없는 화면이라 폴리라인 클릭 → 강조 + 이름 라벨로 코스를 식별한다. */}
-      <TrailSelectionProvider>
-        {/* 상세에서 넘어온 ?trail= 선택을 복원한다. useSearchParams 사용을 이 컴포넌트에
-            국한하고 <Suspense> 로 감싸 지도 셸의 정적 프리렌더를 유지한다(Task 033 후속). */}
-        <Suspense fallback={null}>
-          <TrailSelectionUrlSync />
-        </Suspense>
-        <div className="relative overflow-hidden rounded-lg border">
-          <KakaoMap
-            lat={mountain.lat}
-            lng={mountain.lng}
-            name={mountain.name}
-            level={5}
-            appKey={publicEnv.kakaoMapKey}
-            className="min-h-[70dvh]"
-          >
-            <Suspense fallback={null}>
-              <FullscreenTrailOverlay mountainId={mountain.id} />
-            </Suspense>
-            <Suspense fallback={null}>
-              <FullscreenFacilityMarkers mountainId={mountain.id} />
-            </Suspense>
-          </KakaoMap>
-          <MapLegend
-            statuses={["open", "partial", "closed"]}
-            facilities={["toilet", "shelter"]}
-            className="absolute right-3 bottom-3 left-3 sm:right-auto"
-          />
-        </div>
-      </TrailSelectionProvider>
+      <FacilitySelectionProvider facilities={facilities}>
+        <TrailSelectionProvider>
+          {/* 상세에서 넘어온 ?trail= 선택을 복원한다. useSearchParams 사용을 이 컴포넌트에
+              국한하고 <Suspense> 로 감싸 지도 셸의 정적 프리렌더를 유지한다(Task 033 후속). */}
+          <Suspense fallback={null}>
+            <TrailSelectionUrlSync />
+          </Suspense>
+          <div className="relative overflow-hidden rounded-lg border">
+            <KakaoMap
+              lat={mountain.lat}
+              lng={mountain.lng}
+              name={mountain.name}
+              level={5}
+              appKey={publicEnv.kakaoMapKey}
+              className="min-h-[70dvh]"
+            >
+              <Suspense fallback={null}>
+                <FullscreenTrailOverlay mountainId={mountain.id} />
+              </Suspense>
+              {/* 편의시설 아이콘 핀 — 프로바이더의 시설·필터·선택 상태를 구독한다. */}
+              <FacilityMarkers />
+            </KakaoMap>
+            {/* 유형 필터 칩 — 목록이 없는 전체화면에서 마커를 유형별로 좁힌다. z-index 로
+                카카오 오버레이(마커·인포윈도우) 위에 띄운다. */}
+            <FacilityFilterChips className="absolute top-3 left-3 z-[500] rounded-lg border bg-card/90 p-1.5 shadow-sm backdrop-blur" />
+            <MapLegend
+              statuses={["open", "partial", "closed"]}
+              facilities={facilityTypes.length > 0 ? facilityTypes : undefined}
+              className="absolute right-3 bottom-3 left-3 z-[500] sm:right-auto"
+            />
+          </div>
+        </TrailSelectionProvider>
+      </FacilitySelectionProvider>
     </section>
   );
 }
