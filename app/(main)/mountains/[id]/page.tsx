@@ -24,6 +24,7 @@ import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { MountainDetail } from "@/components/mountain-detail";
 import { ScoreBreakdown } from "@/components/score-breakdown";
+import { SeasonalNotice } from "@/components/seasonal-notice";
 import { ShareButton } from "@/components/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SunTimesRow } from "@/components/sun-times-row";
@@ -33,6 +34,7 @@ import { WeatherSummaryCard } from "@/components/weather-summary-card";
 import { getWeatherForecast } from "@/lib/api/kma-forecast";
 import { getDustForecastForMountain } from "@/lib/api/airkorea-forecast";
 import { getConditionForMountain, getConditionTrendForMountain } from "@/lib/condition";
+import { getActiveSeasonalContent } from "@/lib/seasonal/period";
 import { getSunTimesToday } from "@/lib/geo/sun-times";
 import { getAllMountains } from "@/lib/data/mountains";
 import {
@@ -150,6 +152,11 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           독립 스트리밍하며, 미커버리지/실패 시 섹션을 숨긴다. */}
       <Suspense fallback={<DustForecastSkeleton />}>
         <DustForecastSection mountain={mountain} />
+      </Suspense>
+
+      {/* 제철 명소·야생동물 주의(Task 046). 오늘(KST)이 큐레이션 기간에 들 때만 노출한다. */}
+      <Suspense fallback={null}>
+        <SeasonalSection mountainId={mountain.id} />
       </Suspense>
 
       {/* 탐방로 목록 ↔ 지도 폴리라인 선택 연동(Task 032). 두 섹션을 한 Provider 로 감싸
@@ -375,6 +382,22 @@ async function DustForecastSection({ mountain }: { mountain: Mountain }) {
   return (
     <div className="rounded-lg border p-5">
       <DustForecastPanel forecast={result.data} />
+    </div>
+  );
+}
+
+/**
+ * 제철 명소·야생동물 주의 서브트리 (Task 046). 정적 큐레이션이지만 **오늘(KST)** 기준으로
+ * 활성 항목을 거르므로(매일 달라짐) `connection()` 으로 동적 홀임을 명시한다. 활성 항목이
+ * 없으면(대상 외 산·시즌 밖) null → 섹션 미노출.
+ */
+async function SeasonalSection({ mountainId }: { mountainId: string }) {
+  await connection();
+  const active = getActiveSeasonalContent(mountainId);
+  if (!active) return null;
+  return (
+    <div className="rounded-lg border p-5">
+      <SeasonalNotice content={active} />
     </div>
   );
 }
