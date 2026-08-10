@@ -14,6 +14,9 @@
  * 안전 출발(daylight): 왕복이 긴 산은 컨디션만 보고 늦은 시각을 추천하면 일몰 뒤 하산 위험이
  * 있다(예: 한라산 왕복 ~9시간). 긴 코스 왕복시간+일몰로 "안전 출발 마감"을 계산해, 추천을
  * 일몰 전 하산 가능한 시간대로 제한한다. 공식 입산통제 시각 데이터는 없어 일몰 기준으로 파생한다.
+ * **하한(일출)**: 밤에는 기온이 낮아 컨디션 점수가 높게 나오지만 일출 전은 어두워 산행 출발
+ * 시각으로 부적절하다. 그래서 안전 창을 "일출 ~ 안전 출발 마감"으로 두어 새벽·야간 슬롯을
+ * 추천에서 배제한다(다음날 새벽 슬롯 포함 — 시계 시각으로 판정).
  */
 
 import type {
@@ -31,6 +34,8 @@ import { computeConditionScore } from "./score";
 export interface DaylightInput {
   /** 참조 왕복 소요(분) — service 에서 개방 코스 상위 80퍼센타일로 산출 */
   roundTripMin: number;
+  /** 오늘 일출(KST) 자정 기준 분(0~1439). 추천 하한(이 시각 이후만 안전) */
+  sunriseMinutes: number;
   /** 오늘 일몰(KST) 자정 기준 분(0~1439) */
   sunsetMinutes: number;
   /** 일몰 전 하산 여유 버퍼(분). 기본 60 */
@@ -73,10 +78,11 @@ function minutesToHm(min: number): string {
 export function computeHourlyConditionTrend(input: HourlyConditionInput): HourlyConditionTrend {
   const { forecast, air, uv, limit = 8, daylight } = input;
 
-  const todayDate = forecast.current.baseDate;
   const buffer = daylight?.bufferMin ?? 60;
   // 일몰 전 하산하려면 늦어도 이 시각(분)까지 출발해야 한다.
   const latestStartMin = daylight ? daylight.sunsetMinutes - daylight.roundTripMin - buffer : null;
+  // 추천 하한: 일출 이후만 안전(일출 전은 어두워 출발 부적절).
+  const sunriseMin = daylight ? daylight.sunriseMinutes : null;
 
   const points: HourlyConditionPoint[] = forecast.hourly.slice(0, limit).map((h) => {
     const slotWeather: WeatherSnapshot = {
@@ -90,11 +96,13 @@ export function computeHourlyConditionTrend(input: HourlyConditionInput): Hourly
       baseTime: h.time,
     };
     const { score, grade } = computeConditionScore({ weather: slotWeather, air, uv });
-    // 오늘 슬롯만 왕복시간 제약을 적용한다(다음날 새벽 슬롯은 하루가 남아 안전).
+    // 안전 출발 창(daylight window): 일출 이후 ~ 안전 출발 마감 이내여야 추천 후보다.
+    // 시계 시각으로 판정하므로 다음날 슬롯도 동일 규칙(새벽 슬롯은 일출 전이라 제외)이 적용된다.
+    const slotMin = slotStartMinutes(h.time);
     const daylightSafe =
-      latestStartMin === null || h.date !== todayDate
+      latestStartMin === null || sunriseMin === null
         ? true
-        : slotStartMinutes(h.time) <= latestStartMin;
+        : slotMin >= sunriseMin && slotMin <= latestStartMin;
     return { date: h.date, time: h.time, score, grade, daylightSafe };
   });
 

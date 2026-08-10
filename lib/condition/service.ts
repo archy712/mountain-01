@@ -182,10 +182,16 @@ function buildDaylightInput(
     }
   }
 
-  const sunset = getSunTimesToday(mountain.lat, mountain.lng, now).sunset;
-  if (!sunset) return undefined;
-  const [h, m] = sunset.split(":").map(Number);
-  const sunsetMinutes = h * 60 + m;
+  const { sunrise, sunset } = getSunTimesToday(mountain.lat, mountain.lng, now);
+  // 일몰(상한)·일출(하한) 둘 다 있어야 안전 창을 세운다. 하나라도 없으면 가드 없음.
+  if (!sunset || !sunrise) return undefined;
+  const [sh, sm] = sunset.split(":").map(Number);
+  const [rh, rm] = sunrise.split(":").map(Number);
 
-  return { roundTripMin, sunsetMinutes, estimated };
+  return {
+    roundTripMin,
+    sunriseMinutes: rh * 60 + rm,
+    sunsetMinutes: sh * 60 + sm,
+    estimated,
+  };
 }
