@@ -114,6 +114,53 @@ export type Database = {
           },
         ]
       }
+      facilities: {
+        Row: {
+          accessible: boolean
+          address: string | null
+          created_at: string
+          elevation: number | null
+          id: string
+          lat: number
+          lng: number
+          mountain_id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          accessible?: boolean
+          address?: string | null
+          created_at?: string
+          elevation?: number | null
+          id?: string
+          lat: number
+          lng: number
+          mountain_id: string
+          name: string
+          type?: string
+        }
+        Update: {
+          accessible?: boolean
+          address?: string | null
+          created_at?: string
+          elevation?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          mountain_id?: string
+          name?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facilities_mountain_id_fkey"
+            columns: ["mountain_id"]
+            isOneToOne: false
+            referencedRelation: "mountains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string

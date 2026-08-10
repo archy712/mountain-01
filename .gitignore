@@ -44,8 +44,10 @@ next-env.d.ts
 # 태스크 매니저 도구 로컬 데이터 (버전 관리 제외)
 /shrimp_data
 
-# 대용량 원본 데이터 (로컬 가공용, 버전관리 제외)
+# 대용량/원본 공공데이터 CSV (로컬 가공용, 버전관리 제외 — 생성된 시드 SQL만 커밋)
 /mountain.csv
+/GSTN_TOILET_PT.csv
+/shelter_*.csv
 
 # Claude Code 세션 아티팩트
 .claude/scheduled_tasks.lock

@@ -8,6 +8,7 @@ import { FireRiskBadge } from "@/components/fire-risk-badge";
 import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { DustForecastPanel } from "@/components/dust-forecast";
+import { FacilityList } from "@/components/facility-list";
 import { BackToListButton } from "@/components/back-to-list-button";
 import { FavoriteButton } from "@/components/favorite-button";
 import { VisitedButton } from "@/components/visited-button";
@@ -38,6 +39,7 @@ import {
   getTrailPathsForMountain,
   getTrailsForMountain,
 } from "@/lib/data/mountain-detail";
+import { getFacilitiesForMountain } from "@/lib/data/facilities";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { hasData, type Mountain, type PartialResult, type WeatherSnapshot } from "@/lib/types";
@@ -189,6 +191,12 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           </div>
         </section>
       </TrailSelectionProvider>
+
+      {/* 편의시설(화장실) — 국립공원공단 정적 시드(Task 045). near-immutable 캐시 데이터라
+          독립 <Suspense> 로 담아도 콜드 캐시에서만 잠깐 스켈레톤을 보이고, 미보유 산은 숨긴다. */}
+      <Suspense fallback={<FacilityListSkeleton />}>
+        <FacilitySection mountainId={mountain.id} />
+      </Suspense>
     </div>
   );
 }
@@ -389,6 +397,15 @@ async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
 }
 
 /**
+ * 편의시설(화장실) 서브트리 (Task 045). 정적 시드(`'use cache'`, mountains-1d)라 `connection()`
+ * 없이 프리렌더 가능하며, 미보유 산은 `FacilityList` 가 null 을 반환해 섹션이 사라진다.
+ */
+async function FacilitySection({ mountainId }: { mountainId: string }) {
+  const facilities = await getFacilitiesForMountain(mountainId);
+  return <FacilityList facilities={facilities} />;
+}
+
+/**
  * 컨디션 점수 섹션 스트리밍 대기용 스켈레톤.
  *
  * 콜드 캐시(스태거드 스트리밍)에서 스켈레톤보다 실제 콘텐츠가 크면 아래 섹션을 밀어내
@@ -538,6 +555,27 @@ function TrailListSkeleton() {
           <Skeleton className="h-6 w-16 rounded-full" />
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * 편의시설 섹션 스트리밍 대기용 스켈레톤 (Task 045).
+ *
+ * 실제 섹션은 제목 + 유형 요약 행 + 목록(스크롤)로 구성된다. 페이지 최하단이라 CLS 가중치는
+ * 낮지만, 실제 구조/높이를 예약해 콜드 캐시에서 흔들림을 줄인다.
+ */
+function FacilityListSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true">
+      <LoadingBar />
+      <Skeleton className="h-5 w-20" />
+      <div className="space-y-2 rounded-lg border p-4">
+        <Skeleton className="h-4 w-28" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-full rounded-md" />
+        ))}
+      </div>
     </div>
   );
 }

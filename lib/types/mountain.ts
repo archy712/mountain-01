@@ -69,6 +69,39 @@ export interface Trail {
   waypoints: string | null;
 }
 
+/**
+ * 편의시설 유형 (Task 045). 1차 범위는 화장실(toilet)이며, 대피소·식수대·매점은
+ * 형제 데이터셋 확보 시 확장한다(DB `facilities.type` CHECK 와 대응).
+ */
+export type FacilityType = "toilet" | "shelter" | "spring" | "shop";
+
+/** 유형 → 한국어 라벨 (색상/아이콘 단독 금지: 항상 텍스트 병기). */
+export const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
+  toilet: "화장실",
+  shelter: "대피소",
+  spring: "식수대",
+  shop: "매점",
+};
+
+/**
+ * 산의 편의시설(위치 포함). 국립공원공단 포인트 데이터를 정적 시드로 적재한 것(Task 045).
+ * 미보유 산(국립공원 외)은 빈 목록 → 화면에서 섹션 미노출.
+ */
+export interface Facility {
+  id: string;
+  mountainId: string;
+  type: FacilityType;
+  name: string;
+  lat: number;
+  lng: number;
+  /** 장애인 편의(화장실) 유무 */
+  accessible: boolean;
+  /** 지번 주소. 없으면 null */
+  address: string | null;
+  /** 고도(m). 미상이면 null */
+  elevation: number | null;
+}
+
 /** 난이도 5단계(별 개수). 1=매우 쉬움 … 5=매우 어려움. */
 export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
 
