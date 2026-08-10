@@ -50,15 +50,78 @@ declare global {
       relayout(): void;
     }
 
+    /** 픽셀 크기(마커 이미지 등, Task 045 편의시설 마커) */
+    class Size {
+      constructor(width: number, height: number);
+    }
+
+    /** 픽셀 좌표(마커 이미지 기준점 오프셋 등) */
+    class Point {
+      constructor(x: number, y: number);
+    }
+
+    interface MarkerImageOptions {
+      /** 마커가 가리키는 기준 좌표(이미지 내 픽셀) */
+      offset?: Point;
+    }
+
+    /** 마커 이미지(편의시설 유형별 아이콘) */
+    class MarkerImage {
+      constructor(src: string, size: Size, options?: MarkerImageOptions);
+    }
+
     interface MarkerOptions {
       position: LatLng;
       map?: Map;
       title?: string;
+      /** 커스텀 마커 이미지(유형별 아이콘) */
+      image?: MarkerImage;
+      clickable?: boolean;
+      zIndex?: number;
     }
 
     /** 마커 오버레이 */
     class Marker {
       constructor(options: MarkerOptions);
+      setMap(map: Map | null): void;
+      getPosition(): LatLng;
+    }
+
+    interface InfoWindowOptions {
+      content?: string | HTMLElement;
+      /** 닫기(x) 버튼 표시 */
+      removable?: boolean;
+      zIndex?: number;
+    }
+
+    /** 정보 창(마커 클릭 시 시설명·상세 표시, Task 045) */
+    class InfoWindow {
+      constructor(options?: InfoWindowOptions);
+      open(map: Map, marker?: Marker): void;
+      close(): void;
+      setContent(content: string | HTMLElement): void;
+    }
+
+    interface MarkerClustererOptions {
+      map?: Map;
+      markers?: Marker[];
+      /** 클러스터 좌표를 포함된 마커 평균으로 */
+      averageCenter?: boolean;
+      /** 이 레벨 이상(축소)에서만 클러스터링 */
+      minLevel?: number;
+      gridSize?: number;
+      /** 클러스터 클릭 시 자동 확대 비활성화 */
+      disableClickZoom?: boolean;
+    }
+
+    /**
+     * 마커 클러스터러 (편의시설 마커 밀집 대응, Task 045).
+     * `libraries=clusterer` 로 SDK 를 로드해야 사용 가능하다(kakao-map.tsx 로더 참조).
+     */
+    class MarkerClusterer {
+      constructor(options: MarkerClustererOptions);
+      addMarkers(markers: Marker[], nodraw?: boolean): void;
+      clear(): void;
       setMap(map: Map | null): void;
     }
 

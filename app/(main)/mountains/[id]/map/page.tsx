@@ -5,11 +5,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { KakaoMap } from "@/components/kakao-map";
+import { FacilityMarkers } from "@/components/facility-markers";
 import { MapLegend } from "@/components/map-legend";
 import { TrailOverlay } from "@/components/trail-overlay";
 import { TrailSelectionProvider } from "@/components/trail-selection";
 import { TrailSelectionUrlSync } from "@/components/trail-selection-url-sync";
 import { getAllMountains } from "@/lib/data/mountains";
+import { getFacilitiesForMountain } from "@/lib/data/facilities";
 import { getMountainMeta, getTrailPathsForMountain } from "@/lib/data/mountain-detail";
 import { publicEnv } from "@/lib/env";
 
@@ -33,6 +35,13 @@ async function FullscreenTrailOverlay({ mountainId }: { mountainId: string }) {
   const paths = await getTrailPathsForMountain(mountainId);
   if (paths.length === 0) return null;
   return <TrailOverlay trails={paths} />;
+}
+
+/** 전체화면 지도의 편의시설 마커(화장실·대피소, Task 045). 정적 캐시 데이터, 미보유 산은 null. */
+async function FullscreenFacilityMarkers({ mountainId }: { mountainId: string }) {
+  const facilities = await getFacilitiesForMountain(mountainId);
+  if (facilities.length === 0) return null;
+  return <FacilityMarkers facilities={facilities} />;
 }
 
 export default async function MountainMapPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,9 +83,13 @@ export default async function MountainMapPage({ params }: { params: Promise<{ id
             <Suspense fallback={null}>
               <FullscreenTrailOverlay mountainId={mountain.id} />
             </Suspense>
+            <Suspense fallback={null}>
+              <FullscreenFacilityMarkers mountainId={mountain.id} />
+            </Suspense>
           </KakaoMap>
           <MapLegend
             statuses={["open", "partial", "closed"]}
+            facilities={["toilet", "shelter"]}
             className="absolute right-3 bottom-3 left-3 sm:right-auto"
           />
         </div>

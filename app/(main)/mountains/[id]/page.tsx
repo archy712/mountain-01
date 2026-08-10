@@ -9,6 +9,7 @@ import { ConditionScoreGauge } from "@/components/condition-score-gauge";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { DustForecastPanel } from "@/components/dust-forecast";
 import { FacilityList } from "@/components/facility-list";
+import { FacilityMarkers } from "@/components/facility-markers";
 import { BackToListButton } from "@/components/back-to-list-button";
 import { FavoriteButton } from "@/components/favorite-button";
 import { VisitedButton } from "@/components/visited-button";
@@ -183,9 +184,14 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
               <Suspense fallback={null}>
                 <TrailOverlaySection mountainId={mountain.id} />
               </Suspense>
+              {/* 편의시설 마커(화장실·대피소, Task 045). 정적 캐시 데이터라 폴리라인과 독립. */}
+              <Suspense fallback={null}>
+                <FacilityMarkersSection mountainId={mountain.id} />
+              </Suspense>
             </KakaoMap>
             <MapLegend
               statuses={["open", "partial", "closed"]}
+              facilities={["toilet", "shelter"]}
               className="absolute right-3 bottom-3 left-3 sm:right-auto"
             />
           </div>
@@ -403,6 +409,16 @@ async function TrailOverlaySection({ mountainId }: { mountainId: string }) {
 async function FacilitySection({ mountainId }: { mountainId: string }) {
   const facilities = await getFacilitiesForMountain(mountainId);
   return <FacilityList facilities={facilities} />;
+}
+
+/**
+ * 편의시설 지도 마커 서브트리 (Task 045). 목록 섹션과 동일한 `'use cache'` 데이터를 재사용해
+ * (추가 네트워크 없이) 지도에 유형별 마커를 클러스터링해 얹는다. 미보유 산은 null.
+ */
+async function FacilityMarkersSection({ mountainId }: { mountainId: string }) {
+  const facilities = await getFacilitiesForMountain(mountainId);
+  if (facilities.length === 0) return null;
+  return <FacilityMarkers facilities={facilities} />;
 }
 
 /**

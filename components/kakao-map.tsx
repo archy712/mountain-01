@@ -38,8 +38,9 @@ function loadKakaoSdk(appKey: string): Promise<void> {
   sdkPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.async = true;
-    // autoload=false → 로드 후 kakao.maps.load 콜백에서만 객체 접근 안전
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+    // autoload=false → 로드 후 kakao.maps.load 콜백에서만 객체 접근 안전.
+    // libraries=clusterer → 편의시설 마커 밀집 대응 MarkerClusterer 사용(Task 045).
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
     script.onload = () => {
       // 스크립트 태그는 붙었지만 SDK 초기화가 실패할 수도 있어 방어적으로 확인한다.
       if (window.kakao?.maps) {
