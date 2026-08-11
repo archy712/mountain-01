@@ -1,4 +1,5 @@
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 /**
@@ -13,6 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
       <main className="mx-auto w-full max-w-screen-sm flex-1 px-5 pb-24">{children}</main>
+      <SiteFooter />
       <PwaInstallPrompt />
     </div>
   );
